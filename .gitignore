@@ -163,3 +163,4 @@ node_modules/scheduler/umd/scheduler.profiling.min.js
 node_modules/scheduler/unstable_mock.js
 node_modules/scheduler/unstable_post_task.js
 >>>>>>> Stashed changes
+package-lock.json

@@ -5,6 +5,9 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   server: {
     https: {
       key: fs.readFileSync(path.resolve(__dirname, 'certs/localhost+2-key.pem')),

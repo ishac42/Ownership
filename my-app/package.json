@@ -41,7 +41,9 @@
   },
   "overrides": {
     "vite": "npm:rolldown-vite@7.2.5",
+    "react-zoom-pan-pinch": {
       "react": "$react",
       "react-dom": "$react-dom"
+    }
   }
 }

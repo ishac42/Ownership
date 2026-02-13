@@ -7,7 +7,15 @@ const editRoute = require('./edit');
 const getEntityRoute = require('./getEntity'); 
 
 const app = express();
-app.use(cors());
+
+// CORS configuration - allow requests from any origin
+app.use(cors({
+  origin: true, // Allow all origins
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 app.post('/api/retrieve-info', async (req, res) => {

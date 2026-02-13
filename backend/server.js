@@ -23,7 +23,20 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Backend is running' });
 });
 
+// Test POST route
+app.post('/api/test', (req, res) => {
+  console.log('>>> HIT /api/test route');
+  res.json({ status: 'ok', message: 'POST works!' });
+});
+
+// Debug: Log all incoming requests
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 app.post('/api/retrieve-info', async (req, res) => {
+  console.log('>>> HIT /api/retrieve-info route');
   const { name, referenceNo } = req.body;
 
   try {

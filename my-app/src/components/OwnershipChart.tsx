@@ -30,7 +30,7 @@ export const RecursiveTree: FC<RecursiveTreeProps> = ({
   useEffect(() => { setLocalChildren(entity?.relatedContacts || []); }, [entity]);
 
   // Helper to safely check percentage
-  const percentageValue = parseFloat(current.percentage || '0');
+  const percentageValue = typeof current.percentage === 'number' ? current.percentage : parseFloat(String(current.percentage || 0));
   const hasPercentage = percentageValue > 0;
 
   return (
@@ -131,7 +131,7 @@ const OwnershipChart: FC<OwnershipChartProps> = ({ entity, onRefresh }) => {
   const [addingToParent, setAddingToParent] = useState<any | null>(null);
   
   // Loading State
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Auto-hide success message

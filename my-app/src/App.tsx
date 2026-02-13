@@ -8,12 +8,6 @@ import OwnershipChart from './components/OwnershipChart';
 import Pagination from './components/Pagination'; 
 import { RefDataProvider } from './context/RefDataContext';
 
-interface OwnerRecord {
-  ownerName?: string;
-  referenceNbr?: string;
-  contactType?: string;
-  contactAddress?: string;
-}
 
 const App = () => {
   const { 
@@ -80,7 +74,7 @@ const App = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentResults.length > 0 ? currentResults.map((row: OwnerRecord, i: number) => (
+                {currentResults.length > 0 ? currentResults.map((row, i) => (
                   <tr 
                     key={row.referenceNbr || i} 
                     onClick={() => setSelectedRecord(row)}

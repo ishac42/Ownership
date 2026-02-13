@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, type FC, type ReactNode } from 'react';
 
 // Define the shape of the data
 interface RefDataContextType {
@@ -10,7 +10,7 @@ interface RefDataContextType {
 const RefDataContext = createContext<RefDataContextType | undefined>(undefined);
 
 // --- FIX IS HERE: Ensure "export" is written before "const" ---
-export const RefDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const RefDataProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [entityTypes, setEntityTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

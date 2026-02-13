@@ -1,15 +1,40 @@
 import { useState } from 'react';
 
-export const useOwnershipSearch = () => {
+interface OwnerRecord {
+  ownerName?: string;
+  referenceNbr?: string;
+  contactType?: string;
+  contactAddress?: string;
+  relatedContacts?: OwnerRecord[];
+  [key: string]: unknown;
+}
+
+interface UseOwnershipSearchReturn {
+  searchName: string;
+  setSearchName: (name: string) => void;
+  refNo: string;
+  setRefNo: (refNo: string) => void;
+  results: OwnerRecord[];
+  selectedRecord: OwnerRecord | null;
+  setSelectedRecord: (record: OwnerRecord | null) => void;
+  isLoading: boolean;
+  handleSearch: () => Promise<void>;
+  refreshSelectedRecord: () => Promise<void>;
+}
+
+export const useOwnershipSearch = (): UseOwnershipSearchReturn => {
   const [searchName, setSearchName] = useState('');
   const [refNo, setRefNo] = useState('');
-  const [results, setResults] = useState([]);
-  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [results, setResults] = useState<OwnerRecord[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<OwnerRecord | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Existing Search Logic
   const handleSearch = async () => {
-    if (!searchName && !refNo) return alert("Please enter a name or reference number");
+    if (!searchName && !refNo) {
+      alert("Please enter a name or reference number");
+      return;
+    }
     
     setResults([]);
     setSelectedRecord(null);
@@ -33,18 +58,16 @@ export const useOwnershipSearch = () => {
     }
   };
 
-  // --- NEW: Function to refresh only the selected record ---
+  // Function to refresh only the selected record
   const refreshSelectedRecord = async () => {
     if (!selectedRecord?.referenceNbr) return;
 
     try {
       console.log("Refreshing data for:", selectedRecord.referenceNbr);
       
-      // We search specifically by the current Reference Number to get the latest tree
       const response = await fetch('http://localhost:3001/api/retrieve-info', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // We force the search to be exact on the current reference number
         body: JSON.stringify({ name: '', referenceNo: selectedRecord.referenceNbr }),
       });
       const backendResponse = await response.json();
@@ -52,10 +75,8 @@ export const useOwnershipSearch = () => {
       const owners = backendResponse.data?.result?.result?.owners;
       
       if (owners && owners.length > 0) {
-        // Update the selected record with the fresh data from the backend
         setSelectedRecord(owners[0]); 
         
-        // Optional: Also update the specific item in the results list so the table is current
         setResults(prevResults => 
           prevResults.map(item => 
             item.referenceNbr === selectedRecord.referenceNbr ? owners[0] : item
@@ -72,6 +93,6 @@ export const useOwnershipSearch = () => {
     refNo, setRefNo,
     results, selectedRecord, setSelectedRecord,
     isLoading, handleSearch,
-    refreshSelectedRecord // <--- Exporting the new function
+    refreshSelectedRecord
   };
 };

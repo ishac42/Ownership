@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC, type ChangeEvent } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PaginationProps {
@@ -7,8 +7,8 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+const Pagination: FC<PaginationProps> = ({ currentPage, totalPages, onPageChange }) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     
     // If the box is empty, don't update yet (allows user to delete and re-type)

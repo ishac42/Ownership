@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import logo from './logo.jpg'; 
+import { useState } from 'react';
+import logo from './Logo.jpg'; 
 import { List, BarChart3 } from 'lucide-react';
 import { useOwnershipSearch } from './hooks/useOwnership';
 import SearchControls from './components/SearchControls';
@@ -7,6 +7,13 @@ import OwnershipList from './components/OwnershipList';
 import OwnershipChart from './components/OwnershipChart';
 import Pagination from './components/Pagination'; 
 import { RefDataProvider } from './context/RefDataContext';
+
+interface OwnerRecord {
+  ownerName?: string;
+  referenceNbr?: string;
+  contactType?: string;
+  contactAddress?: string;
+}
 
 const App = () => {
   const { 
@@ -30,7 +37,7 @@ const App = () => {
     currentPage * itemsPerPage
   );
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       setCurrentPage(1); // Reset to page 1 on new search
       handleSearch();
@@ -73,7 +80,7 @@ const App = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentResults.length > 0 ? currentResults.map((row, i) => (
+                {currentResults.length > 0 ? currentResults.map((row: OwnerRecord, i: number) => (
                   <tr 
                     key={row.referenceNbr || i} 
                     onClick={() => setSelectedRecord(row)}

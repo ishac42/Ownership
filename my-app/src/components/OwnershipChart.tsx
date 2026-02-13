@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Plus, ChevronDown, User, Building2, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef, type FC } from 'react';
+import { Eye, Plus, ChevronDown, User, Building2 } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
 
@@ -16,7 +16,7 @@ interface RecursiveTreeProps {
   parentRefNbr?: string;
 }
 
-export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
+export const RecursiveTree: FC<RecursiveTreeProps> = ({ 
   entity, 
   onViewDetails, 
   onOpenAdd,
@@ -121,7 +121,7 @@ interface OwnershipChartProps {
   onRefresh?: () => Promise<void> | void; 
 }
 
-const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) => {
+const OwnershipChart: FC<OwnershipChartProps> = ({ entity, onRefresh }) => {
   const [currentZoomScale, setCurrentZoomScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -131,7 +131,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
   const [addingToParent, setAddingToParent] = useState<any | null>(null);
   
   // Loading State
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Auto-hide success message
@@ -165,7 +165,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
 
   // --- HANDLER: Add Owner ---
   const handleSaveOwner = async (formData: any) => {
-    setLoading(true);
+    setIsLoading(true);
     const parent = normalizeEntity(addingToParent);
     
     const payload = [{
@@ -207,20 +207,21 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
     } catch (err) {
       alert("Connection Error.");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const handleEditRefresh = async () => {
     if (onRefresh) {
-        setLoading(true);
+        setIsLoading(true);
         try {
             await onRefresh();
         } finally {
-            setLoading(false);
+            setIsLoading(false);
         }
     }
   };
+
 
   if (!entity) return null;
 

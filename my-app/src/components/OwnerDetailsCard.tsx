@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import EditOwnerForm from './EditOwnerForm';
 
 interface OwnerDetailsCardProps {
   owner: any;
   onClose: () => void;
-  onRefresh: () => void; // Callback to reload parent data
+  onRefresh?: () => Promise<void> | void; // Callback to reload parent data
 }
 
 const OwnerDetailsCard = ({ owner, onClose, onRefresh }: OwnerDetailsCardProps) => {
@@ -44,10 +44,10 @@ const handleUpdate = async () => {
     };
 
     // 2. DETECT CHANGES (Build editArray)
-    const editArray: any[] = [];
+    const editArray: Record<string, string>[] = [];
 
     // 1. Create a temporary object to hold all changes for this iteration
-const changesObject = {};
+    const changesObject: Record<string, string> = {};
 
     Object.keys(formData).forEach((key) => {
       let currentValue = formData[key];

@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC } from 'react';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize, Minimize } from 'lucide-react';
 
 interface ZoomControlsProps {
@@ -10,7 +10,7 @@ interface ZoomControlsProps {
   toggleFullscreen: () => void;
 }
 
-const ZoomControls: React.FC<ZoomControlsProps> = ({ 
+const ZoomControls: FC<ZoomControlsProps> = ({ 
   currentZoom, 
   onZoomIn, 
   onZoomOut, 

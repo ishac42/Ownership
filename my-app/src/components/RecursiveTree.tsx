@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { Eye, Plus, ChevronDown, User, Building2 } from 'lucide-react';
 import { normalizeEntity } from '../utils/normalize';
 
@@ -10,7 +10,7 @@ interface RecursiveTreeProps {
   parentRefNbr?: string; // <--- NEW PROP
 }
 
-export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
+export const RecursiveTree: FC<RecursiveTreeProps> = ({ 
   entity, 
   onViewDetails, 
   onOpenAdd,

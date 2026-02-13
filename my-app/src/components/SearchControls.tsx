@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC, type KeyboardEvent } from 'react';
 import { Search } from 'lucide-react';
 
 interface SearchControlsProps {
@@ -7,10 +7,10 @@ interface SearchControlsProps {
   refNo: string;
   setRefNo: (value: string) => void;
   handleSearch: () => void;
-  handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  handleKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
 }
 
-const SearchControls: React.FC<SearchControlsProps> = ({ 
+const SearchControls: FC<SearchControlsProps> = ({ 
   searchName, 
   setSearchName, 
   refNo, 

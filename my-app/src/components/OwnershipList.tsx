@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { ChevronDown, Eye, Plus, Loader2 } from 'lucide-react'; 
 import { normalizeEntity } from '../utils/normalize';
 import OwnerDetailsCard from "./OwnerDetailsCard";
@@ -11,7 +11,7 @@ interface OwnershipListProps {
   parentRefNbr?: string; 
 }
 
-const OwnershipList: React.FC<OwnershipListProps> = ({ 
+const OwnershipList: FC<OwnershipListProps> = ({ 
   entity, 
   depth = 0, 
   onRefresh,

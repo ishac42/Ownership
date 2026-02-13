@@ -18,6 +18,11 @@ app.use(cors({
 
 app.use(express.json());
 
+// Health check route
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend is running' });
+});
+
 app.post('/api/retrieve-info', async (req, res) => {
   const { name, referenceNo } = req.body;
 

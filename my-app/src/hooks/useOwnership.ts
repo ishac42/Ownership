@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 interface OwnerRecord {
   ownerName?: string;
   referenceNbr?: string;
@@ -41,7 +43,7 @@ export const useOwnershipSearch = (): UseOwnershipSearchReturn => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/retrieve-info', { 
+      const response = await fetch(`${API_URL}/api/retrieve-info`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: searchName, referenceNo: refNo }),
@@ -65,7 +67,7 @@ export const useOwnershipSearch = (): UseOwnershipSearchReturn => {
     try {
       console.log("Refreshing data for:", selectedRecord.referenceNbr);
       
-      const response = await fetch('http://localhost:3001/api/retrieve-info', { 
+      const response = await fetch(`${API_URL}/api/retrieve-info`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: '', referenceNo: selectedRecord.referenceNbr }),

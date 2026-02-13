@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect, type FC, type ReactNode } from 'react';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 // Define the shape of the data
 interface RefDataContextType {
   entityTypes: string[];
@@ -20,7 +22,7 @@ useEffect(() => {
     try {
       setIsLoading(true);
       
-      const response = await fetch('http://localhost:3001/api/get-entity-types', {
+      const response = await fetch(`${API_URL}/api/get-entity-types`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}), // Empty body for now

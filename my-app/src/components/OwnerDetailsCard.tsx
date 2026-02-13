@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import EditOwnerForm from './EditOwnerForm';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 interface OwnerDetailsCardProps {
   owner: any;
   onClose: () => void;
@@ -78,7 +80,7 @@ const handleUpdate = async () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/edit-owner', {
+      const response = await fetch(`${API_URL}/api/edit-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

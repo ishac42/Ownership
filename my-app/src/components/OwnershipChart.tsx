@@ -3,6 +3,8 @@ import { Eye, Plus, ChevronDown, User, Building2 } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 // --- Imports ---
 import AddOwnerForm from "./AddOwnerForm"; 
 import OwnerDetailsCard from "./OwnerDetailsCard"; 
@@ -186,7 +188,7 @@ const OwnershipChart: FC<OwnershipChartProps> = ({ entity, onRefresh }) => {
     }];
 
     try {
-      const response = await fetch('http://localhost:3001/api/add-owner', {
+      const response = await fetch(`${API_URL}/api/add-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

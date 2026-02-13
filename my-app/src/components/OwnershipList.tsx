@@ -1,6 +1,8 @@
 import { useState, useEffect, type FC } from 'react';
 import { ChevronDown, Eye, Plus, Loader2 } from 'lucide-react'; 
 import { normalizeEntity } from '../utils/normalize';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 import OwnerDetailsCard from "./OwnerDetailsCard";
 import AddOwnerForm from "./AddOwnerForm";
 
@@ -64,7 +66,7 @@ const OwnershipList: FC<OwnershipListProps> = ({
     }];
 
     try {
-      const response = await fetch('http://localhost:3001/api/add-owner', {
+      const response = await fetch(`${API_URL}/api/add-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

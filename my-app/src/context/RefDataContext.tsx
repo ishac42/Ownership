@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type FC, type ReactNode } from 'react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 // Define the shape of the data
 interface RefDataContextType {

@@ -3,7 +3,7 @@ import { Eye, Plus, ChevronDown, User, Building2 } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 
 // --- Imports ---
 import AddOwnerForm from "./AddOwnerForm"; 

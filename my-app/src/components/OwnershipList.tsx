@@ -2,7 +2,7 @@ import { useState, useEffect, type FC } from 'react';
 import { ChevronDown, Eye, Plus, Loader2 } from 'lucide-react'; 
 import { normalizeEntity } from '../utils/normalize';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
 import OwnerDetailsCard from "./OwnerDetailsCard";
 import AddOwnerForm from "./AddOwnerForm";
 

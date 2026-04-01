@@ -3,16 +3,22 @@ import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
 
+const keyPath = path.resolve(__dirname, 'certs/localhost+2-key.pem')
+const certPath = path.resolve(__dirname, 'certs/localhost+2.pem')
+const certsExist = fs.existsSync(keyPath) && fs.existsSync(certPath)
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
     dedupe: ['react', 'react-dom'],
   },
   server: {
-    https: {
-      key: fs.readFileSync(path.resolve(__dirname, 'certs/localhost+2-key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, 'certs/localhost+2.pem')),
-    },
+    ...(certsExist && {
+      https: {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+      },
+    }),
     port: 3000,
     proxy: {
       '/api': {

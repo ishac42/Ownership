@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 import EditOwnerForm from './EditOwnerForm';
 
 interface OwnerDetailsCardProps {
@@ -99,7 +100,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage }:
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/edit-owner', {
+      const response = await fetch(`${API_BASE_URL}/api/edit-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

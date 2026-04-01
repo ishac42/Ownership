@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE_URL } from '../config';
 
 export const useOwnershipSearch = () => {
   const [searchName, setSearchName] = useState('');
@@ -16,7 +17,7 @@ export const useOwnershipSearch = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/retrieve-info', { 
+      const response = await fetch(`${API_BASE_URL}/api/retrieve-info`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: searchName, referenceNo: refNo }),
@@ -41,10 +42,9 @@ export const useOwnershipSearch = () => {
       console.log("Refreshing data for:", selectedRecord.referenceNbr);
       
       // We search specifically by the current Reference Number to get the latest tree
-      const response = await fetch('http://localhost:3001/api/retrieve-info', { 
+      const response = await fetch(`${API_BASE_URL}/api/retrieve-info`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // We force the search to be exact on the current reference number
         body: JSON.stringify({ name: '', referenceNo: selectedRecord.referenceNbr }),
       });
       const backendResponse = await response.json();

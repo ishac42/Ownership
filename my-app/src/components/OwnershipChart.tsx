@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2 } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
+import { API_BASE_URL } from '../config';
 
 // --- Imports ---
 import AddOwnerForm from "./AddOwnerForm"; 
@@ -238,7 +239,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
     console.log(deleteContext)
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/delete-owner', {
+      const response = await fetch(`${API_BASE_URL}/api/delete-owner`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -283,7 +284,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
     }];
 
     try {
-      const response = await fetch('http://localhost:3001/api/add-owner', {
+      const response = await fetch(`${API_BASE_URL}/api/add-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

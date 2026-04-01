@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 // Define the shape of the data
 interface RefDataContextType {
@@ -20,7 +21,7 @@ useEffect(() => {
     try {
       setIsLoading(true);
       
-      const response = await fetch('http://localhost:3001/api/get-entity-types', {
+      const response = await fetch(`${API_BASE_URL}/api/get-entity-types`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}), // Empty body for now

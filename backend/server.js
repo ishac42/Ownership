@@ -18,7 +18,7 @@ app.post('/api/retrieve-info', async (req, res) => {
     const accessToken = await getAccessToken();
 
     const scriptResponse = await axios.post(
-      'https://apis.accela.com/v4/scripts/GET_OWNER_INFO',
+      'https://apis.accela.com/v4/scripts/API_GET_OWNER_INFO',
       {
         "name": name,
         "reference number": referenceNo

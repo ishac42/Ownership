@@ -16,7 +16,7 @@ router.post('/api/edit-owner', async (req, res) => {
         
         // 3. Trigger Accela Script
         const scriptResponse = await axios.post(
-            'https://apis.accela.com/v4/scripts/EDIT_OWNER_INFO', 
+            'https://apis.accela.com/v4/scripts/API_EDIT_OWNER_INFO', 
             { 
                 "editArray": editArray, 
                 "editRefNbr": editRefNbr,

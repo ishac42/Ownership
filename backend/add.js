@@ -10,10 +10,10 @@ router.post('/api/add-owner', async (req, res) => {
     try {
          // 1. Get the Token
         const accessToken = await getAccessToken();
-        
+
         // 2. add Owner ASIT TRIGGER THE SCRIPT
         const scriptResponse = await axios.post(
-        'https://apis.accela.com/v4/scripts/ADD_OWNER_INFO', 
+        'https://apis.accela.com/v4/scripts/API_ADD_OWNER_INFO', 
             { 
                 "newAsitArr": newAsitArr, 
                 "fein": fein,

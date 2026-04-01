@@ -14,7 +14,7 @@ router.delete('/api/delete-owner', async (req, res) => {
         // 2. Trigger the Delete Script in Accela
         // Note: Accela custom scripts are always triggered via POST
         const scriptResponse = await axios.post(
-            'https://apis.accela.com/v4/scripts/DELETE_OWNER_INFO', 
+            'https://apis.accela.com/v4/scripts/API_DELETE_OWNER_INFO', 
             { 
                 "referenceNbr": referenceNbr,
                 "parentRefNbr": parentRefNbr

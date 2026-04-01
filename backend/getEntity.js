@@ -11,7 +11,7 @@ router.post('/api/get-entity-types', async (req, res) => {
     const accessToken = await getAccessToken();
 
     // 2. get Standard choice values
-    const scriptResponse = await axios.post('https://apis.accela.com/v4/scripts/GET_LIC_OWNERSHIP_TITLES', 
+    const scriptResponse = await axios.post('https://apis.accela.com/v4/scripts/API_GET_LIC_OWNERSHIP_TITLES', 
       {}, 
       {
         headers: { 

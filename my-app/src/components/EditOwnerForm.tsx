@@ -67,12 +67,31 @@ const EditOwnerForm = ({
 
       {/* Row 1: Name and Type */}
       <div className="grid grid-cols-2 gap-6">
-        <InputField 
-          label="Ownership Entity Name" 
-          value={formData.ownerName} 
-          onChange={(v: string) => handleChange('ownerName', v)}
-          disabled={isLoading}
-        />
+        
+        {/* Conditionally render Name fields based on Ownership Type */}
+        {isTypeSelected('Individual') ? (
+          <div className="grid grid-cols-2 gap-4">
+            <InputField 
+              label="First Name" 
+              value={formData.firstName} 
+              onChange={(v: string) => handleChange('firstName', v)}
+              disabled={isLoading}
+            />
+            <InputField 
+              label="Last Name" 
+              value={formData.lastName} 
+              onChange={(v: string) => handleChange('lastName', v)}
+              disabled={isLoading}
+            />
+          </div>
+        ) : (
+          <InputField 
+            label="Ownership Entity Name" 
+            value={formData.ownerName} 
+            onChange={(v: string) => handleChange('ownerName', v)}
+            disabled={isLoading}
+          />
+        )}
         
         {/* Type of Entity Dropdown */}
         <div className="flex flex-col text-left">
@@ -88,7 +107,7 @@ const EditOwnerForm = ({
             {isRefDataLoading ? (
                 <option disabled>Loading options...</option>
             ) : (
-                entityTypes?.map((type) => (
+                entityTypes?.map((type: string) => (
                     <option key={type} value={type}>
                         {type}
                     </option>
@@ -128,7 +147,7 @@ const EditOwnerForm = ({
                 isLoading 
                   ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
                   : 'focus:ring-2 focus:ring-[#2c3e76]/10'
-              }`}
+             }`}
            >
              <option value="">Select</option>
              {STATE_LIST_USA.map((st) => (

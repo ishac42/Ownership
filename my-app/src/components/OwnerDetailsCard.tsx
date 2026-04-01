@@ -5,13 +5,15 @@ interface OwnerDetailsCardProps {
   owner: any;
   onClose: () => void;
   onRefresh: () => void; // Callback to reload parent data
+  currentTotalPercentage?: number; // Passed from parent to calculate limits
 }
 
-const OwnerDetailsCard = ({ owner, onClose, onRefresh }: OwnerDetailsCardProps) => {
+const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage }: OwnerDetailsCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ ...owner });
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Reset form data if the owner prop changes (e.g. after a refresh)
   useEffect(() => {
@@ -26,9 +28,31 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh }: OwnerDetailsCardProps) 
     }
   }, [successMessage]);
 
-const handleUpdate = async () => {
-    // 1. FIELD MAPPING
+  const handleUpdate = async () => {
+    setErrorMessage(null); // Clear previous errors
+
+    // --- 1. STRICT PERCENTAGE VALIDATION ---
+    // Only run this check if currentTotalPercentage was passed (meaning it's a child being edited)
+    if (currentTotalPercentage !== undefined) {
+      const originalPct = parseFloat(String(owner.percentage || '0').replace('%', '')) || 0;
+      const newPct = parseFloat(String(formData.percentage || '0').replace('%', '')) || 0;
+      
+      // Calculate what ALL OTHER children add up to
+      const otherChildrenTotal = Math.max(0, currentTotalPercentage - originalPct);
+
+      // BLOCK SUBMIT if the other children + the new percentage > 100
+      if (otherChildrenTotal + newPct > 100) {
+        const allowedMax = Math.max(0, 100 - otherChildrenTotal);
+        setErrorMessage(`Total ownership cannot exceed 100%. Other owners currently hold ${otherChildrenTotal}%. You can only set this up to ${allowedMax}%.`);
+        return; // <-- THIS STOPS THE SUBMIT
+      }
+    }
+    // ---------------------------------------
+
+    // 2. FIELD MAPPING
     const fieldMap: Record<string, string> = {
+      firstName: "First Name",
+      lastName: "Last Name",
       phone: "Business Phone",
       ownershipType: "Type",
       type: "Title",
@@ -43,11 +67,9 @@ const handleUpdate = async () => {
       ssn: "SSN"    
     };
 
-    // 2. DETECT CHANGES (Build editArray)
+    // 3. DETECT CHANGES (Build editArray)
     const editArray: any[] = [];
-
-    // 1. Create a temporary object to hold all changes for this iteration
-const changesObject = {};
+    const changesObject: any = {};
 
     Object.keys(formData).forEach((key) => {
       let currentValue = formData[key];
@@ -59,12 +81,11 @@ const changesObject = {};
 
       // Checks if mapped AND value changed
       if (fieldMap[key] && currentValue != originalValue) {
-        // 2. Assign property to the object (Do NOT push to array yet)
         changesObject[fieldMap[key]] = currentValue || "";
       }
     });
 
-    // 3. Push the single object to the array ONLY if changes were found
+    // Push the single object to the array ONLY if changes were found
     if (Object.keys(changesObject).length > 0) {
       editArray.push(changesObject);
     }
@@ -74,7 +95,7 @@ const changesObject = {};
       return;
     }
 
-    // 3. SEND TO BACKEND
+    // 4. SEND TO BACKEND
     setIsLoading(true);
 
     try {
@@ -84,7 +105,6 @@ const changesObject = {};
         body: JSON.stringify({
           // CRITICAL FIX: Send the array directly. Do NOT stringify it here.
           editArray: JSON.stringify(editArray), 
-          
           editRefNbr: owner.refNbr || owner.referenceNbr || owner.id, 
           parentRefNbr: owner.parentRefNbr
         }),
@@ -107,10 +127,12 @@ const changesObject = {};
       setIsLoading(false);
     }
   };
+
   const handleCancel = () => {
     // Only allow cancel if not currently saving
     if (!isLoading) {
       setFormData({ ...owner }); // Reset data to original
+      setErrorMessage(null); // Clear errors on cancel
       setIsEditing(false);
     }
   };
@@ -139,63 +161,75 @@ const changesObject = {};
 
       {/* MODAL OVERLAY */}
       <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
           
           {/* Header */}
-          <div className="bg-[#2c3e76] text-white px-6 py-4">
+          <div className="bg-[#2c3e76] text-white px-6 py-4 flex-shrink-0">
             <h2 className="text-xl font-semibold tracking-wide">
               {isEditing ? "Edit Entity Details" : "Entity Details"}
             </h2>
           </div>
 
-          {isEditing ? (
-            <EditOwnerForm 
-              formData={formData} 
-              setFormData={setFormData} 
-              onCancel={handleCancel} 
-              onUpdate={handleUpdate} 
-              isLoading={isLoading}
-            />
-          ) : (
-            <div className="p-10 bg-[#f0f4f8] space-y-10">
-              {/* Row 1 */}
-              <div className="grid grid-cols-3 gap-8">
-                <ViewField label="Ownership Type" value={formData.ownershipType} />
-                <ViewField label="Ownership Entity Name" value={formData.ownerName} />
-                <ViewField label="Type of Entity" value={formData.type || formData.contactType} />
-              </div>
-
-              {/* Row 2 */}
-              <ViewField label="Ownership Address" value={formData.ownershipAddr || formData.contactAddress} />
-
-              {/* Row 3 */}
-              <div className="grid grid-cols-4 gap-8">
-                <ViewField label="Email" value={formData.email} />
-                <ViewField label="Phone Number" value={formData.phone} />
-                <ViewField label="FEIN" value={formData.fein} />
-                <ViewField label="SSN" value={formData.ssn} />
-              </div>
-
-              {/* Row 4 */}
-              <ViewField label="Percent (%) Owned" value={formData.percentage ? `${formData.percentage}%` : "0%"} />
-
-              {/* Buttons */}
-              <div className="flex justify-end gap-5 pt-6">
-                <button 
-                  onClick={() => setIsEditing(true)} 
-                  className="px-14 py-2.5 border-2 border-[#2c3e76] text-[#2c3e76] font-bold rounded-md bg-white hover:bg-gray-50 transition-colors"
-                >
-                  Edit
-                </button>
-                <button 
-                  onClick={onClose} 
-                  className="px-16 py-2.5 bg-[#2c3e76] text-white font-bold rounded-md hover:bg-[#1e2a52] transition-colors"
-                >
-                  OK
-                </button>
-              </div>
+          {/* Validation Error Banner */}
+          {errorMessage && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 mx-6 mt-4 flex-shrink-0">
+              <p className="text-red-700 font-medium">{errorMessage}</p>
             </div>
           )}
+
+          <div className="overflow-y-auto">
+            {isEditing ? (
+              <EditOwnerForm 
+                formData={formData} 
+                setFormData={(data: any) => {
+                  setFormData(data);
+                  if (errorMessage) setErrorMessage(null); // Clear error as soon as user types
+                }} 
+                onCancel={handleCancel} 
+                onUpdate={handleUpdate} 
+                isLoading={isLoading}
+              />
+            ) : (
+              <div className="p-10 bg-[#f0f4f8] space-y-10">
+                {/* Row 1 */}
+                <div className="grid grid-cols-3 gap-8">
+                  <ViewField label="Ownership Type" value={formData.ownershipType} />
+                  <ViewField label="Ownership Entity Name" value={formData.ownerName} />
+                  <ViewField label="Type of Entity" value={formData.type || formData.contactType} />
+                </div>
+
+                {/* Row 2 */}
+                <ViewField label="Ownership Address" value={formData.ownershipAddr || formData.contactAddress} />
+
+                {/* Row 3 */}
+                <div className="grid grid-cols-4 gap-8">
+                  <ViewField label="Email" value={formData.email} />
+                  <ViewField label="Phone Number" value={formData.phone} />
+                  <ViewField label="FEIN" value={formData.fein} />
+                  <ViewField label="SSN" value={formData.ssn} />
+                </div>
+
+                {/* Row 4 */}
+                <ViewField label="Percent (%) Owned" value={formData.percentage ? `${formData.percentage}%` : "0%"} />
+
+                {/* Buttons */}
+                <div className="flex justify-end gap-5 pt-6">
+                  <button 
+                    onClick={() => setIsEditing(true)} 
+                    className="px-14 py-2.5 border-2 border-[#2c3e76] text-[#2c3e76] font-bold rounded-md bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    onClick={onClose} 
+                    className="px-16 py-2.5 bg-[#2c3e76] text-white font-bold rounded-md hover:bg-[#1e2a52] transition-colors"
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </>

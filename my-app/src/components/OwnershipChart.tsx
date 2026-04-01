@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Plus, ChevronDown, User, Building2, Loader2 } from 'lucide-react';
+import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2 } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
 
@@ -11,16 +11,20 @@ import ZoomControls from "./ZoomControls";
 // 1. Recursive Tree Component
 interface RecursiveTreeProps {
   entity: any;
-  onViewDetails: (entity: any, parentRefNbr?: string) => void;
-  onOpenAdd: (parentEntity: any) => void;
+  onViewDetails: (entity: any, parentRefNbr?: string, siblingTotal?: number) => void;
+  onOpenAdd: (parentEntity: any, childrenTotal?: number) => void;
+  onDelete?: (entity: any, parentRefNbr: string) => void; 
   parentRefNbr?: string;
+  siblingTotalPercentage?: number; // <--- ADDED: Passed from parent to know sibling limits
 }
 
 export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
   entity, 
   onViewDetails, 
   onOpenAdd,
-  parentRefNbr = "" 
+  onDelete, 
+  parentRefNbr = "",
+  siblingTotalPercentage
 }) => {
   const [localChildren, setLocalChildren] = useState<any[]>(entity?.relatedContacts || []);
   const current = normalizeEntity(entity);
@@ -32,12 +36,31 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   // Helper to safely check percentage
   const percentageValue = parseFloat(current.percentage || '0');
   const hasPercentage = percentageValue > 0;
+  
+  // Logic check: Is this a child?
+  const isChild = parentRefNbr !== "";
+
+  // --- CALCULATE TOTAL % OF THIS NODE'S CHILDREN ---
+  const childrenTotalPercentage = localChildren.reduce((sum, child) => {
+    const pct = parseFloat(String(child.percentage || '0').replace('%', '')) || 0;
+    return sum + pct;
+  }, 0);
 
   return (
     <div className="flex flex-col items-center">
       {/* Node Card */}
       <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1`}>
         
+        {/* Over-allocation Warning Icon */}
+        {childrenTotalPercentage > 100 && (
+          <div 
+            className="absolute -top-3 -right-3 bg-red-600 text-white p-1.5 rounded-full shadow-md animate-pulse border-2 border-white"
+            title={`Warning: Children exceed 100% total (${childrenTotalPercentage}%). Please adjust ownership.`}
+          >
+            <AlertTriangle size={14} strokeWidth={3} />
+          </div>
+        )}
+
         <div className="flex justify-between items-start mb-4">
           <div className="flex flex-col overflow-hidden mr-2">
             <h4 className="text-xs font-bold uppercase truncate" title={current.ownerName}>{current.ownerName}</h4>
@@ -63,17 +86,42 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
             <button 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                onViewDetails(current, parentRefNbr); 
+                // Pass the sibling total (provided by its parent) to the edit modal
+                onViewDetails(current, parentRefNbr, siblingTotalPercentage); 
               }}
               className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
             >
               <Eye size={14} className="opacity-80 group-hover:opacity-100" />
             </button>
+
+            {/* --- TRASH ICON: Only shows for children --- */}
+            {isChild && (
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  if (onDelete) onDelete(current, parentRefNbr); 
+                }}
+                className="p-1.5 hover:bg-red-500/40 rounded-full transition-colors group"
+                title="Remove Owner"
+              >
+                <Trash2 size={14} className="text-red-200 group-hover:text-white" />
+              </button>
+            )}
             
             {!isIndividual && (
               <button
-                onClick={(e) => { e.stopPropagation(); onOpenAdd(current); }}
-                className="flex items-center gap-1 bg-white/10 hover:bg-white/25 px-2 py-1 rounded transition-colors border border-white/10"
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  // Pass its OWN children total to the add modal
+                  onOpenAdd(current, childrenTotalPercentage); 
+                }}
+                disabled={childrenTotalPercentage >= 100}
+                title={childrenTotalPercentage >= 100 ? "Cannot add: Ownership is already at or above 100%" : "Add Owner"}
+                className={`flex items-center gap-1 px-2 py-1 rounded transition-colors border ${
+                  childrenTotalPercentage >= 100 
+                    ? 'bg-white/5 border-white/5 opacity-40 cursor-not-allowed' 
+                    : 'bg-white/10 hover:bg-white/25 border-white/10'
+                }`}
               >
                 <Plus size={10} strokeWidth={3} />
                 <span className="text-[9px] font-bold uppercase">Add</span>
@@ -104,7 +152,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   entity={child} 
                   onViewDetails={onViewDetails} 
                   onOpenAdd={onOpenAdd} 
+                  onDelete={onDelete} 
                   parentRefNbr={current.referenceNbr}
+                  siblingTotalPercentage={childrenTotalPercentage} // Pass the limit down to the child!
                 />
               </div>
             ))}
@@ -128,8 +178,14 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
 
   // Modal State
   const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
-  const [addingToParent, setAddingToParent] = useState<any | null>(null);
+  const [totalForEdit, setTotalForEdit] = useState<number | undefined>(undefined); // Added for Edit limits
   
+  const [addingToParent, setAddingToParent] = useState<any | null>(null);
+  const [totalForAdd, setTotalForAdd] = useState<number>(0); // Added for Add limits
+  
+  // Custom Delete Modal State: Now stores both target and parentRefNbr
+  const [deleteContext, setDeleteContext] = useState<{ target: any, parentRefNbr: string } | null>(null);
+
   // Loading State
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -153,14 +209,55 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
     }
   };
 
-  // --- HANDLER: Handle Node Selection ---
-  const handleNodeSelect = (nodeData: any, parentRefNbr?: string) => {
+  // --- HANDLER: Handle Node Selection (View/Edit) ---
+  const handleNodeSelect = (nodeData: any, parentRefNbr?: string, siblingTotal?: number) => {
     if (!nodeData) return;
     const normalized = normalizeEntity(nodeData);
     setSelectedOwner({ 
         ...normalized, 
-        parentRefNbr: parentRefNbr || "" 
+        parentRefNbr: parentRefNbr || "",
+        isChildOfCurrent: !!parentRefNbr // true if it has a parent
     });
+    setTotalForEdit(siblingTotal); // Save the limit to pass to OwnerDetailsCard
+  };
+
+  // --- HANDLER: Handle Open Add Modal ---
+  const handleOpenAdd = (parentEntity: any, childrenTotal?: number) => {
+    setAddingToParent(parentEntity);
+    setTotalForAdd(childrenTotal || 0); // Save limit to pass to AddOwnerForm
+  };
+
+  // --- HANDLER: Trigger Delete Modal ---
+  const handleDeleteClick = (target: any, parentRefNbr: string) => {
+    setDeleteContext({ target, parentRefNbr });
+  };
+
+  // --- HANDLER: Execute Actual Deletion ---
+  const confirmDelete = async () => {
+    if (!deleteContext) return;
+    console.log(deleteContext)
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/delete-owner', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          referenceNbr: deleteContext.target.referenceNbr,
+          parentRefNbr: deleteContext.parentRefNbr 
+        }),
+      });
+      if (response.ok) {
+        setSuccessMessage(`Deleted successfully`);
+        if (onRefresh) await onRefresh();
+      } else {
+        alert("Failed to delete.");
+      }
+    } catch (error) {
+      alert("Error connecting to server.");
+    } finally {
+      setLoading(false);
+      setDeleteContext(null); // Close the modal
+    }
   };
 
   // --- HANDLER: Add Owner ---
@@ -174,8 +271,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
       "Title": formData.type || "Owner",
       "Percent Owned": formData.percentage,
       "Entity Name": formData.ownerName,
-      "First Name": "", 
-      "Last Name": "", 
+      "First Name": formData.firstName, 
+      "Last Name": formData.lastName, 
       "E-mail": formData.email,
       "Address Line 1": formData.ownershipAddr,
       "Unit/Suite/Apt" : "Unit/Suite/Apt",
@@ -232,18 +329,12 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
       `}
     >
       
-      {/* --- PROFESSIONAL LOADING STATE (UPDATED - NO BLUR) --- 
-      {loading && (
-        // Removed backdrop-blur-sm here
-        <div className="absolute inset-0 z-[10000] flex items-center justify-center bg-slate-50/50 transition-all duration-300">
-           <div className="flex items-center gap-3 px-6 py-3 bg-white/90 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-100">
-             <Loader2 className="animate-spin text-[#2c3e76]" size={20} />
-             <div className="flex flex-col">
-                <span className="text-sm font-semibold text-slate-700">Updating...</span>
-             </div>
-           </div>
+      {/* Loading Overlay */}
+      {loading && !deleteContext && (
+        <div className="absolute inset-0 bg-white/60 z-[9500] flex items-center justify-center rounded-xl">
+           <Loader2 className="animate-spin text-[#2c3e76]" size={32} />
         </div>
-      )}*/}
+      )}
 
       {/* --- SUCCESS TOAST --- */}
       {successMessage && (
@@ -263,6 +354,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
         <AddOwnerForm 
           onCancel={() => setAddingToParent(null)} 
           onSave={handleSaveOwner} 
+          currentTotalPercentage={totalForAdd} // Sent to limit new additions
         />
       )}
 
@@ -270,8 +362,50 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
         <OwnerDetailsCard 
           owner={selectedOwner} 
           onClose={() => setSelectedOwner(null)} 
-          onRefresh={handleEditRefresh} 
+          onRefresh={handleEditRefresh}
+          // Only send the total logic if the node we clicked actually has a parent
+          currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : undefined} 
         />
+      )}
+
+      {/* --- ACCELA THEMED DELETE CONFIRMATION MODAL --- */}
+      {deleteContext && (
+        <div className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Accela Blue Header */}
+            <div className="bg-[#24417a] px-5 py-3 flex items-center gap-2">
+              <AlertTriangle size={18} className="text-white" />
+              <h3 className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-slate-700">
+                Are you sure you want to remove <span className="font-bold text-[#1a2b4b]">{deleteContext.target.ownerName || deleteContext.target.firstName}</span> from the ownership structure?
+              </p>
+              <p className="text-sm text-slate-500 mt-2">
+                This action cannot be undone and will immediately update the server.
+              </p>
+            </div>
+            
+            <div className="bg-slate-50 px-5 py-4 flex justify-end gap-3 border-t border-slate-100">
+              <button
+                onClick={() => setDeleteContext(null)}
+                disabled={loading}
+                className="px-4 py-2 rounded text-sm font-semibold text-slate-600 border border-slate-300 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={loading}
+                className="px-4 py-2 rounded text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 shadow-sm"
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {loading ? 'Deleting...' : 'Delete Owner'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* --- INFINITE CANVAS AREA --- */}
@@ -300,7 +434,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
                           <RecursiveTree 
                            entity={entity} 
                            onViewDetails={handleNodeSelect} 
-                           onOpenAdd={setAddingToParent}
+                           onOpenAdd={handleOpenAdd}
+                           onDelete={handleDeleteClick} 
                           />
                     </div>
                 </TransformComponent>

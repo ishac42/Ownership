@@ -4,6 +4,7 @@ const cors = require('cors');
 const { getAccessToken } = require('./authentication');
 const addRoute = require('./add'); 
 const editRoute = require('./edit'); 
+const deleteRoute = require('./delete'); 
 const getEntityRoute = require('./getEntity'); 
 
 const app = express();
@@ -42,6 +43,7 @@ app.post('/api/retrieve-info', async (req, res) => {
 app.use(addRoute);
 app.use(editRoute);
 app.use(getEntityRoute);
+app.use(deleteRoute);
 
 const PORT = 3001;
 app.listen(PORT, () => {

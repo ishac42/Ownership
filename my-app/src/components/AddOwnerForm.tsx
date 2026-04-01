@@ -5,17 +5,21 @@ interface AddOwnerFormProps {
   onCancel: () => void;
   // Updated to allow Promise for async operations
   onSave: (newData: any) => Promise<void> | void; 
+  currentTotalPercentage?: number; // Passed from parent to calculate limits
 }
 
-const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
+const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwnerFormProps) => {
   const { entityTypes, isLoading: isRefDataLoading } = useRefData();
 
-  // 1. ADD LOADING STATE
+  // 1. ADD LOADING & ERROR STATE
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     ownershipType: 'Organization',
     ownerName: '',
+    firstName: '', // <-- Added for Individual
+    lastName: '',  // <-- Added for Individual
     type: '',
     ownershipAddr: '',
     city: '',
@@ -37,12 +41,25 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear the error message as soon as the user starts typing again
+    if (errorMessage) setErrorMessage(null);
   };
 
   // 2. CREATE A SUBMIT HANDLER
   const handleSave = async () => {
     if (isSubmitting) return; // Prevent double execution
     
+    // --- PERCENTAGE VALIDATION ---
+    const newPct = parseFloat(String(formData.percentage || '0').replace('%', '')) || 0;
+    
+    // Check if adding this new percentage exceeds 100%
+    if (currentTotalPercentage + newPct > 100) {
+      const allowedMax = Math.max(0, 100 - currentTotalPercentage);
+      setErrorMessage(`Total ownership cannot exceed 100%. Other owners currently hold ${currentTotalPercentage}%. You can only set this up to ${allowedMax}%.`);
+      return; // Stop submission
+    }
+    // ------------------------------
+
     setIsSubmitting(true);
 
     try {
@@ -57,14 +74,21 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* Navy Header */}
-        <div className="bg-[#2c3e76] text-white px-6 py-4">
+        <div className="bg-[#2c3e76] text-white px-6 py-4 flex-shrink-0">
           <h2 className="text-xl font-semibold tracking-wide">Add Ownership</h2>
         </div>
 
-        <div className="p-8 space-y-6">
+        {/* Validation Error Banner */}
+        {errorMessage && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mx-6 mt-4 flex-shrink-0">
+            <p className="text-red-700 font-medium">{errorMessage}</p>
+          </div>
+        )}
+
+        <div className="p-8 space-y-6 overflow-y-auto">
           {/* Ownership Type Radio Buttons */}
           <section>
             <label className="block text-gray-900 font-bold text-lg mb-3">Ownership Type</label>
@@ -96,7 +120,16 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
 
           {/* Row 1: Name and Entity Type */}
           <div className="grid grid-cols-2 gap-6">
-            <FormField label="Ownership Entity Name" name="ownerName" placeholder="Enter Entity Name" value={formData.ownerName} onChange={handleChange} />
+            
+            {/* Conditionally render Name fields based on Ownership Type */}
+            {formData.ownershipType === 'Individual' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="First Name" name="firstName" placeholder="Enter First Name" value={formData.firstName} onChange={handleChange} />
+                <FormField label="Last Name" name="lastName" placeholder="Enter Last Name" value={formData.lastName} onChange={handleChange} />
+              </div>
+            ) : (
+              <FormField label="Ownership Entity Name" name="ownerName" placeholder="Enter Entity Name" value={formData.ownerName} onChange={handleChange} />
+            )}
             
             <div className="flex flex-col">
               <label className="text-gray-500 font-medium mb-1">Type of Entity</label>
@@ -111,7 +144,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
                 {isRefDataLoading ? (
                     <option>Loading options...</option>
                 ) : (
-                    entityTypes.map((type) => (
+                    entityTypes.map((type: string) => (
                         <option key={type} value={type}>
                             {type}
                         </option>
@@ -166,7 +199,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           <div className="grid grid-cols-3 gap-6">
             <FormField label="FEIN" name="fein" placeholder="Enter FEIN" value={formData.fein} onChange={handleChange} />
             <FormField label="SSN" name="ssn" placeholder="Enter SSN" value={formData.ssn} onChange={handleChange} />
-            <FormField label="Percent (%) Owned" name="percentage" placeholder="e.g. 25%" value={formData.percentage} onChange={handleChange} />
+            <FormField label="Percent (%) Owned" name="percentage" placeholder="e.g. 25" value={formData.percentage} onChange={handleChange} />
           </div>
 
           {/* Action Buttons */}

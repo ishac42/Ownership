@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Eye, Plus, Loader2 } from 'lucide-react'; 
+import { ChevronDown, Eye, Plus, Loader2, Trash2, AlertTriangle } from 'lucide-react'; 
 import { normalizeEntity } from '../utils/normalize';
 import OwnerDetailsCard from "./OwnerDetailsCard";
 import AddOwnerForm from "./AddOwnerForm";
@@ -20,6 +20,10 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  
+  // Custom Delete Modal State: Now stores both target and parentRefNbr
+  const [deleteContext, setDeleteContext] = useState<{ target: any, parentRefNbr: string } | null>(null);
+  
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -31,7 +35,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     setLocalChildren(entity?.relatedContacts || []);
   }, [entity]);
 
-  // ✅ ADDED: Auto-hide the success toast after 4 seconds (Same as Card)
+  // Auto-hide the success toast after 4 seconds
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => setSuccessMessage(null), 4000);
@@ -39,9 +43,48 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     }
   }, [successMessage]);
 
-  // 1. NORMALIZE THE TOP LEVEL ENTITY
+  // --- CALCULATE TOTAL % OF CHILDREN ---
+  const childrenTotalPercentage = localChildren.reduce((sum, child) => {
+    const pct = parseFloat(String(child.percentage || '0').replace('%', '')) || 0;
+    return sum + pct;
+  }, 0);
+
   if (!entity) return null;
   const current = normalizeEntity(entity);
+  const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
+
+  // --- HANDLER: Trigger Delete Modal ---
+  const handleDeleteClick = (target: any, parentRef: string) => {
+    setDeleteContext({ target, parentRefNbr: parentRef });
+  };
+
+  // --- HANDLER: Execute Actual Deletion ---
+  const confirmDelete = async () => {
+    if (!deleteContext) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('http://localhost:3001/api/delete-owner', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          referenceNbr: deleteContext.target.referenceNumber,
+          parentRefNbr: deleteContext.parentRefNbr 
+        }),
+      });
+      if (response.ok) {
+        setSuccessMessage(`Deleted successfully`);
+        if (onRefresh) await onRefresh();
+      } else {
+        alert("Failed to delete.");
+      }
+    } catch (error) {
+      alert("Error connecting to server.");
+    } finally {
+      setIsLoading(false);
+      setDeleteContext(null); // Close the modal
+    }
+  };
 
   const handleAddOwner = async (formData: any) => {
     setIsLoading(true);
@@ -52,8 +95,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       "Title": formData.type || "Owner",
       "Percent Owned": formData.percentage,
       "Entity Name": formData.ownerName,
-      "First Name": "",
-      "Last Name": "",
+      "First Name": formData.firstName,
+      "Last Name": formData.lastName,
       "E-mail": formData.email,
       "Address Line 1": formData.ownershipAddr,
       "Unit/Suite/Apt" : "Unit/Suite/Apt",
@@ -95,13 +138,13 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     <div className="flex flex-col relative">
       
       {/* Loading Overlay */}
-      {isLoading && (
+      {isLoading && !deleteContext && (
         <div className="absolute inset-0 bg-white/60 z-[50] flex items-center justify-center rounded-md">
            <Loader2 className="animate-spin text-[#2c3e76]" size={32} />
         </div>
       )}
 
-      {/* ✅ UPDATED: Success Toast (Green Style matching Card) */}
+      {/* Success Toast */}
       {successMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out">
           <div className="bg-green-600 text-white px-8 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 border border-green-400">
@@ -140,28 +183,39 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
 
         {/* Main Card */}
         <div className="flex-1 bg-white border border-slate-200 shadow-sm overflow-hidden mb-6 z-20">
+          
+          {/* Over-allocation warning on the Parent Card if legacy data is broken */}
+          {childrenTotalPercentage > 100 && (
+            <div className="bg-red-50 px-3 py-2 border-b border-red-200 text-red-700 text-xs font-semibold">
+              Warning: Children exceed 100% total ({childrenTotalPercentage}%). Please adjust ownership.
+            </div>
+          )}
+
           <div className="flex items-center justify-between p-3 border-b bg-slate-50/30">
             <div className="flex items-center gap-3">
               <span className="text-slate-400">
-                {current.ownershipType.toLowerCase().includes("individual") ? "👤" : "🏢"}
+                {isIndividual ? "👤" : "🏢"}
               </span>
               <h4 className="font-bold text-[#1a2b4b] text-sm uppercase">{current.ownerName}</h4>
             </div>
             <div className="flex items-center gap-3">
-              {/* VIEW PARENT (Main Card) */}
-              <Eye className="cursor-pointer text-gray-400 hover:text-blue-600" 
+              <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
                 onClick={() => setSelectedOwner({ 
                     ...current, 
                     parentRefNbr: parentRefNbr 
+                    // No isChildOfCurrent flag here, so it doesn't run sibling validation on itself!
                 })} 
               />
-              <button 
-                onClick={() => setIsAdding(true)}
-                disabled={isLoading}
-                className="bg-[#24417a] text-white px-3 py-1 text-xs flex items-center gap-1 font-bold hover:bg-[#1a315e]"
-              >
-                <Plus size={14} /> Add
-              </button>
+              {!isIndividual && (
+                <button 
+                  onClick={() => setIsAdding(true)}
+                  disabled={isLoading || childrenTotalPercentage >= 100}
+                  title={childrenTotalPercentage >= 100 ? "Cannot add: Ownership is already at or above 100%" : "Add a child entity"}
+                  className="bg-[#24417a] text-white px-3 py-1 text-xs flex items-center gap-1 font-bold hover:bg-[#1a315e] transition-colors rounded-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus size={14} /> Add
+                </button>
+              )}
             </div>
           </div>
 
@@ -169,20 +223,27 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
           {isExpanded && localChildren.length > 0 && (
             <div className="divide-y divide-slate-50">
               {localChildren.map((child, idx) => (
-                <div key={idx} className="grid grid-cols-[30px_1fr_120px_60px_40px] items-center py-3 px-4 hover:bg-slate-50">
+                <div key={idx} className="grid grid-cols-[30px_1fr_120px_60px_80px] items-center py-3 px-4 hover:bg-slate-50 transition-colors">
                   <span className="text-sm text-slate-500">{idx + 1}.</span>
                   <span className="text-sm font-semibold text-slate-700 truncate">{child.ownerName || child.firstName}</span>
                   <span className="text-sm text-slate-400 font-bold uppercase text-[10px]">{child.contactType}</span>
                   <span className="text-sm font-bold text-slate-700 text-right">{child.percentage}%</span>
-                  <div className="flex justify-end">
-                    <Eye className="cursor-pointer text-gray-400 hover:text-blue-600" 
+                  <div className="flex justify-end gap-3">
+                  
+                    <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
                       onClick={() => {
                         const normalizedChild = normalizeEntity(child);
                         setSelectedOwner({ 
                             ...normalizedChild,
-                            parentRefNbr: current.referenceNbr 
+                            parentRefNbr: current.referenceNbr,
+                            isChildOfCurrent: true // <-- ADDED FLAG
                         });
                       }} 
+                    />
+                    <Trash2 
+                      size={18} 
+                      className="cursor-pointer text-slate-300 hover:text-red-600 transition-colors" 
+                      onClick={() => handleDeleteClick(child, current.referenceNbr)} 
                     />
                   </div>
                 </div>
@@ -211,14 +272,64 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         </div>
       )}
 
-      {isAdding && <AddOwnerForm onCancel={() => setIsAdding(false)} onSave={handleAddOwner} />}
+      {/* Modals & Overlays */}
+      {/* If your AddOwnerForm also needs to block submissions over 100%, pass currentTotalPercentage to it here too! */}
+      {isAdding && (
+        <AddOwnerForm 
+          onCancel={() => setIsAdding(false)} 
+          onSave={handleAddOwner} 
+          currentTotalPercentage={childrenTotalPercentage} 
+        />
+      )}
       
       {selectedOwner && (
-        <OwnerDetailsCard 
+      <OwnerDetailsCard 
             owner={selectedOwner} 
             onClose={() => setSelectedOwner(null)} 
             onRefresh={onRefresh} 
+            // Pass the total in!
+            currentTotalPercentage={selectedOwner.isChildOfCurrent ? childrenTotalPercentage : undefined}
         />
+      )}
+
+      {/* --- ACCELA THEMED DELETE CONFIRMATION MODAL --- */}
+      {deleteContext && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Accela Blue Header */}
+            <div className="bg-[#24417a] px-5 py-3 flex items-center gap-2">
+              <AlertTriangle size={18} className="text-white" />
+              <h3 className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
+            </div>
+            
+            <div className="p-6">
+              <p className="text-slate-700">
+                Are you sure you want to remove <span className="font-bold text-[#1a2b4b]">{deleteContext.target.ownerName || deleteContext.target.firstName}</span> from the ownership structure?
+              </p>
+              <p className="text-sm text-slate-500 mt-2">
+                This action cannot be undone and will immediately update the server.
+              </p>
+            </div>
+            
+            <div className="bg-slate-50 px-5 py-4 flex justify-end gap-3 border-t border-slate-100">
+              <button
+                onClick={() => setDeleteContext(null)}
+                disabled={isLoading}
+                className="px-4 py-2 rounded text-sm font-semibold text-slate-600 border border-slate-300 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isLoading}
+                className="px-4 py-2 rounded text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center gap-2 shadow-sm"
+              >
+                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                {isLoading ? 'Deleting...' : 'Delete Owner'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

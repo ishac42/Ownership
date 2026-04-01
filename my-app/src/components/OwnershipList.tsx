@@ -286,8 +286,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       <OwnerDetailsCard 
             owner={selectedOwner} 
             onClose={() => setSelectedOwner(null)} 
-            onRefresh={onRefresh} 
-            // Pass the total in!
+            onRefresh={() => { if (onRefresh) onRefresh(); }}
             currentTotalPercentage={selectedOwner.isChildOfCurrent ? childrenTotalPercentage : undefined}
         />
       )}

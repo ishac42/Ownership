@@ -1,4 +1,3 @@
-import React from 'react';
 import { useRefData } from '../context/RefDataContext';
 
 // 1. Define the State List Constant

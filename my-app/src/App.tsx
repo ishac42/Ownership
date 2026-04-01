@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import logo from './logo.jpg'; 
+import { useState, type KeyboardEvent } from 'react';
 import { List, BarChart3 } from 'lucide-react';
 import { useOwnershipSearch } from './hooks/useOwnership';
 import SearchControls from './components/SearchControls';
@@ -30,7 +29,7 @@ const App = () => {
     currentPage * itemsPerPage
   );
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       setCurrentPage(1); // Reset to page 1 on new search
       handleSearch();
@@ -45,7 +44,7 @@ const App = () => {
           {/* FIX: Changed 'auto' to 'mx-auto' below to center the header content */}
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center">
             <div className="mr-6">
-              <img src={logo} alt="Logo" className="h-20 w-auto object-contain" />
+              <span className="text-white text-3xl font-bold">C</span>
             </div>
             <h1 className="text-white text-2xl font-bold tracking-tight">Ownership Portal</h1>
           </div>
@@ -73,7 +72,7 @@ const App = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentResults.length > 0 ? currentResults.map((row, i) => (
+                {currentResults.length > 0 ? currentResults.map((row: any, i: number) => (
                   <tr 
                     key={row.referenceNbr || i} 
                     onClick={() => setSelectedRecord(row)}

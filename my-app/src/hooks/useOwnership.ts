@@ -3,8 +3,8 @@ import { useState } from 'react';
 export const useOwnershipSearch = () => {
   const [searchName, setSearchName] = useState('');
   const [refNo, setRefNo] = useState('');
-  const [results, setResults] = useState([]);
-  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [results, setResults] = useState<any[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Existing Search Logic
@@ -56,8 +56,8 @@ export const useOwnershipSearch = () => {
         setSelectedRecord(owners[0]); 
         
         // Optional: Also update the specific item in the results list so the table is current
-        setResults(prevResults => 
-          prevResults.map(item => 
+        setResults((prevResults: any[]) => 
+          prevResults.map((item: any) => 
             item.referenceNbr === selectedRecord.referenceNbr ? owners[0] : item
           )
         );

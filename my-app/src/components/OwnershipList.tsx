@@ -100,6 +100,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       "Last Name": formData.lastName,
       "E-mail": formData.email,
       "Address Line 1": formData.ownershipAddr,
+      "Unit Type": "",
       "Unit/Suite/Apt" : "Unit/Suite/Apt",
       "Country" : "United States",
       "City": formData.city,

@@ -116,12 +116,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   // Pass its OWN children total to the add modal
                   onOpenAdd(current, childrenTotalPercentage); 
                 }}
-                disabled={childrenTotalPercentage >= 100}
-                title={childrenTotalPercentage >= 100 ? "Cannot add: Ownership is already at or above 100%" : "Add Owner"}
+                title={childrenTotalPercentage >= 100 ? "Add Owner with percentage set to 0%" : "Add Owner"}
                 className={`flex items-center gap-1 px-2 py-1 rounded transition-colors border ${
-                  childrenTotalPercentage >= 100 
-                    ? 'bg-white/5 border-white/5 opacity-40 cursor-not-allowed' 
-                    : 'bg-white/10 hover:bg-white/25 border-white/10'
+                  'bg-white/10 hover:bg-white/25 border-white/10'
                 }`}
               >
                 <Plus size={10} strokeWidth={3} />

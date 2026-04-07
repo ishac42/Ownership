@@ -211,8 +211,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
               {!isIndividual && (
                 <button 
                   onClick={() => setIsAdding(true)}
-                  disabled={isLoading || childrenTotalPercentage >= 100}
-                  title={childrenTotalPercentage >= 100 ? "Cannot add: Ownership is already at or above 100%" : "Add a child entity"}
+                  disabled={isLoading }
+                  title={childrenTotalPercentage >= 100 ? "Add a child entity with percentage set to 0%" : "Add a child entity"}
                   className="bg-[#24417a] text-white px-3 py-1 text-xs flex items-center gap-1 font-bold hover:bg-[#1a315e] transition-colors rounded-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus size={14} /> Add

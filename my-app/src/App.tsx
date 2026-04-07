@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
+import logo from './logo.jpg'; 
 import { List, BarChart3 } from 'lucide-react';
 import { useOwnershipSearch } from './hooks/useOwnership';
 import SearchControls from './components/SearchControls';
@@ -44,7 +45,7 @@ const App = () => {
           {/* FIX: Changed 'auto' to 'mx-auto' below to center the header content */}
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center">
             <div className="mr-6">
-              <span className="text-white text-3xl font-bold">C</span>
+              <img src={logo} alt="Logo" className="h-20 w-auto object-contain" />
             </div>
             <h1 className="text-white text-2xl font-bold tracking-tight">Ownership Portal</h1>
           </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, type KeyboardEvent } from 'react';
-import logo from './logo.jpg'; 
+import logo from './Logo.jpg'; 
 import { List, BarChart3, CheckCircle } from 'lucide-react';
 import { useOwnershipSearch } from './hooks/useOwnership';
 import SearchControls from './components/SearchControls';

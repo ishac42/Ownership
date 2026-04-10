@@ -10,13 +10,15 @@ interface OwnershipListProps {
   depth?: number;
   onRefresh?: () => Promise<void> | void; 
   parentRefNbr?: string; 
+  isReadOnly?: boolean; // <-- Added isReadOnly prop
 }
 
 const OwnershipList: React.FC<OwnershipListProps> = ({ 
   entity, 
   depth = 0, 
   onRefresh,
-  parentRefNbr = "0" 
+  parentRefNbr = "0",
+  isReadOnly = false // <-- Added default value
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
@@ -56,6 +58,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
 
   // --- HANDLER: Trigger Delete Modal ---
   const handleDeleteClick = (target: any, parentRef: string) => {
+    if (isReadOnly) return; // <-- Prevent click if read-only
     setDeleteContext({ target, parentRefNbr: parentRef });
   };
 
@@ -210,10 +213,12 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
               />
               {!isIndividual && (
                 <button 
-                  onClick={() => setIsAdding(true)}
-                  disabled={isLoading }
-                  title={childrenTotalPercentage >= 100 ? "Add a child entity with percentage set to 0%" : "Add a child entity"}
-                  className="bg-[#24417a] text-white px-3 py-1 text-xs flex items-center gap-1 font-bold hover:bg-[#1a315e] transition-colors rounded-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => { if (!isReadOnly) setIsAdding(true); }} // <-- Prevent click if read-only
+                  disabled={isLoading || isReadOnly} // <-- Disable button if read-only
+                  title={isReadOnly ? "Read Only Mode" : (childrenTotalPercentage >= 100 ? "Add a child entity with percentage set to 0%" : "Add a child entity")}
+                  className={`bg-[#24417a] text-white px-3 py-1 text-xs flex items-center gap-1 font-bold rounded-sm shadow-sm transition-colors ${
+                    isReadOnly || isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#1a315e]'
+                  }`} // <-- Update classes for disabled visual state
                 >
                   <Plus size={14} /> Add
                 </button>
@@ -242,9 +247,10 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                         });
                       }} 
                     />
+                    {/* Updated Trash Icon: Keeps it visible but disables it if read-only */}
                     <Trash2 
                       size={18} 
-                      className="cursor-pointer text-slate-300 hover:text-red-600 transition-colors" 
+                      className={`${isReadOnly ? 'text-slate-200 opacity-50 cursor-not-allowed' : 'cursor-pointer text-slate-300 hover:text-red-600'} transition-colors`} 
                       onClick={() => handleDeleteClick(child, current.referenceNbr)} 
                     />
                   </div>
@@ -268,6 +274,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                   depth={depth + 1} 
                   onRefresh={onRefresh} 
                   parentRefNbr={current.referenceNbr}
+                  isReadOnly={isReadOnly} // <-- Pass down to recursive children
               />
             </div>
           ))}
@@ -290,6 +297,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
             onClose={() => setSelectedOwner(null)} 
             onRefresh={() => { if (onRefresh) onRefresh(); }}
             currentTotalPercentage={selectedOwner.isChildOfCurrent ? childrenTotalPercentage : undefined}
+            isReadOnly={isReadOnly} // <-- Pass down to details card so it knows to disable edit fields
         />
       )}
 

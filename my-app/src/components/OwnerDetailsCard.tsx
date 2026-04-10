@@ -7,9 +7,10 @@ interface OwnerDetailsCardProps {
   onClose: () => void;
   onRefresh: () => void; // Callback to reload parent data
   currentTotalPercentage?: number; // Passed from parent to calculate limits
+  isReadOnly?: boolean; // <-- Added isReadOnly prop
 }
 
-const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage }: OwnerDetailsCardProps) => {
+const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, isReadOnly = false }: OwnerDetailsCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ ...owner });
   const [isLoading, setIsLoading] = useState(false);
@@ -216,8 +217,12 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage }:
                 {/* Buttons */}
                 <div className="flex justify-end gap-5 pt-6">
                   <button 
-                    onClick={() => setIsEditing(true)} 
-                    className="px-14 py-2.5 border-2 border-[#2c3e76] text-[#2c3e76] font-bold rounded-md bg-white hover:bg-gray-50 transition-colors"
+                    onClick={() => { if (!isReadOnly) setIsEditing(true); }} // <-- Prevent click if read-only
+                    disabled={isReadOnly} // <-- Disable button if read-only
+                    title={isReadOnly ? "Read Only Mode" : ""}
+                    className={`px-14 py-2.5 border-2 border-[#2c3e76] text-[#2c3e76] font-bold rounded-md bg-white transition-colors ${
+                      isReadOnly ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                    }`} // <-- Update classes for disabled visual state
                   >
                     Edit
                   </button>

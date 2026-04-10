@@ -20,7 +20,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // handle preflight for all routes
 
-const app = express();
 app.use(express.json());
 
 app.post('/api/retrieve-info', async (req, res) => {

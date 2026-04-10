@@ -72,27 +72,20 @@ const App = () => {
   return (
     <RefDataProvider>
       <div className="min-h-screen bg-slate-100 font-sans text-slate-700">
-        <nav className="bg-[#1e3a8a] shadow-lg">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="mr-6">
-                <img src={logo} alt="Logo" className="h-20 w-auto object-contain" />
+        
+        {/* --- Header (Visible only if URL does NOT have referenceNumber) --- */}
+        {!hideSearch && (
+          <nav className="bg-[#1e3a8a] shadow-lg">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="mr-6">
+                  <img src={logo} alt="Logo" className="h-20 w-auto object-contain" />
+                </div>
+                <h1 className="text-white text-2xl font-bold tracking-tight">Ownership Portal</h1>
               </div>
-              <h1 className="text-white text-2xl font-bold tracking-tight">Ownership Portal</h1>
             </div>
-
-            {/* --- Done Button (Visible only if URL has referenceNumber) --- */}
-            {hideSearch && (
-              <button
-                onClick={handleDone}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-md font-bold transition-colors shadow-md"
-              >
-                <CheckCircle size={18} />
-                Done
-              </button>
-            )}
-          </div>
-        </nav>
+          </nav>
+        )}
 
         <div className="max-w-7xl mx-auto p-6 space-y-6">
           
@@ -156,7 +149,10 @@ const App = () => {
 
           {/* Section 2: View Controls */}
           <div className="flex justify-between items-center pt-4">
-            <h2 className="text-xs font-bold text-slate-500 uppercase">Entity Details</h2>
+            <h2 className="text-xs font-bold text-slate-500 uppercase">
+              {/* Indicate read-only status in the title if applicable */}
+              Entity Details {!hideSearch && "(Read Only)"}
+            </h2>
             <div className="flex border rounded shadow-sm bg-white overflow-hidden">
               <button onClick={() => setViewMode('list')} 
                 className={`flex items-center gap-2 px-4 py-2 text-xs font-bold ${viewMode === 'list' ? 'bg-[#24417a] text-white' : 'text-slate-600'}`}>
@@ -187,18 +183,34 @@ const App = () => {
                   <OwnershipList 
                       entity={selectedRecord} 
                       onRefresh={refreshSelectedRecord} 
+                      isReadOnly={!hideSearch} // Passes true if there is no reference number in URL
                   />
                 ) : (
                   <div className="overflow-x-auto pb-10 flex justify-center">
                     <OwnershipChart 
                       entity={selectedRecord} 
                       onRefresh={refreshSelectedRecord} 
+                      isReadOnly={!hideSearch} // Passes true if there is no reference number in URL
                     />
                   </div>
                 )}
               </div>
             )}
           </div>
+
+          {/* Section 4: Done Button (Visible only if URL has referenceNumber) */}
+          {hideSearch && (
+            <div className="flex justify-end pt-4">
+              <button
+                onClick={handleDone}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-bold transition-colors shadow-md"
+              >
+                <CheckCircle size={20} />
+                Done
+              </button>
+            </div>
+          )}
+          
         </div>
       </div>
     </RefDataProvider>

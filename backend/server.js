@@ -8,7 +8,19 @@ const deleteRoute = require('./delete');
 const getEntityRoute = require('./getEntity'); 
 
 const app = express();
-app.use(cors());
+
+// CORS must be first, and OPTIONS preflight handled explicitly
+const corsOptions = {
+  origin: 'https://ownership-ui.onrender.com',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // handle preflight for all routes
+
+const app = express();
 app.use(express.json());
 
 app.post('/api/retrieve-info', async (req, res) => {

@@ -22,7 +22,10 @@ const App = () => {
   // 1. Initialize Direct Mode synchronously from URL query string
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const passedRef = urlParams.get('referenceNumber');
-  const [hideSearch] = useState(!!passedRef);
+
+  // Logic: If NO referenceNumber is passed, the app is in "Read Only" mode
+  const isReadOnly = !passedRef;
+  const hideSearch = !!passedRef;
   
   // 2. Track search lifecycle to manage loading UI correctly
   const [searchInitiated, setSearchInitiated] = useState(false);
@@ -179,7 +182,7 @@ const App = () => {
                   <OwnershipList 
                       entity={selectedRecord} 
                       onRefresh={refreshSelectedRecord} 
-					            isEditable={hideSearch} // PASSING THE FLAG HERE
+					            isReadOnly={isReadOnly} // PASSING THE PROP
                   />
                 ) : (
                   <div className="overflow-x-auto pb-10 flex justify-center">

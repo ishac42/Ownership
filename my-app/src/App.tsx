@@ -71,28 +71,20 @@ const App = () => {
 
   return (
     <RefDataProvider>
-      <div className="min-h-screen bg-slate-100 font-sans text-slate-700">
-        <nav className="bg-[#1e3a8a] shadow-lg">
-          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center">
-              <div className="mr-6">
-                <img src={logo} alt="Logo" className="h-20 w-auto object-contain" />
+      <div className="min-h-screen bg-slate-100 font-sans text-slate-700 pb-12">
+        {/* --- Header: Only rendered if NO referenceNumber is in URL --- */}
+        {!hideSearch && (
+          <nav className="bg-[#1e3a8a] shadow-lg">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="mr-6">
+                  <img src={logo} alt="Logo" className="h-20 w-auto object-contain" />
+                </div>
+                <h1 className="text-white text-2xl font-bold tracking-tight">Ownership Portal</h1>
               </div>
-              <h1 className="text-white text-2xl font-bold tracking-tight">Ownership Portal</h1>
             </div>
-
-            {/* --- Done Button (Visible only if URL has referenceNumber) --- */}
-            {hideSearch && (
-              <button
-                onClick={handleDone}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-md font-bold transition-colors shadow-md"
-              >
-                <CheckCircle size={18} />
-                Done
-              </button>
-            )}
-          </div>
-        </nav>
+          </nav>
+        )}
 
         <div className="max-w-7xl mx-auto p-6 space-y-6">
           
@@ -199,6 +191,19 @@ const App = () => {
               </div>
             )}
           </div>
+
+          {/* --- Bottom Action Bar: Shown only if referenceNumber is passed --- */}
+          {hideSearch && (
+            <div className="flex justify-center pt-8 border-t border-slate-200">
+              <button
+                onClick={handleDone}
+                className="flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white px-12 py-3 rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform active:scale-95"
+              >
+                <CheckCircle size={20} />
+                Done
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </RefDataProvider>

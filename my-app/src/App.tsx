@@ -179,6 +179,7 @@ const App = () => {
                   <OwnershipList 
                       entity={selectedRecord} 
                       onRefresh={refreshSelectedRecord} 
+					            isEditable={hideSearch} // PASSING THE FLAG HERE
                   />
                 ) : (
                   <div className="overflow-x-auto pb-10 flex justify-center">

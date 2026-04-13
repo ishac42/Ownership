@@ -16,7 +16,8 @@ interface RecursiveTreeProps {
   onOpenAdd: (parentEntity: any, childrenTotal?: number) => void;
   onDelete?: (entity: any, parentRefNbr: string) => void; 
   parentRefNbr?: string;
-  siblingTotalPercentage?: number; // <--- ADDED: Passed from parent to know sibling limits
+  siblingTotalPercentage?: number; 
+  isReadOnly?: boolean; // <--- ADDED
 }
 
 export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
@@ -25,7 +26,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   onOpenAdd,
   onDelete, 
   parentRefNbr = "",
-  siblingTotalPercentage
+  siblingTotalPercentage,
+  isReadOnly = false // <--- ADDED DEFAULT
 }) => {
   const [localChildren, setLocalChildren] = useState<any[]>(entity?.relatedContacts || []);
   const current = normalizeEntity(entity);
@@ -49,8 +51,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Node Card */}
-      <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1`}>
+      {/* Node Card - Disabled hover effect when Read Only */}
+      <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 ${!isReadOnly ? 'hover:-translate-y-1' : ''}`}>
         
         {/* Over-allocation Warning Icon */}
         {childrenTotalPercentage > 100 && (
@@ -95,30 +97,38 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
               <Eye size={14} className="opacity-80 group-hover:opacity-100" />
             </button>
 
-            {/* --- TRASH ICON: Only shows for children --- */}
+            {/* --- TRASH ICON: Locked but visible when readOnly --- */}
             {isChild && (
               <button 
+                disabled={isReadOnly}
                 onClick={(e) => { 
                   e.stopPropagation(); 
-                  if (onDelete) onDelete(current, parentRefNbr); 
+                  if (onDelete && !isReadOnly) onDelete(current, parentRefNbr); 
                 }}
-                className="p-1.5 hover:bg-red-500/40 rounded-full transition-colors group"
-                title="Remove Owner"
+                className={`p-1.5 rounded-full transition-colors group ${
+                  isReadOnly 
+                    ? 'opacity-40 cursor-not-allowed' 
+                    : 'hover:bg-red-500/40'
+                }`}
+                title={isReadOnly ? "Action Disabled (Read-Only)" : "Remove Owner"}
               >
-                <Trash2 size={14} className="text-red-200 group-hover:text-white" />
+                <Trash2 size={14} className={isReadOnly ? "text-gray-300" : "text-red-200 group-hover:text-white"} />
               </button>
             )}
             
+            {/* --- ADD BUTTON: Locked but visible when readOnly --- */}
             {!isIndividual && (
               <button
+                disabled={isReadOnly}
                 onClick={(e) => { 
                   e.stopPropagation(); 
-                  // Pass its OWN children total to the add modal
-                  onOpenAdd(current, childrenTotalPercentage); 
+                  if (!isReadOnly) onOpenAdd(current, childrenTotalPercentage); 
                 }}
-                title={childrenTotalPercentage >= 100 ? "Add Owner with percentage set to 0%" : "Add Owner"}
+                title={isReadOnly ? "Action Disabled (Read-Only)" : (childrenTotalPercentage >= 100 ? "Add Owner with percentage set to 0%" : "Add Owner")}
                 className={`flex items-center gap-1 px-2 py-1 rounded transition-colors border ${
-                  'bg-white/10 hover:bg-white/25 border-white/10'
+                  isReadOnly 
+                    ? 'opacity-40 cursor-not-allowed border-white/10 bg-white/5' 
+                    : 'bg-white/10 hover:bg-white/25 border-white/10'
                 }`}
               >
                 <Plus size={10} strokeWidth={3} />
@@ -152,7 +162,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   onOpenAdd={onOpenAdd} 
                   onDelete={onDelete} 
                   parentRefNbr={current.referenceNbr}
-                  siblingTotalPercentage={childrenTotalPercentage} // Pass the limit down to the child!
+                  siblingTotalPercentage={childrenTotalPercentage} 
+                  isReadOnly={isReadOnly} // <--- Pass prop down
                 />
               </div>
             ))}
@@ -167,9 +178,10 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 interface OwnershipChartProps {
   entity: any;
   onRefresh?: () => Promise<void> | void; 
+  isReadOnly?: boolean; // <--- ADDED
 }
 
-const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) => {
+const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh, isReadOnly = false }) => {
   const [currentZoomScale, setCurrentZoomScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -221,18 +233,20 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
 
   // --- HANDLER: Handle Open Add Modal ---
   const handleOpenAdd = (parentEntity: any, childrenTotal?: number) => {
+    if (isReadOnly) return; // Guard clause
     setAddingToParent(parentEntity);
     setTotalForAdd(childrenTotal || 0); // Save limit to pass to AddOwnerForm
   };
 
   // --- HANDLER: Trigger Delete Modal ---
   const handleDeleteClick = (target: any, parentRefNbr: string) => {
+    if (isReadOnly) return; // Guard clause
     setDeleteContext({ target, parentRefNbr });
   };
 
   // --- HANDLER: Execute Actual Deletion ---
   const confirmDelete = async () => {
-    if (!deleteContext) return;
+    if (!deleteContext || isReadOnly) return;
     console.log(deleteContext)
     setLoading(true);
     try {
@@ -260,6 +274,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
 
   // --- HANDLER: Add Owner ---
   const handleSaveOwner = async (formData: any) => {
+    if (isReadOnly) return;
     setLoading(true);
     const parent = normalizeEntity(addingToParent);
     
@@ -353,7 +368,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
         <AddOwnerForm 
           onCancel={() => setAddingToParent(null)} 
           onSave={handleSaveOwner} 
-          currentTotalPercentage={totalForAdd} // Sent to limit new additions
+          currentTotalPercentage={totalForAdd} 
+          isReadOnly={isReadOnly} // Sent in case AddOwnerForm needs it
         />
       )}
 
@@ -362,8 +378,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
           owner={selectedOwner} 
           onClose={() => setSelectedOwner(null)} 
           onRefresh={handleEditRefresh}
-          // Only send the total logic if the node we clicked actually has a parent
           currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : undefined} 
+          isReadOnly={isReadOnly} // Ensure standard edit locks apply
         />
       )}
 
@@ -435,6 +451,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
                            onViewDetails={handleNodeSelect} 
                            onOpenAdd={handleOpenAdd}
                            onDelete={handleDeleteClick} 
+                           isReadOnly={isReadOnly} // <--- Pass prop down
                           />
                     </div>
                 </TransformComponent>

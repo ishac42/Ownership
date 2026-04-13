@@ -10,7 +10,7 @@ interface OwnershipListProps {
   depth?: number;
   onRefresh?: () => Promise<void> | void; 
   parentRefNbr?: string; 
-  isReadOnly?: boolean; // Added isReadOnly prop
+  isReadOnly?: boolean; // Controls UI and Guarding
 }
 
 const OwnershipList: React.FC<OwnershipListProps> = ({ 
@@ -18,21 +18,16 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   depth = 0, 
   onRefresh,
   parentRefNbr = "0",
-  isReadOnly = false // Defaulting to false (editable)
+  isReadOnly = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  
-  // Custom Delete Modal State
   const [deleteContext, setDeleteContext] = useState<{ target: any, parentRefNbr: string } | null>(null);
-  
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [localChildren, setLocalChildren] = useState<any[]>(
-    entity?.relatedContacts || []
-  );
+  const [localChildren, setLocalChildren] = useState<any[]>(entity?.relatedContacts || []);
 
   useEffect(() => {
     setLocalChildren(entity?.relatedContacts || []);
@@ -45,7 +40,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     }
   }, [successMessage]);
 
-  // Calculate total percentage to handle validation/UI warnings
   const childrenTotalPercentage = localChildren.reduce((sum, child) => {
     const pct = parseFloat(String(child.percentage || '0').replace('%', '')) || 0;
     return sum + pct;
@@ -55,9 +49,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   const current = normalizeEntity(entity);
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
 
-  // --- HANDLERS ---
   const handleDeleteClick = (target: any, parentRef: string) => {
-    // Guard against delete actions in read-only mode
     if (isReadOnly) return;
     setDeleteContext({ target, parentRefNbr: parentRef });
   };
@@ -141,7 +133,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
 
   return (
     <div className="flex flex-col relative">
-      
       {/* Loading Overlay */}
       {isLoading && !deleteContext && (
         <div className="absolute inset-0 bg-white/60 z-[50] flex items-center justify-center rounded-md">
@@ -159,6 +150,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
               </svg>
             </div>
             <span className="font-bold tracking-wide">{successMessage}</span>
+            <button onClick={() => setSuccessMessage(null)} className="ml-4 text-white/70 hover:text-white text-xl font-bold">×</button>
           </div>
         </div>
       )}
@@ -169,7 +161,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       )}
 
       <div className="flex items-start gap-4">
-        {/* Toggle UI */}
         <div className="relative flex flex-col items-center flex-shrink-0 w-6">
           {localChildren.length > 0 ? (
             <button onClick={() => setIsExpanded(!isExpanded)} className="mt-[13px] w-6 h-6 border border-slate-300 flex items-center justify-center bg-white z-20 shadow-sm cursor-pointer">
@@ -180,30 +171,31 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
           )}
         </div>
 
-        {/* Main Header Card */}
+        {/* Main Card */}
         <div className="flex-1 bg-white border border-slate-200 shadow-sm overflow-hidden mb-6 z-20">
-          
+          {childrenTotalPercentage > 100 && (
+            <div className="bg-red-50 px-3 py-2 border-b border-red-200 text-red-700 text-xs font-semibold">
+              Warning: Children exceed 100% total ({childrenTotalPercentage}%).
+            </div>
+          )}
+
           <div className="flex items-center justify-between p-3 border-b bg-slate-50/30">
             <div className="flex items-center gap-3">
-              <span className="text-slate-400">
-                {isIndividual ? "👤" : "🏢"}
-              </span>
+              <span className="text-slate-400">{isIndividual ? "👤" : "🏢"}</span>
               <h4 className="font-bold text-[#1a2b4b] text-sm uppercase">{current.ownerName}</h4>
             </div>
             <div className="flex items-center gap-3">
               <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
-                onClick={() => setSelectedOwner({ ...current, parentRefNbr: parentRefNbr })} 
+                onClick={() => setSelectedOwner({ ...current, parentRefNbr })} 
               />
-              
               {!isIndividual && (
                 <button 
-                  onClick={() => { if (!isReadOnly) setIsAdding(true); }}
+                  onClick={() => setIsAdding(true)}
                   disabled={isLoading || isReadOnly}
-                  title={isReadOnly ? "Read Only Mode" : (childrenTotalPercentage >= 100 ? "Add entity (0%)" : "Add child")}
-                  className={`px-3 py-1 text-xs flex items-center gap-1 font-bold rounded-sm shadow-sm transition-colors ${
-                    isReadOnly || isLoading 
-                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60' 
-                      : 'bg-[#24417a] text-white hover:bg-[#1a315e]'
+                  className={`px-3 py-1 text-xs flex items-center gap-1 font-bold rounded-sm shadow-sm transition-all ${
+                    isReadOnly 
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70' 
+                    : 'bg-[#24417a] text-white hover:bg-[#1a315e]'
                   }`}
                 >
                   <Plus size={14} /> Add
@@ -212,7 +204,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
             </div>
           </div>
 
-          {/* Table of Children */}
+          {/* Child Table Rows */}
           {isExpanded && localChildren.length > 0 && (
             <div className="divide-y divide-slate-50">
               {localChildren.map((child, idx) => (
@@ -223,21 +215,14 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                   <span className="text-sm font-bold text-slate-700 text-right">{child.percentage}%</span>
                   <div className="flex justify-end gap-3">
                     <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
-                      onClick={() => {
-                        const normalizedChild = normalizeEntity(child);
-                        setSelectedOwner({ 
-                            ...normalizedChild,
-                            parentRefNbr: current.referenceNbr,
-                            isChildOfCurrent: true 
-                        });
-                      }} 
+                      onClick={() => setSelectedOwner({ ...normalizeEntity(child), parentRefNbr: current.referenceNbr, isChildOfCurrent: true })} 
                     />
                     <Trash2 
                       size={18} 
                       className={`transition-colors ${
                         isReadOnly 
-                          ? 'text-slate-100 cursor-not-allowed opacity-30' 
-                          : 'cursor-pointer text-slate-300 hover:text-red-600'
+                        ? 'text-slate-100 cursor-not-allowed' 
+                        : 'cursor-pointer text-slate-300 hover:text-red-600'
                       }`} 
                       onClick={() => handleDeleteClick(child, current.referenceNbr)} 
                     />
@@ -249,7 +234,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         </div>
       </div>
 
-      {/* Recursive Render of Children */}
+      {/* Recursive Children */}
       {localChildren.length > 0 && isExpanded && (
         <div className="ml-[11px] pl-8 relative">
           {localChildren.map((child: any, idx: number) => (
@@ -260,7 +245,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                   depth={depth + 1} 
                   onRefresh={onRefresh} 
                   parentRefNbr={current.referenceNbr}
-                  isReadOnly={isReadOnly} // CRITICAL: Drills the read-only state down
+                  isReadOnly={isReadOnly}
               />
             </div>
           ))}
@@ -268,7 +253,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       )}
 
       {/* Modals */}
-      {isAdding && (
+      {!isReadOnly && isAdding && (
         <AddOwnerForm 
           onCancel={() => setIsAdding(false)} 
           onSave={handleAddOwner} 
@@ -280,31 +265,30 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         <OwnerDetailsCard 
             owner={selectedOwner} 
             onClose={() => setSelectedOwner(null)} 
-            onRefresh={() => { if (onRefresh) onRefresh(); }}
+            onRefresh={onRefresh}
+            isReadOnly={isReadOnly}
             currentTotalPercentage={selectedOwner.isChildOfCurrent ? childrenTotalPercentage : undefined}
-            isReadOnly={isReadOnly} // Tells the card to lock fields
         />
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteContext && (
+      {!isReadOnly && deleteContext && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
             <div className="bg-[#24417a] px-5 py-3 flex items-center gap-2">
               <AlertTriangle size={18} className="text-white" />
-              <h3 className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
+              <h3 className="text-white font-semibold text-sm">Confirm Deletion</h3>
             </div>
-            <div className="p-6">
-              <p className="text-slate-700">
-                Are you sure you want to remove <span className="font-bold text-[#1a2b4b]">{deleteContext.target.ownerName || deleteContext.target.firstName}</span>?
-              </p>
+            <div className="p-6 text-slate-700">
+              Are you sure you want to remove <span className="font-bold">{deleteContext.target.ownerName || deleteContext.target.firstName}</span>?
             </div>
-            <div className="bg-slate-50 px-5 py-4 flex justify-end gap-3 border-t border-slate-100">
-              <button onClick={() => setDeleteContext(null)} className="px-4 py-2 rounded text-sm font-semibold text-slate-600 border border-slate-300">
-                Cancel
-              </button>
-              <button onClick={confirmDelete} className="px-4 py-2 rounded text-sm font-semibold bg-red-600 text-white hover:bg-red-700">
-                Delete
+            <div className="bg-slate-50 px-5 py-4 flex justify-end gap-3 border-t">
+              <button onClick={() => setDeleteContext(null)} className="px-4 py-2 text-sm text-slate-600 border rounded">Cancel</button>
+              <button 
+                onClick={confirmDelete} 
+                disabled={isLoading}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded flex items-center gap-2"
+              >
+                {isLoading && <Loader2 size={14} className="animate-spin" />} Delete Owner
               </button>
             </div>
           </div>

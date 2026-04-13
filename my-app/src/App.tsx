@@ -179,19 +179,20 @@ const App = () => {
             ) : (
               <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-inner min-h-[400px]">
                 {viewMode === 'list' ? (
-                  <OwnershipList 
-                      entity={selectedRecord} 
-                      onRefresh={refreshSelectedRecord} 
-					            isReadOnly={isReadOnly} // PASSING THE PROP
-                  />
-                ) : (
-                  <div className="overflow-x-auto pb-10 flex justify-center">
-                    <OwnershipChart 
-                      entity={selectedRecord} 
-                      onRefresh={refreshSelectedRecord} 
+                    <OwnershipList 
+                        entity={selectedRecord} 
+                        onRefresh={refreshSelectedRecord} 
+                        isReadOnly={isReadOnly} 
                     />
-                  </div>
-                )}
+                  ) : (
+                    <div className="overflow-x-auto pb-10 flex justify-center">
+                      <OwnershipChart 
+                        entity={selectedRecord} 
+                        onRefresh={refreshSelectedRecord} 
+                        isReadOnly={isReadOnly} // <-- ADD THIS LINE
+                      />
+                    </div>
+                  )}
               </div>
             )}
           </div>

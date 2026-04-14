@@ -6,7 +6,6 @@ interface AddOwnerFormProps {
   // Updated to allow Promise for async operations
   onSave: (newData: any) => Promise<void> | void; 
   currentTotalPercentage?: number; // Passed from parent to calculate limits
-  isReadOnly?: boolean; // <--- ADD THIS LINE
 }
 
 const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwnerFormProps) => {

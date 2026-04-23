@@ -132,7 +132,7 @@ const EditOwnerForm = ({
             label="Ownership Address" 
             value={
               formData.ownershipAddr || 
-              `${formData.contactAddress || ''} ${formData.city || ''}, ${formData.state || ''} ${formData.zip || ''}`.trim()
+              `${formData.contactAddress || ''} ${formData.city || ''} ${formData.state || ''} ${formData.zip || ''}`.trim()
             } 
             onChange={(v: string) => handleChange('ownershipAddr', v)} 
             subLabel="(For example: 1100 4th St SW)" 

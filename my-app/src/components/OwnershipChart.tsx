@@ -154,6 +154,11 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 };
 
 // 2. Ownership Chart Component
+interface OwnershipChartProps {
+  entity: any;
+  onRefresh?: () => Promise<void> | void;
+}
+
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) => {
   const [currentZoomScale, setCurrentZoomScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);

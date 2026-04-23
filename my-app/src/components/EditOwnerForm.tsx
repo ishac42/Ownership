@@ -10,11 +10,13 @@ const STATE_LIST_USA = [
 interface EditOwnerFormProps {
   formData: any;
   setFormData: (data: any) => void;
-  onUpdate: () => void;
+  onUpdate: () => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
   totalChildrenPercentage?: number; 
-  isRoot?: boolean; // NEW: Prop to identify if this is the root parent
+  isRoot?: boolean;
+  currentTotalPercentage?: number;
+  originalPercentage?: number;
   isFromList?: boolean;
 }
 

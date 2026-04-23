@@ -11,8 +11,8 @@ export const normalizeEntity = (node) => ({
   type: node.type || node.contactType || "",
   
   // Contact & Location (Normalizing keys like ownershipAddr)
-  ownershipAddr: node.ownershipAddr || node.contactAddress || "",
-  contactAddress: node.contactAddress || node.ownershipAddr || "",
+  ownershipAddr: node.ownershipAddr || "",
+  contactAddress: node.contactAddress || "",
   city: node.city || "",
   state: node.state || "",
   zip: node.zip || "",

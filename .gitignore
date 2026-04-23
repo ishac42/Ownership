@@ -4,6 +4,7 @@ certs/
 *.pem
 dist/
 .env
+.history
 =======
 my-app/certs/localhost+2-key.pem
 my-app/certs/localhost+2-key.pem

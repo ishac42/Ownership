@@ -13,6 +13,9 @@ interface EditOwnerFormProps {
   onUpdate: () => void;
   onCancel: () => void;
   isLoading: boolean;
+  totalChildrenPercentage?: number; 
+  isRoot?: boolean; // NEW: Prop to identify if this is the root parent
+  isFromList?: boolean;
 }
 
 const EditOwnerForm = ({ 
@@ -20,7 +23,10 @@ const EditOwnerForm = ({
   setFormData, 
   onUpdate, 
   onCancel, 
-  isLoading 
+  isLoading,
+  totalChildrenPercentage = 0,
+  isRoot = false, // NEW
+  isFromList = false
 }: EditOwnerFormProps) => {
 
   const { entityTypes, isLoading: isRefDataLoading } = useRefData();
@@ -33,6 +39,10 @@ const EditOwnerForm = ({
 
   const isTypeSelected = (type: string) => 
     formData.ownershipType?.toLowerCase() === type.toLowerCase();
+
+  // UPDATED: Logic to only force calculation if it's the ROOT parent with children
+ const hasChildren = totalChildrenPercentage > 0;
+  const shouldShowCalculatedValue = hasChildren && (isRoot || isFromList);
 
   return (
     <div className="p-8 bg-[#f0f4f8] space-y-7 text-[#333]">
@@ -66,8 +76,6 @@ const EditOwnerForm = ({
 
       {/* Row 1: Name and Type */}
       <div className="grid grid-cols-2 gap-6">
-        
-        {/* Conditionally render Name fields based on Ownership Type */}
         {isTypeSelected('Individual') ? (
           <div className="grid grid-cols-2 gap-4">
             <InputField 
@@ -92,7 +100,6 @@ const EditOwnerForm = ({
           />
         )}
         
-        {/* Type of Entity Dropdown */}
         <div className="flex flex-col text-left">
           <label className="text-gray-500 font-medium mb-1">Type of Entity</label>
           <select 
@@ -131,9 +138,7 @@ const EditOwnerForm = ({
           <InputField label="City" value={formData.city} onChange={(v: string) => handleChange('city', v)} disabled={isLoading} />
         </div>
         
-        {/* 2. REPLACED: State Dropdown */}
         <div className="col-span-3 flex flex-col text-left">
-           {/* Matching label style to InputField for visual consistency in this row */}
            <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>
              State
            </label>
@@ -141,7 +146,6 @@ const EditOwnerForm = ({
              value={formData.state || ''} 
              onChange={(e) => handleChange('state', e.target.value)} 
              disabled={isLoading}
-             // Matching border-gray-400 to match adjacent City/Zip inputs
              className={`w-full p-2.5 border border-gray-400 rounded-md bg-white text-gray-900 font-medium outline-none transition-shadow ${
                 isLoading 
                   ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
@@ -175,7 +179,14 @@ const EditOwnerForm = ({
           <InputField label="SSN" value={formData.ssn} onChange={(v: string) => handleChange('ssn', v)} disabled={isLoading} />
         </div>
         <div className="col-span-6">
-          <InputField label="Percent (%) Owned" value={formData.percentage} onChange={(v: string) => handleChange('percentage', v)} disabled={isLoading} />
+          {/* UPDATED: Displays child-sum ONLY if isRoot. Otherwise shows manual formData.percentage */}
+          <InputField 
+            label="Percent (%) Owned" 
+            value={shouldShowCalculatedValue ? totalChildrenPercentage : formData.percentage} 
+            onChange={(v: string) => handleChange('percentage', v)} 
+            disabled={isLoading || shouldShowCalculatedValue}
+            subLabel={shouldShowCalculatedValue ? "Total sum of all owners" : ""} 
+          />
         </div>
       </div>
 

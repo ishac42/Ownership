@@ -1,13 +1,17 @@
 export const normalizeEntity = (node) => ({
   // Identity & Basics
-  ownerName: node.ownerName,
+  ownerName: node.ownerName || [node.firstName, node.lastName].filter(Boolean).join(" "),
   referenceNbr: node.referenceNbr || node.referenceNumber || "N/A",
+  firstName: node.firstName || "",
+  lastName: node.lastName || "",
   
   // Entity Classification
   ownershipType: node.ownershipType || (node.type === "Individual" ? "Individual" : "Organization"),
   contactType: node.contactType || node.type || "Individual",
+  type: node.type || node.contactType || "",
   
   // Contact & Location (Normalizing keys like ownershipAddr)
+  ownershipAddr: node.ownershipAddr || node.contactAddress || "",
   contactAddress: node.contactAddress || node.ownershipAddr || "",
   city: node.city || "",
   state: node.state || "",

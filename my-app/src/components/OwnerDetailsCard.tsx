@@ -243,7 +243,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
 const ViewField = ({ label, value }: { label: string, value: any }) => (
   <section>
     <p className="text-gray-500 text-[15px] font-medium mb-2">{label}</p>
-    <p className="font-bold text-gray-900 text-lg">{value || "N/A"}</p>
+    <p className="font-bold text-gray-900 text-lg break-words whitespace-normal">{value || "N/A"}</p>
   </section>
 );
 

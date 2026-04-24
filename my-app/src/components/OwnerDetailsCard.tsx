@@ -62,6 +62,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
       email: "E-mail",
       ownershipAddr: "Address Line 1",
       city: "City",
+      country: "Country",
       state: "State",
       zip: "ZIP Code/Province Postal Code",
       fein: "FEIN", 

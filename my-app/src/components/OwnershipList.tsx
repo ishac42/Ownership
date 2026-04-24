@@ -94,7 +94,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       "Address Line 1": formData.ownershipAddr,
       "Unit Type": "",
       "Unit/Suite/Apt" : "Unit/Suite/Apt",
-      "Country" : "United States",
+      "Country" : formData.country || "United States",
       "City": formData.city,
       "State": formData.state,
       "ZIP Code/Province Postal Code": formData.zip

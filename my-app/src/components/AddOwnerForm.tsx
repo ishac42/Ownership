@@ -10,6 +10,14 @@ interface AddOwnerFormProps {
 
 const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwnerFormProps) => {
   const { entityTypes, isLoading: isRefDataLoading } = useRefData();
+  const COUNTRY_LIST = [
+    'United States', 'Canada', 'Mexico', 'United Kingdom', 'Ireland', 'Germany', 'France', 'Spain', 'Italy', 'Netherlands',
+    'Belgium', 'Switzerland', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Poland', 'Portugal', 'Austria', 'Czech Republic',
+    'Hungary', 'Romania', 'Greece', 'Turkey', 'Ukraine', 'India', 'China', 'Japan', 'South Korea', 'Singapore',
+    'Malaysia', 'Thailand', 'Indonesia', 'Philippines', 'Vietnam', 'Australia', 'New Zealand', 'Brazil', 'Argentina', 'Chile',
+    'Colombia', 'Peru', 'South Africa', 'Nigeria', 'Kenya', 'Egypt', 'United Arab Emirates', 'Saudi Arabia', 'Israel', 'Other'
+  ];
+  const SORTED_COUNTRY_LIST = [...COUNTRY_LIST].sort((a, b) => a.localeCompare(b));
 
   // 1. ADD LOADING & ERROR STATE
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +31,7 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
     type: '',
     ownershipAddr: '',
     city: '',
+    country: 'United States',
     state: '',
     zip: '',
     email: '',
@@ -71,6 +80,8 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
     }
     // If successful, we usually don't need to set false because the modal will close/unmount
   };
+
+  const isUSCountry = (formData.country || '').trim().toLowerCase() === 'united states';
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
@@ -155,9 +166,24 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
           </div>
 
           {/* Row 2: Address Details */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <div className="col-span-1">
               <FormField label="Ownership Address" name="ownershipAddr" placeholder="Enter address" value={formData.ownershipAddr} onChange={handleChange} />
+            </div>
+            <div className="flex flex-col">
+              <label className="text-gray-500 font-medium mb-1">Country</label>
+              <select
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                className="border border-gray-300 rounded-md p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c3e76]/20"
+              >
+                {SORTED_COUNTRY_LIST.map((countryName) => (
+                  <option key={countryName} value={countryName}>
+                    {countryName}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col">
               <label className="text-gray-500 font-medium mb-1">City</label>
@@ -171,20 +197,31 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
               />
             </div>
             <div className="flex flex-col">
-              <label className="text-gray-500 font-medium mb-1">State</label>
-              <select 
-                name="state" 
-                value={formData.state} 
-                onChange={handleChange} 
-                className="border border-gray-300 rounded-md p-2.5 bg-white"
-              >
-                <option value="">Select state</option>
-                {STATE_LIST_USA.map((stateCode) => (
-                  <option key={stateCode} value={stateCode}>
-                    {stateCode}
-                  </option>
-                ))}
-              </select>
+              <label className="text-gray-500 font-medium mb-1">{isUSCountry ? 'State' : 'State'}</label>
+              {isUSCountry ? (
+                <select 
+                  name="state" 
+                  value={formData.state} 
+                  onChange={handleChange} 
+                  className="border border-gray-300 rounded-md p-2.5 bg-white"
+                >
+                  <option value="">Select state</option>
+                  {STATE_LIST_USA.map((stateCode) => (
+                    <option key={stateCode} value={stateCode}>
+                      {stateCode}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  name="state"
+                  placeholder="Enter state/province/region"
+                  value={formData.state}
+                  onChange={handleChange}
+                  className="border border-gray-300 rounded-md p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c3e76]/20"
+                />
+              )}
             </div>
             <FormField label="Zip Code" name="zip" placeholder="Enter zip code" value={formData.zip} onChange={handleChange} />
           </div>

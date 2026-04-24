@@ -166,11 +166,11 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
           </div>
 
           {/* Row 2: Address Details */}
-          <div className="grid grid-cols-5 gap-4">
-            <div className="col-span-1">
+          <div className="grid grid-cols-8 gap-4">
+            <div className="col-span-2">
               <FormField label="Ownership Address" name="ownershipAddr" placeholder="Enter address" value={formData.ownershipAddr} onChange={handleChange} />
             </div>
-            <div className="flex flex-col">
+            <div className="col-span-2 flex flex-col">
               <label className="text-gray-500 font-medium mb-1">Country</label>
               <select
                 name="country"
@@ -185,7 +185,7 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
                 ))}
               </select>
             </div>
-            <div className="flex flex-col">
+            <div className="col-span-2 flex flex-col">
               <label className="text-gray-500 font-medium mb-1">City</label>
               <input
                 type="text"
@@ -196,7 +196,7 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
                 className="border border-gray-300 rounded-md p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c3e76]/20"
               />
             </div>
-            <div className="flex flex-col">
+            <div className="col-span-1 flex flex-col">
               <label className="text-gray-500 font-medium mb-1">{isUSCountry ? 'State' : 'State'}</label>
               {isUSCountry ? (
                 <select 
@@ -223,7 +223,9 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
                 />
               )}
             </div>
-            <FormField label="Zip Code" name="zip" placeholder="Enter zip code" value={formData.zip} onChange={handleChange} />
+            <div className="col-span-1">
+              <FormField label="Zip Code" name="zip" placeholder="Enter zip code" value={formData.zip} onChange={handleChange} />
+            </div>
           </div>
 
           {/* Row 3: Email and Phone */}

@@ -150,7 +150,7 @@ const EditOwnerForm = ({
             disabled={isLoading}
           />
         </div>
-        <div className="col-span-2">
+        <div className="col-span-3">
           <div className="w-full text-left">
             <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>
               Country
@@ -178,7 +178,7 @@ const EditOwnerForm = ({
           <InputField label="City" value={formData.city} onChange={(v: string) => handleChange('city', v)} disabled={isLoading} />
         </div>
         
-        <div className="col-span-2 flex flex-col text-left">
+        <div className="col-span-1 flex flex-col text-left">
           <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>
             {isUSCountry ? 'State' : 'State'}
           </label>

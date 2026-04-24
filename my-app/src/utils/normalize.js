@@ -14,7 +14,6 @@ export const normalizeEntity = (node) => ({
   ownershipAddr: node.ownershipAddr || "",
   contactAddress: node.contactAddress || "",
   city: node.city || "",
-  country: node.country || "",
   state: node.state || "",
   zip: node.zip || "",
   email: node.email || "",

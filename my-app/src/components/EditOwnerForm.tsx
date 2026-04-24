@@ -6,14 +6,6 @@ const STATE_LIST_USA = [
   'MA', 'MD', 'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 
   'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY'
 ];
-const COUNTRY_LIST = [
-  'United States', 'Canada', 'Mexico', 'United Kingdom', 'Ireland', 'Germany', 'France', 'Spain', 'Italy', 'Netherlands',
-  'Belgium', 'Switzerland', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Poland', 'Portugal', 'Austria', 'Czech Republic',
-  'Hungary', 'Romania', 'Greece', 'Turkey', 'Ukraine', 'India', 'China', 'Japan', 'South Korea', 'Singapore',
-  'Malaysia', 'Thailand', 'Indonesia', 'Philippines', 'Vietnam', 'Australia', 'New Zealand', 'Brazil', 'Argentina', 'Chile',
-  'Colombia', 'Peru', 'South Africa', 'Nigeria', 'Kenya', 'Egypt', 'United Arab Emirates', 'Saudi Arabia', 'Israel', 'Other'
-];
-const SORTED_COUNTRY_LIST = [...COUNTRY_LIST].sort((a, b) => a.localeCompare(b));
 
 interface EditOwnerFormProps {
   formData: any;
@@ -46,9 +38,6 @@ const EditOwnerForm = ({
   };
 
   const entityType = formData.type || formData.contactType || "";
-  const selectedCountry = formData.country || 'United States';
-  const hasSelectedCountryOption = COUNTRY_LIST.includes(selectedCountry);
-  const isUSCountry = selectedCountry.trim().toLowerCase() === 'united states';
 
   const isTypeSelected = (type: string) => 
     formData.ownershipType?.toLowerCase() === type.toLowerCase();
@@ -150,71 +139,33 @@ const EditOwnerForm = ({
             disabled={isLoading}
           />
         </div>
-        <div className="col-span-2">
-          <div className="w-full text-left">
-            <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>
-              Country
-            </label>
-            <select
-              value={selectedCountry}
-              onChange={(e) => handleChange('country', e.target.value)}
-              disabled={isLoading}
-              className={`w-full p-2.5 border border-gray-400 rounded-md bg-white text-gray-900 font-medium outline-none transition-shadow ${
-                isLoading 
-                  ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                  : 'focus:ring-2 focus:ring-[#2c3e76]/10'
-              }`}
-            >
-              {!hasSelectedCountryOption && (
-                <option value={selectedCountry}>{selectedCountry}</option>
-              )}
-              {SORTED_COUNTRY_LIST.map((countryName) => (
-                <option key={countryName} value={countryName}>{countryName}</option>
-              ))}
-            </select>
-          </div>
-        </div>
         <div className="col-span-3">
           <InputField label="City" value={formData.city} onChange={(v: string) => handleChange('city', v)} disabled={isLoading} />
         </div>
         
-        <div className="col-span-2 flex flex-col text-left">
-          <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>
-            {isUSCountry ? 'State' : 'State'}
-          </label>
-          {isUSCountry ? (
-            <select 
-              value={formData.state || ''} 
-              onChange={(e) => handleChange('state', e.target.value)} 
-              disabled={isLoading}
-              className={`w-full p-2.5 border border-gray-400 rounded-md bg-white text-gray-900 font-medium outline-none transition-shadow ${
-                 isLoading 
-                   ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                   : 'focus:ring-2 focus:ring-[#2c3e76]/10'
-              }`}
-            >
-              <option value="">Select</option>
-              {STATE_LIST_USA.map((st) => (
-                <option key={st} value={st}>{st}</option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="text"
-              value={formData.state || ''}
-              onChange={(e) => handleChange('state', e.target.value)}
-              disabled={isLoading}
-              className={`w-full p-2.5 border border-gray-400 rounded-md bg-white text-gray-900 font-medium outline-none transition-shadow ${
-                 isLoading 
-                   ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
-                   : 'focus:ring-2 focus:ring-[#2c3e76]/10'
-              }`}
-            />
-          )}
+        <div className="col-span-3 flex flex-col text-left">
+           <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>
+             State
+           </label>
+           <select 
+             value={formData.state || ''} 
+             onChange={(e) => handleChange('state', e.target.value)} 
+             disabled={isLoading}
+             className={`w-full p-2.5 border border-gray-400 rounded-md bg-white text-gray-900 font-medium outline-none transition-shadow ${
+                isLoading 
+                  ? 'bg-gray-100 text-gray-500 cursor-not-allowed' 
+                  : 'focus:ring-2 focus:ring-[#2c3e76]/10'
+             }`}
+           >
+             <option value="">Select</option>
+             {STATE_LIST_USA.map((st) => (
+               <option key={st} value={st}>{st}</option>
+             ))}
+           </select>
         </div>
 
-        <div className="col-span-2">
-          <InputField label="Zip/Postal Code" value={formData.zip} onChange={(v: string) => handleChange('zip', v)} disabled={isLoading} />
+        <div className="col-span-3">
+          <InputField label="Zip Code" value={formData.zip} onChange={(v: string) => handleChange('zip', v)} disabled={isLoading} />
         </div>
       </div>
 

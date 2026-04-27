@@ -15,9 +15,14 @@ const COUNTRY_LIST = [
 ];
 const SORTED_COUNTRY_LIST = [...COUNTRY_LIST].sort((a, b) => a.localeCompare(b));
 
+interface EntityTypeOption {
+  value: string;
+  description?: string;
+}
+
 interface EditOwnerFormProps {
-  formData: any;
-  setFormData: (data: any) => void;
+  formData: Record<string, string>;
+  setFormData: (data: Record<string, string>) => void;
   onUpdate: () => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
@@ -52,6 +57,23 @@ const EditOwnerForm = ({
 
   const isTypeSelected = (type: string) => 
     formData.ownershipType?.toLowerCase() === type.toLowerCase();
+
+  const isApplicableForOwnershipType = (option: EntityTypeOption) => {
+    const description = (option.description || '').toLowerCase();
+    if (!description) return true;
+
+    const allowsBoth = description.includes('both');
+    const allowsIndividual = allowsBoth || description.includes('individual');
+    const allowsOrganization =
+      allowsBoth || description.includes('organization') || description.includes('organisation');
+
+    return isTypeSelected('Individual') ? allowsIndividual : allowsOrganization;
+  };
+
+  const filteredEntityTypes = (entityTypes || []).filter(isApplicableForOwnershipType);
+
+  const hasSelectedEntityType =
+    !!entityType && filteredEntityTypes.some((option) => option.value === entityType);
 
   // UPDATED: Logic to only force calculation if it's the ROOT parent with children
  const hasChildren = totalChildrenPercentage > 0;
@@ -123,12 +145,15 @@ const EditOwnerForm = ({
             className="border border-gray-300 rounded-md p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c3e76]/20 disabled:bg-gray-100 disabled:text-gray-400 w-full"
           >
             <option value="">Select type</option>
+            {!isRefDataLoading && entityType && !hasSelectedEntityType && (
+              <option value={entityType}>{entityType}</option>
+            )}
             {isRefDataLoading ? (
                 <option disabled>Loading options...</option>
             ) : (
-                entityTypes?.map((type: string) => (
-                    <option key={type} value={type}>
-                        {type}
+                filteredEntityTypes.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.value}
                     </option>
                 ))
             )}
@@ -283,7 +308,7 @@ const EditOwnerForm = ({
 // Internal reusable InputField
 interface InputFieldProps {
   label: string;
-  value: any;
+  value: string | number;
   onChange: (val: string) => void;
   subLabel?: string;
   disabled?: boolean;

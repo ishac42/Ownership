@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
 import { useRefData } from '../context/RefDataContext';
 
+interface EntityTypeOption {
+  value: string;
+  description?: string;
+}
+
 interface AddOwnerFormProps {
   onCancel: () => void;
   // Updated to allow Promise for async operations
-  onSave: (newData: any) => Promise<void> | void; 
+  onSave: (newData: Record<string, string>) => Promise<void> | void; 
   currentTotalPercentage?: number; // Passed from parent to calculate limits
 }
 
@@ -46,6 +51,23 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
     'MA', 'MD', 'ME', 'MI', 'MN', 'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 
     'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY'
   ];
+
+  const isApplicableForOwnershipType = (option: EntityTypeOption) => {
+    const description = (option.description || '').toLowerCase();
+    if (!description) return true;
+
+    const allowsBoth = description.includes('both');
+    const allowsIndividual = allowsBoth || description.includes('individual');
+    const allowsOrganization =
+      allowsBoth || description.includes('organization') || description.includes('organisation');
+
+    return formData.ownershipType === 'Individual' ? allowsIndividual : allowsOrganization;
+  };
+
+  const filteredEntityTypes = (entityTypes || []).filter(isApplicableForOwnershipType);
+
+  const hasSelectedEntityType =
+    !!formData.type && filteredEntityTypes.some((option) => option.value === formData.type);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -152,12 +174,15 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
                 className="border border-gray-300 rounded-md p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c3e76]/20 disabled:bg-gray-100 disabled:text-gray-400"
               >
                 <option value="">Select type</option>
+                {!isRefDataLoading && formData.type && !hasSelectedEntityType && (
+                  <option value={formData.type}>{formData.type}</option>
+                )}
                 {isRefDataLoading ? (
                     <option>Loading options...</option>
                 ) : (
-                    entityTypes.map((type: string) => (
-                        <option key={type} value={type}>
-                            {type}
+                    filteredEntityTypes.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.value}
                         </option>
                     ))
                 )}
@@ -281,7 +306,15 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
 };
 
 // Helper component 
-const FormField = ({ label, name, placeholder, value, onChange }: any) => (
+interface FormFieldProps {
+  label: string;
+  name: string;
+  placeholder: string;
+  value: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const FormField = ({ label, name, placeholder, value, onChange }: FormFieldProps) => (
   <div className="flex flex-col">
     <label className="text-gray-500 font-medium mb-1">{label}</label>
     <input 

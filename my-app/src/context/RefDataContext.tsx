@@ -1,57 +1,67 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 
-// Define the shape of the data
+// ✅ Define proper type
+interface EntityType {
+  value: string;
+  description: string;
+}
+
+// ✅ Context shape
 interface RefDataContextType {
-  entityTypes: string[];
+  entityTypes: EntityType[];
   isLoading: boolean;
   error: string | null;
 }
 
 const RefDataContext = createContext<RefDataContextType | undefined>(undefined);
 
-// --- FIX IS HERE: Ensure "export" is written before "const" ---
 export const RefDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [entityTypes, setEntityTypes] = useState<string[]>([]);
+  const [entityTypes, setEntityTypes] = useState<EntityType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-useEffect(() => {
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      
-      const response = await fetch(`${API_BASE_URL}/api/get-entity-types`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}), // Empty body for now
-      });
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
 
-      console.log("Response Status:", response.status); // Should be 200 now
+        const response = await fetch(`${API_BASE_URL}/api/get-entity-types`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
 
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+          // ✅ Safely extract + normalize data
+          const rawValues = result.data?.result?.result?.values || [];
+
+          const formatted: EntityType[] = rawValues.map((item: any) => ({
+            value: item.value,
+            description: item.description,
+          }));
+
+          setEntityTypes(formatted);
+        } else {
+          throw new Error(result.error || 'Failed to fetch data');
+        }
+
+      } catch (err: any) {
+        console.error('Fetch error:', err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      const result = await response.json();
-
-      if (result.success) {
-        // Use the data array returned from the backend
-        setEntityTypes(result.data?.result?.result?.values);
-      } else {
-        throw new Error(result.error || "Failed to fetch data");
-      }
-
-    } catch (err: any) {
-      console.error("Fetch error:", err);
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  loadData();
-}, []);
+    loadData();
+  }, []);
 
   return (
     <RefDataContext.Provider value={{ entityTypes, isLoading, error }}>
@@ -60,7 +70,7 @@ useEffect(() => {
   );
 };
 
-// --- FIX IS HERE ALSO: Ensure "export" is here ---
+// ✅ Hook
 export const useRefData = () => {
   const context = useContext(RefDataContext);
   if (!context) {

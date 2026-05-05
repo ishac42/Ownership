@@ -12,7 +12,7 @@ app.use(cors());
 app.use(express.json());
 
 app.post('/api/retrieve-info', async (req, res) => {
-  const { name, referenceNo } = req.body;
+  const { name, referenceNo, nvBusinessId } = req.body;
 
   try {
     const accessToken = await getAccessToken();
@@ -21,7 +21,8 @@ app.post('/api/retrieve-info', async (req, res) => {
       'https://apis.accela.com/v4/scripts/API_GET_OWNER_INFO',
       {
         "name": name,
-        "reference number": referenceNo
+        "reference number": referenceNo,
+        "nvBusinessID": nvBusinessId
       },
       {
         headers: {

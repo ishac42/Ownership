@@ -4,13 +4,14 @@ import { API_BASE_URL } from '../config';
 export const useOwnershipSearch = () => {
   const [searchName, setSearchName] = useState('');
   const [refNo, setRefNo] = useState('');
+  const [nvBusId, setNvBusId] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Existing Search Logic
   const handleSearch = async () => {
-    if (!searchName && !refNo) return alert("Please enter a name or reference number");
+    if (!searchName && !refNo && !nvBusId) return alert("Please enter a name, reference number, or NV Business ID");
     
     setResults([]);
     setSelectedRecord(null);
@@ -20,7 +21,7 @@ export const useOwnershipSearch = () => {
       const response = await fetch(`${API_BASE_URL}/api/retrieve-info`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: searchName, referenceNo: refNo }),
+        body: JSON.stringify({ name: searchName, referenceNo: refNo, nvBusinessId: nvBusId }),
       });
       const backendResponse = await response.json();
 
@@ -70,6 +71,7 @@ export const useOwnershipSearch = () => {
   return {
     searchName, setSearchName,
     refNo, setRefNo,
+    nvBusId, setNvBusId,
     results, selectedRecord, setSelectedRecord,
     isLoading, handleSearch,
     refreshSelectedRecord // <--- Exporting the new function

@@ -12,6 +12,7 @@ const App = () => {
   const { 
     searchName, setSearchName, 
     refNo, setRefNo, 
+    nvBusId, setNvBusId,
     results, selectedRecord, setSelectedRecord, 
     isLoading, handleSearch,
     refreshSelectedRecord 
@@ -94,6 +95,7 @@ const App = () => {
               <SearchControls 
                 searchName={searchName} setSearchName={setSearchName}
                 refNo={refNo} setRefNo={setRefNo}
+                nvBusId={nvBusId} setNvBusId={setNvBusId}
                 handleSearch={() => { setCurrentPage(1); handleSearch(); }} 
                 handleKeyDown={handleKeyDown}
               />
@@ -104,6 +106,7 @@ const App = () => {
                     <tr>
                       <th className="px-4 py-3 font-medium">Name</th>
                       <th className="px-4 py-3 font-medium">Reference No.</th>
+                      <th className="px-4 py-3 font-medium">NV Business ID</th>
                       <th className="px-4 py-3 font-medium">Type</th>
                       <th className="px-4 py-3 font-medium">Address</th>
                     </tr>
@@ -121,12 +124,17 @@ const App = () => {
                       >
                         <td className="px-4 py-3 font-bold uppercase">{row.ownerName}</td>
                         <td className="px-4 py-3">{row.referenceNbr}</td>
+                        <td className="px-4 py-3">{row.nvBusinessId}</td>
                         <td className="px-4 py-3">{row.contactType}</td>
-                        <td className="px-4 py-3 uppercase">{row.contactAddress}</td>
+                        <td className="px-4 py-3 uppercase">
+                          {[row.contactAddress, row.city, row.state, row.zip, row.country]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </td>
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={4} className="p-10 text-center text-slate-400 italic">
+                        <td colSpan={5} className="p-10 text-center text-slate-400 italic">
                           {isLoading ? 'Fetching records...' : 'No search results to display'}
                         </td>
                       </tr>

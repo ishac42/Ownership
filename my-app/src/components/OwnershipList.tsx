@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Eye, Plus, Loader2, Trash2, AlertTriangle, Users } from 'lucide-react'; 
+import { ChevronDown, Eye, Plus, Loader2, Trash2, AlertTriangle, Users, Layers } from 'lucide-react'; 
 import { normalizeEntity } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
 import OwnerDetailsCard from "./OwnerDetailsCard";
@@ -10,13 +10,19 @@ interface OwnershipListProps {
   depth?: number;
   onRefresh?: () => Promise<void> | void; 
   parentRefNbr?: string; 
+  onViewRelated?: (entity: any) => void;
+  isReverseRelation?: boolean;    
+  reverseData?: any[] | null;     
 }
 
 const OwnershipList: React.FC<OwnershipListProps> = ({ 
   entity, 
   depth = 0, 
   onRefresh,
-  parentRefNbr = "0" 
+  parentRefNbr = "0",
+  onViewRelated,
+  isReverseRelation = false,
+  reverseData = null
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
@@ -25,13 +31,15 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [localChildren, setLocalChildren] = useState<any[]>(
-    entity?.relatedContacts || []
-  );
+  const [localChildren, setLocalChildren] = useState<any[]>([]);
 
   useEffect(() => {
-    setLocalChildren(entity?.relatedContacts || []);
-  }, [entity]);
+    if (isReverseRelation && depth === 0) {
+      setLocalChildren(Array.isArray(reverseData) ? reverseData : []);
+    } else {
+      setLocalChildren(entity?.relatedContacts || []);
+    }
+  }, [entity, reverseData, isReverseRelation, depth]);
 
   useEffect(() => {
     if (successMessage) {
@@ -40,13 +48,23 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     }
   }, [successMessage]);
 
-  // --- CALCULATE TOTAL % OF CHILDREN ---
   const childrenTotalPercentage = localChildren.reduce((sum, child) => {
-    const pct = parseFloat(String(child.percentage || '0').replace('%', '')) || 0;
+    const pct = parseFloat(String(child.percentage || child.ownershipPercentage || '0').replace('%', '')) || 0;
     return sum + pct;
   }, 0);
 
   if (!entity) return null;
+  
+  if (isReverseRelation && reverseData === null && depth === 0) {
+    return (
+      <div className="flex items-center justify-center p-8 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        No reverse relationships found.
+        {/* <Loader2 className="animate-spin text-slate-400 mr-2" size={16} />
+        Loading Reverse Relationships... */}
+      </div>
+    );
+  }
+
   const current = normalizeEntity(entity);
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
 
@@ -62,7 +80,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          referenceNbr: deleteContext.target.referenceNumber,
+          referenceNbr: deleteContext.target.referenceNumber || deleteContext.target.referenceNbr,
           parentRefNbr: deleteContext.parentRefNbr 
         }),
       });
@@ -129,7 +147,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   };
 
   return (
-    <div className="flex flex-col relative">
+    <div className="flex flex-col relative w-full">
       {isLoading && !deleteContext && (
         <div className="absolute inset-0 bg-white/60 z-[50] flex items-center justify-center rounded-md">
            <Loader2 className="animate-spin text-[#2c3e76]" size={32} />
@@ -154,7 +172,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         <div className="absolute border-l-2 border-slate-200 z-10" style={{ left: '11px', top: '37px', bottom: '25px' }} />
       )}
 
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 w-full">
         <div className="relative flex flex-col items-center flex-shrink-0 w-6">
           {localChildren.length > 0 ? (
             <button onClick={() => setIsExpanded(!isExpanded)} className="mt-[13px] w-6 h-6 border border-slate-300 flex items-center justify-center bg-white z-20 shadow-sm cursor-pointer">
@@ -171,12 +189,14 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
               <span className="text-slate-400">
                 {isIndividual ? "👤" : "🏢"}
               </span>
-              <h4 className="font-bold text-[#1a2b4b] text-sm uppercase">{current.ownerName}</h4>
+              <h4 className="font-bold text-[#1a2b4b] text-sm uppercase">
+                {current.ownerName || entity?.ownerName || entity?.firstName}
+              </h4>
             </div>
             
             <div className="flex items-center gap-3">
-              {/* NEW: Sum of Children Label */}
-              {!isIndividual && localChildren.length > 0 && (
+              {/* Total Percentage badge hidden if reverse mode */}
+              {!isReverseRelation && localChildren.length > 0 && (
                 <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border ${
                   childrenTotalPercentage > 100 
                     ? 'bg-red-50 text-red-700 border-red-200' 
@@ -186,6 +206,18 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                   <span>Total: {childrenTotalPercentage}%</span>
                 </div>
               )}
+              
+              {/* Header Reverse Lookup (Layers) button hidden if reverse mode */}
+              {!isReverseRelation && (
+                <button
+                  onClick={() => onViewRelated && onViewRelated(current)}
+                  className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                  title="View Related Businesses"
+                >
+                  <Layers size={18} />
+                </button>
+              )}
+
               <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
                 onClick={() => setSelectedOwner({ 
                     ...current, 
@@ -193,10 +225,12 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                     totalChildrenPercentage: childrenTotalPercentage
                 })} 
               />
-              {!isIndividual && (
+              
+              {/* Add button hidden if reverse mode */}
+              {!isIndividual && !isReverseRelation && (
                 <button 
                   onClick={() => setIsAdding(true)}
-                  disabled={isLoading }
+                  disabled={isLoading}
                   className="bg-[#24417a] text-white px-3 py-1 text-xs flex items-center gap-1 font-bold hover:bg-[#1a315e] transition-colors rounded-sm shadow-sm disabled:opacity-50"
                 >
                   <Plus size={14} /> Add
@@ -207,37 +241,66 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
 
           {isExpanded && localChildren.length > 0 && (
             <div className="divide-y divide-slate-50">
-              {localChildren.map((child, idx) => (
-                <div key={idx} className="grid grid-cols-[30px_1fr_120px_60px_80px] items-center py-3 px-4 hover:bg-slate-50 transition-colors">
-                  <span className="text-sm text-slate-500">{idx + 1}.</span>
-                  <span className="text-sm font-semibold text-slate-700 truncate">{child.ownerName || child.firstName}</span>
-                  <span className="text-sm text-slate-400 font-bold uppercase text-[10px]">{child.contactType}</span>
-                  <span className="text-sm font-bold text-slate-700 text-right">{child.percentage}%</span>
-                  <div className="flex justify-end gap-3">
-                    <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
-                      onClick={() => {
-                        const normalizedChild = normalizeEntity(child);
-                        setSelectedOwner({ 
-                            ...normalizedChild,
-                            parentRefNbr: current.referenceNbr,
-                            isChildOfCurrent: true
-                        });
-                      }} 
-                    />
-                    <Trash2 
-                      size={18} 
-                      className="cursor-pointer text-slate-300 hover:text-red-600 transition-colors" 
-                      onClick={() => handleDeleteClick(child, current.referenceNbr)} 
-                    />
+              {localChildren.map((child, idx) => {
+                const name = child.ownerName || child.firstName || child.parentName || 'Unknown Entity';
+                const type = child.contactType || child.relationType || 'OWNER';
+                const percentage = child.percentage || child.ownershipPercentage || '0';
+
+                return (
+                  /* Grid adapts column layouts depending on reverse mode to prevent empty structural tracking gaps */
+                  <div key={idx} className={`grid items-center py-3 px-4 hover:bg-slate-50 transition-colors ${
+                    isReverseRelation ? 'grid-cols-[30px_1fr_120px_50px]' : 'grid-cols-[30px_1fr_120px_60px_80px]'
+                  }`}>
+                    <span className="text-sm text-slate-500">{idx + 1}.</span>
+                    <span className="text-sm font-semibold text-slate-700 truncate">{name}</span>
+                    <span className="text-sm text-slate-400 font-bold uppercase text-[10px]">{type}</span>
+                    
+                    {/* Row percentage hidden if reverse mode */}
+                    {!isReverseRelation && (
+                      <span className="text-sm font-bold text-slate-700 text-right">
+                        {String(percentage).includes('%') ? percentage : `${percentage}%`}
+                      </span>
+                    )}
+
+                    <div className="flex justify-end gap-3">
+                      {/* Row Reverse Lookup (Layers) button hidden if reverse mode */}
+                      {!isReverseRelation && (
+                        <Layers 
+                          size={18} 
+                          className="cursor-pointer text-gray-300 hover:text-blue-600 transition-colors" 
+                          onClick={() => onViewRelated && onViewRelated(normalizeEntity(child))}
+                          title="View Related Businesses"
+                        />
+                      )}
+                      
+                      <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
+                        onClick={() => {
+                          const normalizedChild = normalizeEntity(child);
+                          setSelectedOwner({ 
+                              ...normalizedChild,
+                              parentRefNbr: current.referenceNbr,
+                              isChildOfCurrent: true
+                          });
+                        }} 
+                      />
+                      
+                      {!isReverseRelation && (
+                        <Trash2 
+                          size={18} 
+                          className="cursor-pointer text-slate-300 hover:text-red-600 transition-colors" 
+                          onClick={() => handleDeleteClick(child, current.referenceNbr)} 
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </div>
 
-      {localChildren.length > 0 && isExpanded && (
+      {isExpanded && localChildren.length > 0 && (
         <div className="ml-[11px] pl-8 relative">
           {localChildren.map((child: any, idx: number) => (
             <div key={idx} className="relative">
@@ -249,6 +312,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                   depth={depth + 1} 
                   onRefresh={onRefresh} 
                   parentRefNbr={current.referenceNbr}
+                  onViewRelated={onViewRelated}
+                  isReverseRelation={isReverseRelation}
               />
             </div>
           ))}
@@ -264,12 +329,12 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       )}
       
       {selectedOwner && (
-      <OwnerDetailsCard 
+        <OwnerDetailsCard 
             owner={selectedOwner} 
             onClose={() => setSelectedOwner(null)} 
             onRefresh={() => { if (onRefresh) onRefresh(); }}
             currentTotalPercentage={selectedOwner.isChildOfCurrent ? childrenTotalPercentage : selectedOwner.totalChildrenPercentage}
-            isFromList = {true}
+            isFromList={true}
         />
       )}
 

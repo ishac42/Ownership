@@ -59,8 +59,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     return (
       <div className="flex items-center justify-center p-8 text-xs font-semibold text-slate-400 uppercase tracking-wider">
         No reverse relationships found.
-        {/* <Loader2 className="animate-spin text-slate-400 mr-2" size={16} />
-        Loading Reverse Relationships... */}
       </div>
     );
   }
@@ -195,7 +193,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
             </div>
             
             <div className="flex items-center gap-3">
-              {/* Total Percentage badge hidden if reverse mode */}
               {!isReverseRelation && localChildren.length > 0 && (
                 <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border ${
                   childrenTotalPercentage > 100 
@@ -207,7 +204,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                 </div>
               )}
               
-              {/* Header Reverse Lookup (Layers) button hidden if reverse mode */}
               {!isReverseRelation && (
                 <button
                   onClick={() => onViewRelated && onViewRelated(current)}
@@ -226,7 +222,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                 })} 
               />
               
-              {/* Add button hidden if reverse mode */}
               {!isIndividual && !isReverseRelation && (
                 <button 
                   onClick={() => setIsAdding(true)}
@@ -247,7 +242,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                 const percentage = child.percentage || child.ownershipPercentage || '0';
 
                 return (
-                  /* Grid adapts column layouts depending on reverse mode to prevent empty structural tracking gaps */
                   <div key={idx} className={`grid items-center py-3 px-4 hover:bg-slate-50 transition-colors ${
                     isReverseRelation ? 'grid-cols-[30px_1fr_120px_50px]' : 'grid-cols-[30px_1fr_120px_60px_80px]'
                   }`}>
@@ -255,7 +249,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                     <span className="text-sm font-semibold text-slate-700 truncate">{name}</span>
                     <span className="text-sm text-slate-400 font-bold uppercase text-[10px]">{type}</span>
                     
-                    {/* Row percentage hidden if reverse mode */}
                     {!isReverseRelation && (
                       <span className="text-sm font-bold text-slate-700 text-right">
                         {String(percentage).includes('%') ? percentage : `${percentage}%`}
@@ -263,14 +256,15 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                     )}
 
                     <div className="flex justify-end gap-3">
-                      {/* Row Reverse Lookup (Layers) button hidden if reverse mode */}
+                      {/* FIXED: Wrapped Layers inside a button to validly attach the title attribute */}
                       {!isReverseRelation && (
-                        <Layers 
-                          size={18} 
-                          className="cursor-pointer text-gray-300 hover:text-blue-600 transition-colors" 
+                        <button
                           onClick={() => onViewRelated && onViewRelated(normalizeEntity(child))}
+                          className="text-gray-300 hover:text-blue-600 transition-colors focus:outline-none"
                           title="View Related Businesses"
-                        />
+                        >
+                          <Layers size={18} />
+                        </button>
                       )}
                       
                       <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 

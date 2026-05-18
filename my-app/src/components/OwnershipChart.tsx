@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2 } from 'lucide-react'; 
+import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
@@ -13,26 +13,39 @@ import ZoomControls from "./ZoomControls";
 interface RecursiveTreeProps {
   entity: any;
   onViewDetails: (entity: any, parentRefNbr?: string, siblingTotal?: number, childrenSum?: number) => void;
+  onViewRelated: (entity: any) => void; 
   onOpenAdd: (parentEntity: any, childrenTotal?: number) => void;
   onDelete?: (entity: any, parentRefNbr: string) => void; 
   parentRefNbr?: string;
   siblingTotalPercentage?: number; 
+  isReverseRelation?: boolean; 
+  reverseData?: any[] | null;  
 }
 
 export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
   entity, 
-  onViewDetails, 
+  onViewDetails,
+  onViewRelated, 
   onOpenAdd,
   onDelete, 
   parentRefNbr = "",
-  siblingTotalPercentage
+  siblingTotalPercentage,
+  isReverseRelation = false,
+  reverseData = null
 }) => {
   const [localChildren, setLocalChildren] = useState<any[]>(entity?.relatedContacts || []);
   const current = normalizeEntity(entity);
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
   const nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
 
-  useEffect(() => { setLocalChildren(entity?.relatedContacts || []); }, [entity]);
+  // --- FIX: Only use reverseData if we are at the ROOT node ---
+  useEffect(() => {
+    if (isReverseRelation && parentRefNbr === "") {
+      setLocalChildren(Array.isArray(reverseData) ? reverseData : []);
+    } else {
+      setLocalChildren(entity?.relatedContacts || []);
+    }
+  }, [entity, reverseData, isReverseRelation, parentRefNbr]);
 
   const percentageValue = parseFloat(current.percentage || '0');
   const hasPercentage = percentageValue > 0;
@@ -64,7 +77,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
             <h4 className="text-xs font-bold uppercase truncate" title={current.ownerName}>{current.ownerName}</h4>
           </div>
           
-          {hasPercentage && (
+          {/* Percentage badge hidden if reverse mode */}
+          {hasPercentage && !isReverseRelation && (
             <div className="bg-black/20 rounded px-2 py-0.5 min-w-[3rem] flex justify-center">
                 <span className="text-xs font-bold">{current.percentage}%</span>
             </div>
@@ -80,18 +94,33 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Reverse Lookup (Layers) button hidden if reverse mode */}
+            {!isReverseRelation && (
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  onViewRelated(current); 
+                }}
+                className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
+                title="Open in new tab"
+              >
+                <Layers size={14} className="opacity-80 group-hover:opacity-100" />
+              </button>
+            )}
+
             <button 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                // Passing childrenTotalPercentage so the Detail Card can show the sum for this parent
                 onViewDetails(current, parentRefNbr, siblingTotalPercentage, childrenTotalPercentage); 
               }}
               className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
+              title="View Details"
             >
               <Eye size={14} className="opacity-80 group-hover:opacity-100" />
             </button>
 
-            {isChild && (
+            {/* Trash button hidden if reverse mode */}
+            {isChild && !isReverseRelation && (
               <button 
                 onClick={(e) => { 
                   e.stopPropagation(); 
@@ -104,7 +133,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
               </button>
             )}
             
-            {!isIndividual && (
+            {/* Add button hidden if individual OR if reverse mode */}
+            {!isIndividual && !isReverseRelation && (
               <button
                 onClick={(e) => { 
                   e.stopPropagation(); 
@@ -139,10 +169,14 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                 <RecursiveTree 
                   entity={child} 
                   onViewDetails={onViewDetails} 
+                  onViewRelated={onViewRelated} 
                   onOpenAdd={onOpenAdd} 
                   onDelete={onDelete} 
                   parentRefNbr={current.referenceNbr}
                   siblingTotalPercentage={childrenTotalPercentage} 
+                  /* Forwarding isReverseRelation down so child components hide elements too */
+                  isReverseRelation={isReverseRelation}
+                  reverseData={null}
                 />
               </div>
             ))}
@@ -157,9 +191,18 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 interface OwnershipChartProps {
   entity: any;
   onRefresh?: () => Promise<void> | void;
+  onViewRelated?: (entity: any) => void; 
+  isReverseRelation?: boolean; 
+  reverseData?: any[] | null;  
 }
 
-const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) => {
+const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
+  entity, 
+  onRefresh, 
+  onViewRelated,
+  isReverseRelation = false,
+  reverseData = null
+}) => {
   const [currentZoomScale, setCurrentZoomScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -192,7 +235,6 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
     }
   };
 
-  // --- HANDLER: Handle Node Selection (View/Edit) ---
   const handleNodeSelect = (nodeData: any, parentRefNbr?: string, siblingTotal?: number, childrenSum?: number) => {
     if (!nodeData) return;
     const normalized = normalizeEntity(nodeData);
@@ -200,7 +242,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
         ...normalized, 
         parentRefNbr: parentRefNbr || "",
         isChildOfCurrent: !!parentRefNbr,
-        totalChildrenPercentage: childrenSum // <-- PASSING TOTAL CHILDREN SUM HERE
+        totalChildrenPercentage: childrenSum 
     });
     setTotalForEdit(siblingTotal); 
   };
@@ -326,7 +368,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
           onClose={() => setSelectedOwner(null)} 
           onRefresh={handleEditRefresh}
           currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : selectedOwner.totalChildrenPercentage} 
-          isFromList = {false}
+          isFromList={false}
         />
       )}
 
@@ -392,10 +434,13 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({ entity, onRefresh }) =>
                 <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%" }}>
                     <div className="min-w-max min-h-max p-40">
                           <RecursiveTree 
-                           entity={entity} 
-                           onViewDetails={handleNodeSelect} 
-                           onOpenAdd={handleOpenAdd}
-                           onDelete={handleDeleteClick} 
+                            entity={entity} 
+                            onViewDetails={handleNodeSelect} 
+                            onViewRelated={(e) => onViewRelated && onViewRelated(e)}
+                            onOpenAdd={handleOpenAdd}
+                            onDelete={handleDeleteClick} 
+                            isReverseRelation={isReverseRelation}
+                            reverseData={reverseData}
                           />
                     </div>
                 </TransformComponent>

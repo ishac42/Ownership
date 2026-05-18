@@ -1,34 +1,43 @@
 import { useState, useEffect, type KeyboardEvent } from 'react';
 import logo from './Logo.jpg'; 
-import { CheckCircle } from 'lucide-react';
+import { List, BarChart3, CheckCircle } from 'lucide-react';
 import { useOwnershipSearch } from './hooks/useOwnership';
 import SearchControls from './components/SearchControls';
+import OwnershipList from './components/OwnershipList';
+import OwnershipChart from './components/OwnershipChart';
 import Pagination from './components/Pagination'; 
 import { RefDataProvider } from './context/RefDataContext';
-import TabWorkspace from './components/TabWorkspace';
 
 const App = () => {
   const { 
-  searchName, setSearchName, 
-  refNo, setRefNo, 
-  nvBusId, setNvBusId,
-  results, selectedRecord, setSelectedRecord, 
-  isLoading, handleSearch,
-  refreshSelectedRecord,
-  bulkCache,          // ← add this
-} = useOwnershipSearch();
+    searchName, setSearchName, 
+    refNo, setRefNo, 
+    nvBusId, setNvBusId,
+    results, selectedRecord, setSelectedRecord, 
+    isLoading, handleSearch,
+    refreshSelectedRecord 
+  } = useOwnershipSearch();
   
+  const [viewMode, setViewMode] = useState('list');
+  
+  // 1. Initialize Direct Mode synchronously from URL query string
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const passedRef = urlParams.get('referenceNumber');
   const [hideSearch] = useState(!!passedRef);
+  
+  // 2. Track search lifecycle to manage loading UI correctly
   const [searchInitiated, setSearchInitiated] = useState(false);
   
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const totalPages = Math.ceil((results?.length || 0) / itemsPerPage);
-  const currentResults = (results || []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const currentResults = (results || []).slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
-  // Auto-search for direct navigation
+  // 3. EFFECT: Automatic Search Trigger
   useEffect(() => {
     if (hideSearch && passedRef) {
       if (refNo !== passedRef) {
@@ -40,7 +49,7 @@ const App = () => {
     }
   }, [refNo, passedRef, hideSearch, setRefNo, handleSearch, searchInitiated]);
 
-  // Auto-select first result
+  // 4. EFFECT: Automatic Selection
   useEffect(() => {
     if (hideSearch && results?.length > 0 && !selectedRecord) {
       setSelectedRecord(results[0]);
@@ -55,12 +64,16 @@ const App = () => {
   };
 
   const handleDone = () => {
-    if (window.parent) window.parent.postMessage("refreshAccela", "*");
+    // If the window was opened as a popup, close it. Otherwise, redirect.
+    if (window.parent) {
+      window.parent.postMessage("refreshAccela", "*");
+    }
   };
 
   return (
     <RefDataProvider>
       <div className="min-h-screen bg-slate-100 font-sans text-slate-700 pb-12">
+        {/* --- Header: Only rendered if NO referenceNumber is in URL --- */}
         {!hideSearch && (
           <nav className="bg-[#1e3a8a] shadow-lg">
             <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -75,6 +88,8 @@ const App = () => {
         )}
 
         <div className="max-w-7xl mx-auto p-6 space-y-6">
+          
+          {/* Section 1: Search & Table (Only rendered if no referenceNumber in URL) */}
           {!hideSearch && (
             <>
               <SearchControls 
@@ -101,48 +116,99 @@ const App = () => {
                       <tr 
                         key={row.referenceNbr || i} 
                         onClick={() => setSelectedRecord(row)}
-                        className={`cursor-pointer border-b transition-colors ${selectedRecord?.referenceNbr === row.referenceNbr ? 'bg-[#913728] text-white' : 'hover:bg-slate-50'}`}
+                        className={`cursor-pointer border-b transition-colors ${
+                          selectedRecord?.referenceNbr === row.referenceNbr 
+                          ? 'bg-[#913728] text-white' 
+                          : 'hover:bg-slate-50'
+                        }`}
                       >
                         <td className="px-4 py-3 font-bold uppercase">{row.ownerName}</td>
                         <td className="px-4 py-3">{row.referenceNbr}</td>
                         <td className="px-4 py-3">{row.nvBusinessId}</td>
                         <td className="px-4 py-3">{row.contactType}</td>
-                        <td className="px-4 py-3 uppercase">{[row.contactAddress, row.city, row.state, row.zip, row.country].filter(Boolean).join(", ")}</td>
+                        <td className="px-4 py-3 uppercase">
+                          {[row.contactAddress, row.city, row.state, row.zip, row.country]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </td>
                       </tr>
                     )) : (
-                      <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">{isLoading ? 'Fetching records...' : 'No search results to display'}</td></tr>
+                      <tr>
+                        <td colSpan={5} className="p-10 text-center text-slate-400 italic">
+                          {isLoading ? 'Fetching records...' : 'No search results to display'}
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
                 {results?.length > 0 && (
                   <div className="border-t border-slate-100">
-                    <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                    <Pagination 
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
                   </div>
                 )}
               </div>
             </>
           )}
 
-          <div className="w-full mt-8">
+          {/* Section 2: View Controls */}
+          <div className="flex justify-between items-center pt-4">
+            <h2 className="text-xs font-bold text-slate-500 uppercase">Entity Details</h2>
+            <div className="flex border rounded shadow-sm bg-white overflow-hidden">
+              <button onClick={() => setViewMode('list')} 
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold ${viewMode === 'list' ? 'bg-[#24417a] text-white' : 'text-slate-600'}`}>
+                <List size={14} /> List View
+              </button>
+              <button onClick={() => setViewMode('chart')} 
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold ${viewMode === 'chart' ? 'bg-[#24417a] text-white' : 'text-slate-600'}`}>
+                <BarChart3 size={14} /> Chart View
+              </button>
+            </div>
+          </div>
+
+          {/* Section 3: Visualization Area */}
+          <div className="w-full">
             {hideSearch && (!searchInitiated || isLoading || (results?.length > 0 && !selectedRecord)) ? (
-              <div className="bg-white p-20 text-center rounded-lg border border-dashed text-slate-400 italic">Searching and loading record details...</div>
+              <div className="bg-white p-20 text-center rounded-lg border border-dashed text-slate-400 italic">
+                Searching and loading record details...
+              </div>
             ) : !selectedRecord ? (
               <div className="bg-white p-20 text-center rounded-lg border border-dashed text-slate-400 italic">
-                {hideSearch ? "No record found for the provided reference number." : "Select a record from the search results to visualize its structure."}
+                {hideSearch 
+                  ? "No record found for the provided reference number." 
+                  : "Select a record from the search results to visualize its structure."}
               </div>
             ) : (
-             <TabWorkspace 
-                selectedRecord={selectedRecord} 
-                onRefresh={refreshSelectedRecord}
-                bulkCache={bulkCache}   // ← add this
-              />
+              <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 shadow-inner min-h-[400px]">
+                {viewMode === 'list' ? (
+                  <OwnershipList 
+                      entity={selectedRecord} 
+                      onRefresh={refreshSelectedRecord} 
+                  />
+                ) : (
+                  <div className="overflow-x-auto pb-10 flex justify-center">
+                    <OwnershipChart 
+                      entity={selectedRecord} 
+                      onRefresh={refreshSelectedRecord} 
+                    />
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
+          {/* --- Bottom Action Bar: Shown only if referenceNumber is passed --- */}
           {hideSearch && (
             <div className="flex justify-center pt-8 border-t border-slate-200">
-              <button onClick={handleDone} className="flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white px-12 py-3 rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform active:scale-95">
-                <CheckCircle size={20} /> Done
+              <button
+                onClick={handleDone}
+                className="flex items-center gap-3 bg-green-600 hover:bg-green-700 text-white px-12 py-3 rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform active:scale-95"
+              >
+                <CheckCircle size={20} />
+                Done
               </button>
             </div>
           )}

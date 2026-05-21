@@ -8,7 +8,15 @@ const CONFIG = {
   environment: "SUPP", 
   scope: "run_emse_script"
 };
+const params = new URLSearchParams(window.location.search);
 
+const userId = params.get("userId");
+const agency = params.get("serviceProviderCode");
+const ssoId = params.get("ssoId");
+
+console.log(userId);   // RFAKHRY
+console.log(agency);   // CLARKCO
+console.log(ssoId);
 const getAccessToken = async () => {
   try {
     const tokenParams = new URLSearchParams();

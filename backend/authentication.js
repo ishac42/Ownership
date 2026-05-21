@@ -2,13 +2,13 @@ const axios = require('axios');
 require('dotenv').config();
 
 const CONFIG = {
-  username: process.env.ACCELA_USERNAME,
-  password: process.env.ACCELA_PASSWORD,
-  agency: process.env.ACCELA_AGENCY,
-  environment: process.env.ACCELA_ENVIRONMENT,
-  scope: process.env.ACCELA_SCOPE || "run_emse_script"
+  username: "rfakhry",
+  password: "Accela@123",
+  agency: "CLARKCO",
+  environment: "SUPP", 
+  scope: "run_emse_script"
 };
-console.log("TESTTT ::" + process.env.ACCELA_USERNAME)
+console.log("Test : "  + document.cookie);
 const getAccessToken = async () => {
   try {
     const tokenParams = new URLSearchParams();

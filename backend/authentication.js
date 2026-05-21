@@ -8,7 +8,7 @@ const CONFIG = {
   environment: process.env.ACCELA_ENVIRONMENT,
   scope: process.env.ACCELA_SCOPE || "run_emse_script"
 };
-
+console.log("TESTTT ::" + process.env.ACCELA_USERNAME)
 const getAccessToken = async () => {
   try {
     const tokenParams = new URLSearchParams();

@@ -8,7 +8,7 @@ const CONFIG = {
   environment: "SUPP", 
   scope: "run_emse_script"
 };
-console.log("Test : "  + window.location.href);
+
 const getAccessToken = async () => {
   try {
     const tokenParams = new URLSearchParams();

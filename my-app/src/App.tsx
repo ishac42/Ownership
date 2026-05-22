@@ -9,24 +9,17 @@ import TabWorkspace from './components/TabWorkspace';
 
 const App = () => {
   const { 
-    searchName, setSearchName, 
-    refNo, setRefNo, 
-    nvBusId, setNvBusId,
-    results, selectedRecord, setSelectedRecord, 
-    isLoading, handleSearch,
-    refreshSelectedRecord,
-    bulkCache,          // ← add this
-  } = useOwnershipSearch();
+  searchName, setSearchName, 
+  refNo, setRefNo, 
+  nvBusId, setNvBusId,
+  results, selectedRecord, setSelectedRecord, 
+  isLoading, handleSearch,
+  refreshSelectedRecord,
+  bulkCache,          // ← add this
+} = useOwnershipSearch();
   
-  // Parse URL parameters passed from the Accela iframe container
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const passedRef = urlParams.get('referenceNumber');
-  
-  // Extract Accela Session and User Credentials
-  const accelaUserId = urlParams.get('userId');
-  const accelaSsoId = urlParams.get('ssoId');
-  const serviceProviderCode = urlParams.get('serviceProviderCode');
-
   const [hideSearch] = useState(!!passedRef);
   const [searchInitiated, setSearchInitiated] = useState(false);
   
@@ -35,22 +28,13 @@ const App = () => {
   const totalPages = Math.ceil((results?.length || 0) / itemsPerPage);
   const currentResults = (results || []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // --- LOG ACCELA SESSION CREDENTIALS ON MOUNT ---
-  useEffect(() => {
-    console.log("--- ACCELA INCOMING SESSION CONTEXT ---");
-    console.log("Active User ID (userId):", accelaUserId || "Not Provided");
-    console.log("SSO Session ID (ssoId):", accelaSsoId || "Not Provided");
-    console.log("Service Provider Code:", serviceProviderCode || "Not Provided");
-    console.log("---------------------------------------");
-  }, [accelaUserId, accelaSsoId, serviceProviderCode]);
-
   // Auto-search for direct navigation
   useEffect(() => {
     if (hideSearch && passedRef) {
       if (refNo !== passedRef) {
         setRefNo(passedRef);
       } else if (!searchInitiated) {
-        searchInitiated(true);
+        setSearchInitiated(true);
         handleSearch();
       }
     }

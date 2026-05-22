@@ -17,11 +17,6 @@ const App = () => {
   refreshSelectedRecord,
   bulkCache,          // ← add this
 } = useOwnershipSearch();
-
-  // --- LOGGING SEARCH DATA & ACTIVE RECORDS ---
-  console.log("DEBUG - All Search Results Payload:", results);
-  console.log("DEBUG - Currently Selected Record Payload:", selectedRecord);
-  console.log("DEBUG - Bulk Cache Payload:", bulkCache);
   
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   const passedRef = urlParams.get('referenceNumber');
@@ -39,7 +34,7 @@ const App = () => {
       if (refNo !== passedRef) {
         setRefNo(passedRef);
       } else if (!searchInitiated) {
-        searchInitiated(true);
+        setSearchInitiated(true);
         handleSearch();
       }
     }
@@ -114,7 +109,7 @@ const App = () => {
                         <td className="px-4 py-3">{row.contactType}</td>
                         <td className="px-4 py-3 uppercase">{[row.contactAddress, row.city, row.state, row.zip, row.country].filter(Boolean).join(", ")}</td>
                       </tr>
-                    ))} : (
+                    )) : (
                       <tr><td colSpan={5} className="p-10 text-center text-slate-400 italic">{isLoading ? 'Fetching records...' : 'No search results to display'}</td></tr>
                     )}
                   </tbody>

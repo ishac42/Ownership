@@ -19,7 +19,7 @@ const App = () => {
 } = useOwnershipSearch();
   
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const pa = urlParams.get('userId');
+  const env = urlParams.get('env');
   const passedRef = urlParams.get('referenceNumber');
   const [hideSearch] = useState(!!passedRef);
   const [searchInitiated, setSearchInitiated] = useState(false);
@@ -28,7 +28,10 @@ const App = () => {
   const itemsPerPage = 10;
   const totalPages = Math.ceil((results?.length || 0) / itemsPerPage);
   const currentResults = (results || []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-console.log("testtt :: " + pa)
+// This will now only log once when the component mounts, or if the URL changes.
+  useEffect(() => {
+    console.log("testtt :: " + env);
+  }, [env]);
   // Auto-search for direct navigation
   useEffect(() => {
     if (hideSearch && passedRef) {

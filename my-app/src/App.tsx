@@ -19,6 +19,7 @@ const App = () => {
 } = useOwnershipSearch();
   
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+  const pa = urlParams.get('userId');
   const passedRef = urlParams.get('referenceNumber');
   const [hideSearch] = useState(!!passedRef);
   const [searchInitiated, setSearchInitiated] = useState(false);
@@ -27,7 +28,7 @@ const App = () => {
   const itemsPerPage = 10;
   const totalPages = Math.ceil((results?.length || 0) / itemsPerPage);
   const currentResults = (results || []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
+console.log("testtt :: " + pa)
   // Auto-search for direct navigation
   useEffect(() => {
     if (hideSearch && passedRef) {

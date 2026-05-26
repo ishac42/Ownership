@@ -209,7 +209,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                   <ViewField label="Email" value={formData.email} />
                   <ViewField label="Phone Number" value={formData.phone} />
                   <ViewField label="FEIN" value={formData.fein} />
-                  <ViewField label="SSN" value={formData.ssn} />
+                  {/* <ViewField label="SSN" value={formData.ssn} /> */}
                 </div>
 
                 <ViewField 

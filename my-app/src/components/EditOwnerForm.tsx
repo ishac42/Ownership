@@ -254,9 +254,9 @@ const EditOwnerForm = ({
         <div className="col-span-3">
           <InputField label="FEIN" value={formData.fein} onChange={(v: string) => handleChange('fein', v)} disabled={isLoading} />
         </div>
-        <div className="col-span-3">
+        {/* <div className="col-span-3">
           <InputField label="SSN" value={formData.ssn} onChange={(v: string) => handleChange('ssn', v)} disabled={isLoading} />
-        </div>
+        </div> */}
         <div className="col-span-6">
           {/* UPDATED: Displays child-sum ONLY if isRoot. Otherwise shows manual formData.percentage */}
           <InputField 

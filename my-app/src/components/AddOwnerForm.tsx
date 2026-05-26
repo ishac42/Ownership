@@ -262,7 +262,7 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
           {/* Row 4: FEIN, SSN, Percentage */}
           <div className="grid grid-cols-3 gap-6">
             <FormField label="FEIN" name="fein" placeholder="Enter FEIN" value={formData.fein} onChange={handleChange} />
-            <FormField label="SSN" name="ssn" placeholder="Enter SSN" value={formData.ssn} onChange={handleChange} />
+            {/* <FormField label="SSN" name="ssn" placeholder="Enter SSN" value={formData.ssn} onChange={handleChange} /> */}
             <FormField label="Percent (%) Owned" name="percentage" placeholder="e.g. 25" value={formData.percentage} onChange={handleChange} />
           </div>
 

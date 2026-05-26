@@ -66,7 +66,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     }
 
     // Fallbacks for inline strings (comma/space-separated) or other raw database casings
-    const licenseFields = [entity?.licenseAltId, entity?.LICENSESALTID, entity?.licensesAltId, current?.licenseAltId];
+    // FIXED: Cast 'current' to 'any' to bypass strict TS checking on licenseAltId
+    const licenseFields = [entity?.licenseAltId, entity?.LICENSESALTID, entity?.licensesAltId, (current as any)?.licenseAltId];
     licenseFields.forEach(field => {
       if (typeof field === 'string' && field.trim() !== "") {
         field.split(/[\s,;]+/).forEach(lic => {

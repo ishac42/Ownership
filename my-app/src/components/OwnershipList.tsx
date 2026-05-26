@@ -12,7 +12,9 @@ interface OwnershipListProps {
   parentRefNbr?: string; 
   onViewRelated?: (entity: any) => void;
   isReverseRelation?: boolean;    
-  reverseData?: any[] | null;     
+  reverseData?: any[] | null;
+  expandedNodes?: Record<string, boolean>;
+  setExpandedNodes?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
 }
 
 const OwnershipList: React.FC<OwnershipListProps> = ({ 
@@ -22,9 +24,19 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   parentRefNbr = "0",
   onViewRelated,
   isReverseRelation = false,
-  reverseData = null
+  reverseData = null,
+  expandedNodes,
+  setExpandedNodes
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const current = entity ? normalizeEntity(entity) : ({} as any);
+  const nodeId = current.referenceNbr || current.referenceNumber || current.id || `depth-${depth}-${current.ownerName}`;
+
+  // Safely check if the node exists in our lifted state; if not, default to localIsExpanded (false/collapsed).
+  const [localIsExpanded, setLocalIsExpanded] = useState(false);
+  const isExpanded = expandedNodes && expandedNodes[nodeId] !== undefined 
+    ? expandedNodes[nodeId] 
+    : localIsExpanded;
+  
   const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [deleteContext, setDeleteContext] = useState<{ target: any, parentRefNbr: string } | null>(null);
@@ -53,6 +65,14 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     return sum + pct;
   }, 0);
 
+  const handleToggleExpand = () => {
+    if (setExpandedNodes) {
+      setExpandedNodes(prev => ({ ...prev, [nodeId]: !isExpanded }));
+    } else {
+      setLocalIsExpanded(!localIsExpanded);
+    }
+  };
+
   if (!entity) return null;
   
   if (isReverseRelation && reverseData === null && depth === 0) {
@@ -63,7 +83,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     );
   }
 
-  const current = normalizeEntity(entity);
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
 
   const handleDeleteClick = (target: any, parentRef: string) => {
@@ -130,7 +149,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
 
       if (response.ok) {
         setIsAdding(false);
-        setIsExpanded(true);
+        // We no longer force setExpandedNodes here so it respects the user's layout
         setSuccessMessage(`Owner: ${formData.ownerName} added successfully`);
         if (onRefresh) await onRefresh(); 
       } else {
@@ -173,7 +192,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       <div className="flex items-start gap-4 w-full">
         <div className="relative flex flex-col items-center flex-shrink-0 w-6">
           {localChildren.length > 0 ? (
-            <button onClick={() => setIsExpanded(!isExpanded)} className="mt-[13px] w-6 h-6 border border-slate-300 flex items-center justify-center bg-white z-20 shadow-sm cursor-pointer">
+            <button onClick={handleToggleExpand} className="mt-[13px] w-6 h-6 border border-slate-300 flex items-center justify-center bg-white z-20 shadow-sm cursor-pointer">
               <ChevronDown size={14} className={`text-slate-500 transition-transform ${!isExpanded ? '-rotate-90' : ''}`} />
             </button>
           ) : (
@@ -208,7 +227,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                 <button
                   onClick={() => onViewRelated && onViewRelated(current)}
                   className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
-                  title="View Related Businesses"
+                  title="View Related Licenses"
                 >
                   <Layers size={18} />
                 </button>
@@ -256,12 +275,11 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                     )}
 
                     <div className="flex justify-end gap-3">
-                      {/* FIXED: Wrapped Layers inside a button to validly attach the title attribute */}
                       {!isReverseRelation && (
                         <button
                           onClick={() => onViewRelated && onViewRelated(normalizeEntity(child))}
                           className="text-gray-300 hover:text-blue-600 transition-colors focus:outline-none"
-                          title="View Related Businesses"
+                          title="View Related Licenses"
                         >
                           <Layers size={18} />
                         </button>
@@ -308,6 +326,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                   parentRefNbr={current.referenceNbr}
                   onViewRelated={onViewRelated}
                   isReverseRelation={isReverseRelation}
+                  expandedNodes={expandedNodes}
+                  setExpandedNodes={setExpandedNodes}
               />
             </div>
           ))}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers } from 'lucide-react'; 
+import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
@@ -33,26 +33,75 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   isReverseRelation = false,
   reverseData = null
 }) => {
-  const [localChildren, setLocalChildren] = useState<any[]>(entity?.relatedContacts || []);
+  const [localChildren, setLocalChildren] = useState<any[]>([]);
   const current = normalizeEntity(entity);
+  
+  const isLicenseNode = !!entity?.isLicenseNode;
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
-  const nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
+  
+  // Custom theme coloring for separating licenses from entities
+  let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
+  if (isLicenseNode) {
+    nodeBgColor = 'bg-[#1e40af] border-[#1e3a8a]'; // Dedicated Blue for License records
+  }
 
-  // --- FIX: Only use reverseData if we are at the ROOT node ---
   useEffect(() => {
+    let baseChildren: any[] = [];
+
+    // 1. Populate initial structural children
     if (isReverseRelation && parentRefNbr === "") {
-      setLocalChildren(Array.isArray(reverseData) ? reverseData : []);
+      baseChildren = Array.isArray(reverseData) ? [...reverseData] : [];
     } else {
-      setLocalChildren(entity?.relatedContacts || []);
+      baseChildren = entity?.relatedContacts ? [...entity.relatedContacts] : [];
     }
+
+    // 2. Extract all individual unique licenses found on this node
+    const uniqueLicenses = new Set<string>();
+
+    // Read pre-processed array from our top-level grouping
+    if (Array.isArray(entity?._licenses)) {
+      entity._licenses.forEach((lic: any) => {
+        if (lic) uniqueLicenses.add(String(lic).trim());
+      });
+    }
+
+    // Fallbacks for inline strings (comma/space-separated) or other raw database casings
+    const licenseFields = [entity?.licenseAltId, entity?.LICENSESALTID, entity?.licensesAltId, current?.licenseAltId];
+    licenseFields.forEach(field => {
+      if (typeof field === 'string' && field.trim() !== "") {
+        field.split(/[\s,;]+/).forEach(lic => {
+          if (lic.trim()) uniqueLicenses.add(lic.trim());
+        });
+      }
+    });
+
+    // 3. Inject separate visual child nodes for each license found
+    if (!isLicenseNode) {
+      uniqueLicenses.forEach(licenseId => {
+        const alreadyExists = baseChildren.some(child => child.isLicenseNode && child.ownerName === licenseId);
+        if (!alreadyExists) {
+          baseChildren.push({
+            ownerName: licenseId,
+            contactType: 'License Record',
+            ownershipType: 'License',
+            isLicenseNode: true,
+            referenceNbr: `lic-${licenseId}`,
+            relatedContacts: []
+          });
+        }
+      });
+    }
+
+    setLocalChildren(baseChildren);
   }, [entity, reverseData, isReverseRelation, parentRefNbr]);
 
   const percentageValue = parseFloat(current.percentage || '0');
   const hasPercentage = percentageValue > 0;
   const isChild = parentRefNbr !== "";
 
-  // --- CALCULATE TOTAL % OF THIS NODE'S CHILDREN ---
+  // --- CALCULATE TOTAL % (EXCLUDING LICENSES FROM NUMERIC MATH) ---
   const childrenTotalPercentage = localChildren.reduce((sum, child) => {
+    if (child.isLicenseNode) return sum; 
     const pct = parseFloat(String(child.percentage || '0').replace('%', '')) || 0;
     return sum + pct;
   }, 0);
@@ -63,7 +112,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1`}>
         
         {/* Over-allocation Warning Icon */}
-        {childrenTotalPercentage > 100 && (
+        {childrenTotalPercentage > 100 && !isLicenseNode && (
           <div 
             className="absolute -top-3 -right-3 bg-red-600 text-white p-1.5 rounded-full shadow-md animate-pulse border-2 border-white"
             title={`Warning: Children exceed 100% total (${childrenTotalPercentage}%). Please adjust ownership.`}
@@ -74,11 +123,12 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
         <div className="flex justify-between items-start mb-4">
           <div className="flex flex-col overflow-hidden mr-2">
-            <h4 className="text-xs font-bold uppercase truncate" title={current.ownerName}>{current.ownerName}</h4>
+            <h4 className="text-xs font-bold uppercase truncate" title={current.ownerName}>
+              {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
+            </h4>
           </div>
           
-          {/* Percentage badge hidden if reverse mode */}
-          {hasPercentage && !isReverseRelation && (
+          {hasPercentage && !isReverseRelation && !isLicenseNode && (
             <div className="bg-black/20 rounded px-2 py-0.5 min-w-[3rem] flex justify-center">
                 <span className="text-xs font-bold">{current.percentage}%</span>
             </div>
@@ -87,66 +137,65 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
         
         <div className="flex justify-between items-center pt-2 border-t border-white/10">
           <div className="flex items-center gap-1.5 opacity-90">
-            {isIndividual ? <User size={12} /> : <Building2 size={12} />}
+            {isLicenseNode ? <FileText size={12} /> : isIndividual ? <User size={12} /> : <Building2 size={12} />}
             <span className="text-[10px] font-semibold tracking-wide">
-              {isIndividual ? "Individual" : current.contactType}
+              {isLicenseNode ? "License Record" : isIndividual ? "Individual" : current.contactType}
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
-            {/* Reverse Lookup (Layers) button hidden if reverse mode */}
-            {!isReverseRelation && (
+          {!isLicenseNode && (
+            <div className="flex items-center gap-2">
+              {!isReverseRelation && (
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    onViewRelated(current); 
+                  }}
+                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
+                  title="Open in new tab"
+                >
+                  <Layers size={14} className="opacity-80 group-hover:opacity-100" />
+                </button>
+              )}
+
               <button 
                 onClick={(e) => { 
                   e.stopPropagation(); 
-                  onViewRelated(current); 
+                  onViewDetails(current, parentRefNbr, siblingTotalPercentage, childrenTotalPercentage); 
                 }}
                 className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
-                title="Open in new tab"
+                title="View Details"
               >
-                <Layers size={14} className="opacity-80 group-hover:opacity-100" />
+                <Eye size={14} className="opacity-80 group-hover:opacity-100" />
               </button>
-            )}
 
-            <button 
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                onViewDetails(current, parentRefNbr, siblingTotalPercentage, childrenTotalPercentage); 
-              }}
-              className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
-              title="View Details"
-            >
-              <Eye size={14} className="opacity-80 group-hover:opacity-100" />
-            </button>
-
-            {/* Trash button hidden if reverse mode */}
-            {isChild && !isReverseRelation && (
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  if (onDelete) onDelete(current, parentRefNbr); 
+              {isChild && !isReverseRelation && (
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    if (onDelete) onDelete(current, parentRefNbr); 
                 }}
-                className="p-1.5 hover:bg-red-500/40 rounded-full transition-colors group"
-                title="Remove Owner"
-              >
-                <Trash2 size={14} className="text-red-200 group-hover:text-white" />
-              </button>
-            )}
-            
-            {/* Add button hidden if individual OR if reverse mode */}
-            {!isIndividual && !isReverseRelation && (
-              <button
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  onOpenAdd(current, childrenTotalPercentage); 
-                }}
-                className="flex items-center gap-1 px-2 py-1 rounded transition-colors border bg-white/10 hover:bg-white/25 border-white/10"
-              >
-                <Plus size={10} strokeWidth={3} />
-                <span className="text-[9px] font-bold uppercase">Add</span>
-              </button>
-            )}
-          </div>
+                  className="p-1.5 hover:bg-red-500/40 rounded-full transition-colors group"
+                  title="Remove Owner"
+                >
+                  <Trash2 size={14} className="text-red-200 group-hover:text-white" />
+                </button>
+              )}
+              
+              {!isIndividual && !isReverseRelation && (
+                <button
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    onOpenAdd(current, childrenTotalPercentage); 
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 rounded transition-colors border bg-white/10 hover:bg-white/25 border-white/10"
+                >
+                  <Plus size={10} strokeWidth={3} />
+                  <span className="text-[9px] font-bold uppercase">Add</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
         
         {localChildren.length > 0 && (
@@ -174,7 +223,6 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   onDelete={onDelete} 
                   parentRefNbr={current.referenceNbr}
                   siblingTotalPercentage={childrenTotalPercentage} 
-                  /* Forwarding isReverseRelation down so child components hide elements too */
                   isReverseRelation={isReverseRelation}
                   reverseData={null}
                 />
@@ -333,6 +381,33 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
 
   if (!entity) return null;
 
+  // --- TOP-LEVEL PRE-PROCESSING FOR MULTIPLE LICENSES PER PARENT ---
+  let processedReverseData = reverseData;
+  if (isReverseRelation && Array.isArray(reverseData)) {
+    const parentMap = new Map<string, any>();
+    
+    reverseData.forEach(item => {
+      // Use both ownerName and referenceNbr as a reliable grouping key
+      const key = `${item.ownerName || ''}_${item.referenceNbr || ''}`;
+      const existing = parentMap.get(key);
+      const currentLic = item.licenseAltId || item.LICENSESALTID || item.licensesAltId || '';
+      
+      if (existing) {
+        if (currentLic) {
+          if (!existing._licenses.includes(currentLic)) {
+            existing._licenses.push(currentLic);
+          }
+        }
+      } else {
+        const newItem = { ...item };
+        newItem._licenses = currentLic ? [currentLic] : [];
+        parentMap.set(key, newItem);
+      }
+    });
+    
+    processedReverseData = Array.from(parentMap.values());
+  }
+
   return (
     <div 
       ref={containerRef} 
@@ -440,7 +515,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                             onOpenAdd={handleOpenAdd}
                             onDelete={handleDeleteClick} 
                             isReverseRelation={isReverseRelation}
-                            reverseData={reverseData}
+                            reverseData={processedReverseData}
                           />
                     </div>
                 </TransformComponent>

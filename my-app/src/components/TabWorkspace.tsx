@@ -14,6 +14,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
     { id: 'main', title: 'Entity Details', type: 'main', entity: null, viewMode: 'list' }
   ]);
   const [activeTabId, setActiveTabId] = useState('main');
+  
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
   const mainRecordId = selectedRecord?.referenceNbr || selectedRecord?.referenceNumber || selectedRecord?.id;
 
@@ -25,6 +27,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
 
         if (mainRecordId !== currentMainId) {
           setActiveTabId('main');
+          setExpandedNodes({}); 
           return [{ id: 'main', title: 'Entity Details', type: 'main', entity: selectedRecord, viewMode: 'list' }];
         }
 
@@ -101,44 +104,83 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
 
       {/* Tab Content Workspace Area */}
       <div className="bg-white px-5 py-3 rounded-b-xl min-h-[450px]">
-        <div className="flex justify-end items-center mb-3">
-          <div className="flex border border-slate-200 rounded shadow-sm bg-white overflow-hidden">
-            <button 
-              onClick={() => setTabViewMode('list')} 
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold transition-colors ${currentViewMode === 'list' ? 'bg-[#24417a] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <List size={14} /> List View
-            </button>
-            <button 
-              onClick={() => setTabViewMode('chart')} 
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold transition-colors border-l border-slate-200 ${currentViewMode === 'chart' ? 'bg-[#24417a] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              <BarChart3 size={14} /> Chart View
-            </button>
-          </div>
-        </div>
-
-        {/* Structural Symetry Rendering Wrapper */}
-        <div className="animate-in fade-in duration-300 bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-inner">
-          {currentViewMode === 'list' ? (
-            <OwnershipList 
-              entity={activeTabId === 'main' ? selectedRecord : activeTab?.entity} 
-              onRefresh={onRefresh} 
-              onViewRelated={handleViewRelated}
-              isReverseRelation={activeTabId !== 'main'}
-              reverseData={activeTabId !== 'main' ? (bulkCache[activeTabId] ?? null) : null}
-            />
-          ) : (
-            <div className="overflow-x-auto pb-10 flex justify-center">
-              <OwnershipChart 
-                entity={activeTabId === 'main' ? selectedRecord : activeTab?.entity} 
-                onRefresh={onRefresh} 
-                onViewRelated={handleViewRelated}
-                isReverseRelation={activeTabId !== 'main'}
-                reverseData={activeTabId !== 'main' ? (bulkCache[activeTabId] ?? null) : null}
-              />
+        
+        {/* Only show the toggle buttons if it is the main tab */}
+        {activeTabId === 'main' && (
+          <div className="flex justify-end items-center mb-3">
+            <div className="flex border border-slate-200 rounded shadow-sm bg-white overflow-hidden">
+              <button 
+                onClick={() => setTabViewMode('list')} 
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold transition-colors ${currentViewMode === 'list' ? 'bg-[#24417a] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <List size={14} /> List View
+              </button>
+              <button 
+                onClick={() => setTabViewMode('chart')} 
+                className={`flex items-center gap-2 px-4 py-2 text-xs font-bold transition-colors border-l border-slate-200 ${currentViewMode === 'chart' ? 'bg-[#24417a] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
+              >
+                <BarChart3 size={14} /> Chart View
+              </button>
             </div>
-          )}
+          </div>
+        )}
+
+        {/* Render Workspace Body */}
+        <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-inner">
+          {tabs.map((tab) => {
+            const isActive = activeTabId === tab.id;
+            const viewMode = tab.viewMode || 'list';
+
+            return (
+              <div 
+                key={tab.id} 
+                className={`${isActive ? 'block' : 'hidden'}`}
+              >
+                {tab.id === 'main' ? (
+                  /* --- MAIN TAB --- */
+                  /* Keep BOTH List and Chart in the DOM, toggle visibility via CSS to prevent refresh jumps */
+                  <>
+                    <div className={`${viewMode === 'list' ? 'block animate-in fade-in duration-200' : 'hidden'}`}>
+                      <OwnershipList 
+                        entity={selectedRecord} 
+                        onRefresh={onRefresh} 
+                        onViewRelated={handleViewRelated}
+                        isReverseRelation={false}
+                        reverseData={null}
+                        expandedNodes={expandedNodes}
+                        setExpandedNodes={setExpandedNodes}
+                      />
+                    </div>
+
+                    <div className={`${viewMode === 'chart' ? 'block animate-in fade-in duration-200' : 'hidden'}`}>
+                      <div className="overflow-x-auto pb-10 flex justify-center">
+                        <OwnershipChart 
+                          entity={selectedRecord} 
+                          onRefresh={onRefresh} 
+                          onViewRelated={handleViewRelated}
+                          isReverseRelation={false}
+                          reverseData={null}
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  /* --- RELATED (REVERSE) TABS --- */
+                  <div className="block animate-in fade-in duration-200">
+                    <div className="overflow-x-auto pb-10 flex justify-center">
+                      <OwnershipChart 
+                        entity={tab.entity} 
+                        onRefresh={onRefresh} 
+                        onViewRelated={handleViewRelated}
+                        isReverseRelation={true}
+                        reverseData={bulkCache[tab.id] ?? null}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -66,7 +66,6 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     }
 
     // Fallbacks for inline strings (comma/space-separated) or other raw database casings
-    // FIXED: Cast 'current' to 'any' to bypass strict TS checking on licenseAltId
     const licenseFields = [entity?.licenseAltId, entity?.LICENSESALTID, entity?.licensesAltId, (current as any)?.licenseAltId];
     licenseFields.forEach(field => {
       if (typeof field === 'string' && field.trim() !== "") {
@@ -238,11 +237,11 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
 // 2. Ownership Chart Component
 interface OwnershipChartProps {
-  entity: any;
+  entity: any; // Can now seamlessly accept an individual Object or a Base Array containing multiple parent nodes
   onRefresh?: () => Promise<void> | void;
   onViewRelated?: (entity: any) => void; 
   isReverseRelation?: boolean; 
-  reverseData?: any[] | null;  
+  reverseData?: any[] | null;   
 }
 
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
@@ -382,22 +381,75 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
 
   if (!entity) return null;
 
-  // --- TOP-LEVEL PRE-PROCESSING FOR MULTIPLE LICENSES PER PARENT ---
+  // --- MERGE MULTIPLE ROOT ENTITIES OR SIBLING LICENSE RECORDS SAFELY ---
+  const getNormalizedTreeRoot = () => {
+    const rawList = Array.isArray(entity) ? entity : (entity.parents ? entity.parents : [entity]);
+    
+    if (rawList.length === 0) return null;
+
+    const uniqueRootMap = new Map<string, any>();
+
+    rawList.forEach((item: any) => {
+      if (!item) return;
+      // Combine business name and account reference ID to create unique mapping keys
+      const identityKey = `${item.ownerName || ''}_${item.referenceNbr || ''}`;
+      const activeLicense = item.licenseAltId || item.LICENSESALTID || item.licensesAltId || '';
+
+      if (uniqueRootMap.has(identityKey)) {
+        const existingNode = uniqueRootMap.get(identityKey);
+        // Append unique licenses to string tracking arrays
+        if (activeLicense && !existingNode._licenses.includes(activeLicense)) {
+          existingNode._licenses.push(activeLicense);
+        }
+        // Merge downstream related nested structures cleanly
+        if (Array.isArray(item.relatedContacts)) {
+          item.relatedContacts.forEach((child: any) => {
+            const childExists = existingNode.relatedContacts.some((c: any) => c.referenceNbr === child.referenceNbr);
+            if (!childExists) existingNode.relatedContacts.push(child);
+          });
+        }
+      } else {
+        const structuralClone = { 
+          ...item,
+          _licenses: activeLicense ? [activeLicense] : [],
+          relatedContacts: Array.isArray(item.relatedContacts) ? [...item.relatedContacts] : []
+        };
+        uniqueRootMap.set(identityKey, structuralClone);
+      }
+    });
+
+    const consolidatedRoots = Array.from(uniqueRootMap.values());
+
+    // If there is only one true corporate group root, pass it along directly
+    if (consolidatedRoots.length === 1) {
+      return consolidatedRoots[0];
+    }
+
+    // Otherwise, create a neat virtual folder node to tie multiple corporate tracks into one visual chart
+    return {
+      ownerName: "Corporate Structure Groups",
+      contactType: "Hierarchy Overview",
+      ownershipType: "System View",
+      referenceNbr: "root-virtual",
+      relatedContacts: consolidatedRoots
+    };
+  };
+
+  const operationalRootNode = getNormalizedTreeRoot();
+
+  // --- REVERSE RELATION LINK PROCESSING ---
   let processedReverseData = reverseData;
   if (isReverseRelation && Array.isArray(reverseData)) {
     const parentMap = new Map<string, any>();
     
     reverseData.forEach(item => {
-      // Use both ownerName and referenceNbr as a reliable grouping key
       const key = `${item.ownerName || ''}_${item.referenceNbr || ''}`;
       const existing = parentMap.get(key);
       const currentLic = item.licenseAltId || item.LICENSESALTID || item.licensesAltId || '';
       
       if (existing) {
-        if (currentLic) {
-          if (!existing._licenses.includes(currentLic)) {
-            existing._licenses.push(currentLic);
-          }
+        if (currentLic && !existing._licenses.includes(currentLic)) {
+          existing._licenses.push(currentLic);
         }
       } else {
         const newItem = { ...item };
@@ -408,6 +460,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
     
     processedReverseData = Array.from(parentMap.values());
   }
+
+  if (!operationalRootNode) return null;
 
   return (
     <div 
@@ -510,7 +564,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                 <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%" }}>
                     <div className="min-w-max min-h-max p-40">
                           <RecursiveTree 
-                            entity={entity} 
+                            entity={operationalRootNode} 
                             onViewDetails={handleNodeSelect} 
                             onViewRelated={(e) => onViewRelated && onViewRelated(e)}
                             onOpenAdd={handleOpenAdd}

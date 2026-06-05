@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../config';
 import AddOwnerForm from "./AddOwnerForm"; 
 import OwnerDetailsCard from "./OwnerDetailsCard"; 
 import ZoomControls from "./ZoomControls";
+import { buildAddOwnerPayload } from '../utils/ownerPayload';
 
 // 1. Recursive Tree Component
 interface RecursiveTreeProps {
@@ -331,23 +332,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   const handleSaveOwner = async (formData: any) => {
     setLoading(true);
     const parent = normalizeEntity(addingToParent);
-    const payload = [{
-      "Business Phone": formData.phone,
-      "Type": formData.ownershipType,
-      "Title": formData.type || "Owner",
-      "Percent Owned": formData.percentage,
-      "Entity Name": formData.ownerName,
-      "First Name": formData.firstName,
-      "Last Name": formData.lastName,
-      "E-mail": formData.email,
-      "Address Line 1": formData.ownershipAddr,
-      "Unit Type": "",
-      "Unit/Suite/Apt" : "Unit/Suite/Apt",
-      "Country" : formData.country || "United States",
-      "City": formData.city,
-      "State": formData.state,
-      "ZIP Code/Province Postal Code": formData.zip
-    }];
+    const payload = buildAddOwnerPayload(formData);
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/add-owner`, {

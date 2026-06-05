@@ -29,6 +29,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
   }, [successMessage]);
 
   // --- FIX 1: Define variables at the component level so JSX can access them ---
+  const isIndividualOwner = (formData.ownershipType || "").toLowerCase().includes('individual');
   const isRootParent = !owner.parentRefNbr || owner.parentRefNbr === "" || owner.parentRefNbr === "0";
   const hasChildren = (owner.totalChildrenPercentage ?? 0) > 0;
   const shouldCalculateFromChildren = hasChildren && (isRootParent || isFromList);
@@ -52,21 +53,59 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
     }
 
     const fieldMap: Record<string, string> = {
-      firstName: "First Name",
-      lastName: "Last Name",
-      phone: "Business Phone",
+      // Core
       ownershipType: "Type",
       type: "Title",
       percentage: "Percent Owned",
+      // Name
       ownerName: "Entity Name",
-      email: "E-mail",
+      nameTitle: "Name Prefix",
+      firstName: "First Name",
+      middleInitial: "Middle Name",
+      lastName: "Last Name",
+      suffix: "Name Suffix",
+      resortHotel: "Resort Hotel",
+      // Address
+      addressType: "Address Type",
+      locationName: "Location Name",
+      attentionName: "Attention Name",
+      attentionLine1: "Attention Name",
+      optAddrLine: "Address Line 2",
+      unitType: "Unit Type",
+      unitNumber: "Unit Number",
       ownershipAddr: "Address Line 1",
       city: "City",
       country: "Country",
       state: "State",
       zip: "ZIP Code/Province Postal Code",
-      fein: "FEIN", 
-      ssn: "SSN"    
+      // Contact
+      phone: "Business Phone",
+      faxNumber: "Fax Number",
+      cellPhone: "Cell Phone",
+      pagerNumber: "Pager Number",
+      email: "E-mail",
+      webPage: "Web Page",
+      // Licenses / identifiers
+      fein: "FEIN",
+      ssn: "SSN",
+      stateLicenseNumber: "State License Number",
+      stateSalesTaxNumber: "State Sales Tax Number",
+      professionalLicenseType: "Professional License Type",
+      profLicenseNumber: "Professional License Number",
+      professionalType: "Professional License Type",
+      professionalLicNumber: "Professional License Number",
+      otherLicenseType: "Other License Type",
+      otherLicenseNumber: "Other License Number",
+      driversLicense: "Drivers License Number",
+      driversLicenseState: "Drivers License State",
+      // Individual demographics
+      dob: "Date of Birth",
+      gender: "Gender",
+      usCitizen: "US Citizen",
+      // Descriptions / notes
+      businessDescription: "Business Description",
+      locationDescription: "Location Description",
+      comments: "Comments"
     };
 
     const editArray: any[] = [];
@@ -184,33 +223,87 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                 isFromList={isFromList}
               />
             ) : (
-              <div className="p-10 bg-[#f0f4f8] space-y-10">
+              <div className="p-10 bg-[#f0f4f8] space-y-8">
                 <div className="grid grid-cols-3 gap-8">
                   <ViewField label="Ownership Type" value={formData.ownershipType} />
-                  <ViewField label="Ownership Entity Name" value={formData.ownerName} />
-                  <ViewField label="Type of Entity" value={formData.type || formData.contactType} />
+                  <ViewField
+                    label={isIndividualOwner ? "Name" : "Business Name"}
+                    value={
+                      isIndividualOwner
+                        ? [formData.nameTitle, formData.firstName, formData.middleInitial, formData.lastName, formData.suffix].filter(Boolean).join(' ')
+                        : formData.ownerName
+                    }
+                  />
+                  <ViewField label={isIndividualOwner ? "Type of Entity" : "Business Type"} value={formData.type || formData.contactType} />
                 </div>
 
                 <ViewField 
-                  label="Ownership Address" 
+                  label="Address" 
                   value={
                     [
+                      formData.unitType,
+                      formData.unitNumber,
                       formData.ownershipAddr || formData.contactAddress,
                       formData.city,
                       formData.state,
-                      formData.zip
+                      formData.zip,
+                      formData.country
                     ]
-                    .filter(Boolean) // Removes null, undefined, or empty strings
-                    .join(' ')       // Joins them with a single space
-                    || "N/A"         // Fallback if the entire address is empty
+                    .filter(Boolean)
+                    .join(' ')
+                    || "N/A"
                   } 
                 />
+
                 <div className="grid grid-cols-4 gap-8">
                   <ViewField label="Email" value={formData.email} />
                   <ViewField label="Phone Number" value={formData.phone} />
-                  <ViewField label="FEIN" value={formData.fein} />
-                  {/* <ViewField label="SSN" value={formData.ssn} /> */}
+                  <ViewField label={isIndividualOwner ? "Fax Number" : "FAX Number"} value={formData.faxNumber} />
+                  <ViewField label={isIndividualOwner ? "Cell Number" : "Cell Phone #"} value={formData.cellPhone} />
                 </div>
+
+                {isIndividualOwner ? (
+                  <>
+                    <div className="grid grid-cols-4 gap-8">
+                      <ViewField label="DOB" value={formData.dob} />
+                      <ViewField label="Gender" value={formData.gender} />
+                      <ViewField label="U.S. Citizen" value={formData.usCitizen} />
+                      <ViewField label="Pager Number" value={formData.pagerNumber} />
+                    </div>
+                    <div className="grid grid-cols-4 gap-8">
+                      <ViewField label="Driver's License" value={formData.driversLicense} />
+                      <ViewField label="License State" value={formData.driversLicenseState} />
+                      <ViewField label="Professional Type" value={formData.professionalType} />
+                      <ViewField label="Professional Lic. #" value={formData.professionalLicNumber} />
+                    </div>
+                    <div className="grid grid-cols-4 gap-8">
+                      <ViewField label="Other License Type" value={formData.otherLicenseType} />
+                      <ViewField label="Other License Number" value={formData.otherLicenseNumber} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-4 gap-8">
+                      <ViewField label="FEIN" value={formData.fein} />
+                      <ViewField label="State License Number" value={formData.stateLicenseNumber} />
+                      <ViewField label="State Sales Tax Number" value={formData.stateSalesTaxNumber} />
+                      <ViewField label="Web Page" value={formData.webPage} />
+                    </div>
+                    <div className="grid grid-cols-4 gap-8">
+                      <ViewField label="Professional License Type" value={formData.professionalLicenseType} />
+                      <ViewField label="Prof License #" value={formData.profLicenseNumber} />
+                      <ViewField label="Resort Hotel" value={formData.resortHotel && formData.resortHotel !== 'N' ? 'Yes' : 'No'} />
+                    </div>
+                    {(formData.businessDescription || formData.locationDescription) && (
+                      <div className="grid grid-cols-2 gap-8">
+                        <ViewField label="Business Description" value={formData.businessDescription} />
+                        <ViewField label="Location Description" value={formData.locationDescription} />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {formData.comments && <ViewField label="Comments" value={formData.comments} />}
 
                 <ViewField 
                   label="Percent (%) Owned" 

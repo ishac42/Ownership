@@ -10,6 +10,7 @@ import {
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
   PROFESSIONAL_TYPE_OPTIONS,
+  isPropertyOwnerEntityType,
 } from '../utils/contactOptions';
 
 interface EntityTypeOption {
@@ -21,6 +22,7 @@ interface EditOwnerFormProps {
   formData: Record<string, string>;
   setFormData: (data: Record<string, string>) => void;
   onUpdate: () => Promise<void>;
+  onValidationError?: (message: string) => void;
   onCancel: () => void;
   isLoading: boolean;
   totalChildrenPercentage?: number;
@@ -34,6 +36,7 @@ const EditOwnerForm = ({
   formData,
   setFormData,
   onUpdate,
+  onValidationError,
   onCancel,
   isLoading,
   totalChildrenPercentage = 0,
@@ -48,6 +51,7 @@ const EditOwnerForm = ({
   };
 
   const entityType = formData.type || formData.contactType || '';
+  const isPropertyOwner = isPropertyOwnerEntityType(entityType);
   const selectedCountry = formData.country || 'United States';
   const hasSelectedCountryOption = COUNTRY_LIST.includes(selectedCountry);
   const isUSCountry = selectedCountry.trim().toLowerCase() === 'united states';
@@ -72,6 +76,14 @@ const EditOwnerForm = ({
 
   const hasChildren = totalChildrenPercentage > 0;
   const shouldShowCalculatedValue = hasChildren && (isRoot || isFromList);
+
+  const handleUpdateClick = () => {
+    if (isPropertyOwner && !formData.dob?.trim()) {
+      onValidationError?.('Date of Birth is required for Property Owners.');
+      return;
+    }
+    onUpdate();
+  };
 
   return (
     <div className="p-8 bg-[#f0f4f8] space-y-7 text-[#333]">
@@ -256,7 +268,9 @@ const EditOwnerForm = ({
       {isIndividual ? (
         <>
           <div className="grid grid-cols-3 gap-6">
-            <InputField label="DOB" type="date" value={formData.dob} onChange={(v) => handleChange('dob', v)} disabled={isLoading} subLabel="Required for Short-Term Rental Unit Property Owners." />
+            {isPropertyOwner && (
+              <InputField label="DOB" type="date" value={formData.dob} onChange={(v) => handleChange('dob', v)} disabled={isLoading} required />
+            )}
             <SelectField label="Gender" value={formData.gender} onChange={(v) => handleChange('gender', v)} options={GENDER_OPTIONS} disabled={isLoading} placeholder="--" />
             <SelectField label="U.S. Citizen" value={formData.usCitizen} onChange={(v) => handleChange('usCitizen', v)} options={US_CITIZEN_OPTIONS} disabled={isLoading} placeholder="--" />
           </div>
@@ -359,7 +373,7 @@ const EditOwnerForm = ({
         </button>
 
         <button
-          onClick={onUpdate}
+          onClick={handleUpdateClick}
           disabled={isLoading}
           className={`px-14 py-2.5 bg-[#2c3e76] text-white font-bold rounded-md transition-all shadow-md flex items-center justify-center min-w-[160px] ${
             isLoading ? 'opacity-70 cursor-wait' : 'hover:bg-[#1e2a52]'
@@ -442,16 +456,21 @@ interface InputFieldProps {
   subLabel?: string;
   disabled?: boolean;
   type?: string;
+  required?: boolean;
 }
 
-const InputField = ({ label, value, onChange, subLabel, disabled, type = 'text' }: InputFieldProps) => (
+const InputField = ({ label, value, onChange, subLabel, disabled, type = 'text', required }: InputFieldProps) => (
   <div className="w-full text-left">
-    <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${disabled ? 'opacity-60' : ''}`}>{label}</label>
+    <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${disabled ? 'opacity-60' : ''}`}>
+      {label}
+      {required && <span className="text-red-600"> *</span>}
+    </label>
     <input
       type={type}
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
+      required={required}
       className={`w-full p-2.5 border border-gray-400 rounded-md bg-white text-gray-900 font-medium outline-none transition-shadow ${
         disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'focus:ring-2 focus:ring-[#2c3e76]/10'
       }`}

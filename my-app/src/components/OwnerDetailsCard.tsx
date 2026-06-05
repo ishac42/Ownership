@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 import EditOwnerForm from './EditOwnerForm';
+import { isPropertyOwnerEntityType } from '../utils/contactOptions';
 
 interface OwnerDetailsCardProps {
   owner: any;
@@ -213,7 +214,8 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                   if (errorMessage) setErrorMessage(null);
                 }} 
                 onCancel={handleCancel} 
-                onUpdate={handleUpdate} 
+                onUpdate={handleUpdate}
+                onValidationError={setErrorMessage}
                 isLoading={isLoading}
                 // --- FIX 2: Ensure these props match what EditOwnerForm expects ---
                 totalChildrenPercentage={owner.totalChildrenPercentage || 0}
@@ -265,7 +267,9 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                 {isIndividualOwner ? (
                   <>
                     <div className="grid grid-cols-4 gap-8">
-                      <ViewField label="DOB" value={formData.dob} />
+                      {isPropertyOwnerEntityType(formData.type || formData.contactType || '') && (
+                        <ViewField label="DOB" value={formData.dob} />
+                      )}
                       <ViewField label="Gender" value={formData.gender} />
                       <ViewField label="U.S. Citizen" value={formData.usCitizen} />
                       <ViewField label="Pager Number" value={formData.pagerNumber} />

@@ -30,11 +30,6 @@ export const US_CITIZEN_OPTIONS: string[] = ['Yes', 'No'];
 
 // Professional license types (used by both Individual "Professional Type" and
 // Organization "Professional License Type" selects).
-export const PROPERTY_OWNER_ENTITY_TYPE = 'Property Owner';
-
-export const isPropertyOwnerEntityType = (entityType: string): boolean =>
-  (entityType || '').trim() === PROPERTY_OWNER_ENTITY_TYPE;
-
 export const PROFESSIONAL_TYPE_OPTIONS: string[] = [
   'Short-Term Rental Unit Property Owner',
   'Real Estate Broker',

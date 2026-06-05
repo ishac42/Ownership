@@ -10,7 +10,6 @@ import {
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
   PROFESSIONAL_TYPE_OPTIONS,
-  isPropertyOwnerEntityType,
 } from '../utils/contactOptions';
 
 interface EntityTypeOption {
@@ -112,15 +111,8 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
     if (errorMessage) setErrorMessage(null);
   };
 
-  const isPropertyOwner = isPropertyOwnerEntityType(formData.type);
-
   const handleSave = async () => {
     if (isSubmitting) return;
-
-    if (isPropertyOwner && !formData.dob?.trim()) {
-      setErrorMessage('Date of Birth is required for Property Owners.');
-      return;
-    }
 
     const newPct = parseFloat(String(formData.percentage || '0').replace('%', '')) || 0;
     if (currentTotalPercentage + newPct > 100) {
@@ -355,9 +347,7 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
           {isIndividual ? (
             <>
               <div className="grid grid-cols-3 gap-6">
-                {isPropertyOwner && (
-                  <FormField label="DOB" name="dob" type="date" placeholder="" value={formData.dob} onChange={handleChange} required />
-                )}
+                <FormField label="DOB" name="dob" type="date" placeholder="" value={formData.dob} onChange={handleChange} subLabel="Required for Short-Term Rental Unit Property Owners." />
                 <SelectField label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={GENDER_OPTIONS} placeholder="--" />
                 <SelectField label="U.S. Citizen" name="usCitizen" value={formData.usCitizen} onChange={handleChange} options={US_CITIZEN_OPTIONS} placeholder="--" />
               </div>
@@ -489,22 +479,17 @@ interface FormFieldProps {
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   type?: string;
   subLabel?: string;
-  required?: boolean;
 }
 
-const FormField = ({ label, name, placeholder, value, onChange, type = 'text', subLabel, required }: FormFieldProps) => (
+const FormField = ({ label, name, placeholder, value, onChange, type = 'text', subLabel }: FormFieldProps) => (
   <div className="flex flex-col">
-    <label className="text-gray-500 font-medium mb-1">
-      {label}
-      {required && <span className="text-red-600"> *</span>}
-    </label>
+    <label className="text-gray-500 font-medium mb-1">{label}</label>
     <input
       type={type}
       name={name}
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      required={required}
       className="border border-gray-300 rounded-md p-2.5 focus:outline-none focus:ring-2 focus:ring-[#2c3e76]/20 placeholder:text-gray-400"
     />
     {subLabel && <p className="text-[11px] text-gray-500 mt-1">{subLabel}</p>}

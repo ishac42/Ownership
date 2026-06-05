@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 import EditOwnerForm from './EditOwnerForm';
+import { validateOwnershipAge } from '../utils/ownershipValidation';
 
 interface OwnerDetailsCardProps {
   owner: any;
@@ -140,6 +141,13 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
     setIsLoading(true);
 
     try {
+      const validation = await validateOwnershipAge(formData);
+      if (validation.blocked) {
+        setErrorMessage(validation.message || 'Submission blocked.');
+        setIsLoading(false);
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/edit-owner`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

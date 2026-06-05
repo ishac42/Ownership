@@ -11,6 +11,7 @@ import {
   US_CITIZEN_OPTIONS,
   PROFESSIONAL_TYPE_OPTIONS,
 } from '../utils/contactOptions';
+import { validateOwnershipAge } from '../utils/ownershipValidation';
 
 interface EntityTypeOption {
   value: string;
@@ -123,9 +124,17 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
 
     setIsSubmitting(true);
     try {
+      const validation = await validateOwnershipAge(formData);
+      if (validation.blocked) {
+        setErrorMessage(validation.message || 'Submission blocked.');
+        setIsSubmitting(false);
+        return;
+      }
+
       await onSave(formData);
     } catch (error) {
       console.error('Error saving owner:', error);
+      setErrorMessage('Could not validate ownership age. Please try again.');
       setIsSubmitting(false);
     }
   };

@@ -6,7 +6,8 @@ const addRoute = require('./add');
 const editRoute = require('./edit'); 
 const deleteRoute = require('./delete'); 
 const getEntityRoute = require('./getEntity'); 
-const reverseRelation = require('./reverseRelation'); 
+const reverseRelation = require('./reverseRelation');
+const validateRoute = require('./validate');
 
 const app = express();
 app.use(cors());
@@ -47,6 +48,7 @@ app.use(editRoute);
 app.use(getEntityRoute);
 app.use(deleteRoute);
 app.use(reverseRelation);
+app.use(validateRoute);
 
 const PORT = 3001;
 app.listen(PORT, () => {

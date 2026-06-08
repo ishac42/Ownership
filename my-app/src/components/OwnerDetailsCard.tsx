@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 import EditOwnerForm from './EditOwnerForm';
-import { validateOwnershipAge } from '../utils/ownershipValidation';
+import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
+import { usePortalParams } from '../context/PortalContext';
+import ValidationBlockDialog from './ValidationBlockDialog';
 
 interface OwnerDetailsCardProps {
   owner: any;
@@ -12,11 +14,12 @@ interface OwnerDetailsCardProps {
 }
 
 const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
+  const { capId } = usePortalParams();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ ...owner });
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [blockDialog, setBlockDialog] = useState<{ message: string; title?: string } | null>(null);
 
   useEffect(() => {
     setFormData({ ...owner });
@@ -37,21 +40,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
   const originalPct = parseFloat(String(owner.percentage || '0').replace('%', '')) || 0;
 
   const handleUpdate = async () => {
-    setErrorMessage(null);
-
-    const finalPctValue = shouldCalculateFromChildren 
-        ? owner.totalChildrenPercentage 
-        : parseFloat(String(formData.percentage || '0').replace('%', '')) || 0;
-
-    if (currentTotalPercentage !== undefined && !isRootParent) {
-      const otherChildrenTotal = Math.max(0, currentTotalPercentage - originalPct);
-
-      if (otherChildrenTotal + finalPctValue > 100) {
-        const allowedMax = Math.max(0, 100 - otherChildrenTotal);
-        setErrorMessage(`Total ownership cannot exceed 100%. Other owners currently hold ${otherChildrenTotal}%. You can only set this up to ${allowedMax}%.`);
-        return;
-      }
-    }
+    setBlockDialog(null);
 
     const fieldMap: Record<string, string> = {
       // Core
@@ -134,16 +123,18 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
     }
 
     if (editArray.length === 0) {
-      alert("No changes detected.");
+      setBlockDialog({ title: 'No Changes', message: 'No changes detected.' });
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const validation = await validateOwnershipAge(formData);
+      const validation = await callOwnershipPortalValidation(formData, capId);
       if (validation.blocked) {
-        setErrorMessage(validation.message || 'Submission blocked.');
+        if (validation.message) {
+          setBlockDialog({ message: validation.message });
+        }
         setIsLoading(false);
         return;
       }
@@ -165,10 +156,16 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
         setIsEditing(false);
         if (onRefresh) onRefresh();
       } else {
-        alert(`Failed to update: ${result.error || "Unknown error"}`);
+        setBlockDialog({
+          title: 'Update Failed',
+          message: `Failed to update: ${result.error || 'Unknown error'}`,
+        });
       }
     } catch (error) {
-      alert("Could not connect to the backend server.");
+      setBlockDialog({
+        title: 'Connection Error',
+        message: 'Could not connect to the backend server.',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -177,7 +174,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
   const handleCancel = () => {
     if (!isLoading) {
       setFormData({ ...owner });
-      setErrorMessage(null);
+      setBlockDialog(null);
       setIsEditing(false);
     }
   };
@@ -206,19 +203,13 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
             </h2>
           </div>
 
-          {errorMessage && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 mx-6 mt-4 flex-shrink-0">
-              <p className="text-red-700 font-medium">{errorMessage}</p>
-            </div>
-          )}
-
           <div className="overflow-y-auto">
             {isEditing ? (
               <EditOwnerForm 
                 formData={formData} 
                 setFormData={(data: any) => {
                   setFormData(data);
-                  if (errorMessage) setErrorMessage(null);
+                  if (blockDialog) setBlockDialog(null);
                 }} 
                 onCancel={handleCancel} 
                 onUpdate={handleUpdate} 
@@ -338,6 +329,14 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
           </div>
         </div>
       </div>
+
+      {blockDialog && (
+        <ValidationBlockDialog
+          message={blockDialog.message}
+          title={blockDialog.title}
+          onDismiss={() => setBlockDialog(null)}
+        />
+      )}
     </>
   );
 };

@@ -11,7 +11,9 @@ import {
   US_CITIZEN_OPTIONS,
   PROFESSIONAL_TYPE_OPTIONS,
 } from '../utils/contactOptions';
-import { validateOwnershipAge } from '../utils/ownershipValidation';
+import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
+import { usePortalParams } from '../context/PortalContext';
+import ValidationBlockDialog from './ValidationBlockDialog';
 
 interface EntityTypeOption {
   value: string;
@@ -24,11 +26,12 @@ interface AddOwnerFormProps {
   currentTotalPercentage?: number;
 }
 
-const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwnerFormProps) => {
+const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
   const { entityTypes, isLoading: isRefDataLoading } = useRefData();
+  const { capId } = usePortalParams();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [blockDialog, setBlockDialog] = useState<{ message: string; title?: string } | null>(null);
 
   const [formData, setFormData] = useState<Record<string, any>>({
     ownershipType: 'Organization',
@@ -109,24 +112,19 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
     const { name, type } = target;
     const value = type === 'checkbox' ? target.checked : target.value;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errorMessage) setErrorMessage(null);
+    if (blockDialog) setBlockDialog(null);
   };
 
   const handleSave = async () => {
     if (isSubmitting) return;
 
-    const newPct = parseFloat(String(formData.percentage || '0').replace('%', '')) || 0;
-    if (currentTotalPercentage + newPct > 100) {
-      const allowedMax = Math.max(0, 100 - currentTotalPercentage);
-      setErrorMessage(`Total ownership cannot exceed 100%. Other owners currently hold ${currentTotalPercentage}%. You can only set this up to ${allowedMax}%.`);
-      return;
-    }
-
     setIsSubmitting(true);
     try {
-      const validation = await validateOwnershipAge(formData);
+      const validation = await callOwnershipPortalValidation(formData, capId);
       if (validation.blocked) {
-        setErrorMessage(validation.message || 'Submission blocked.');
+        if (validation.message) {
+          setBlockDialog({ message: validation.message });
+        }
         setIsSubmitting(false);
         return;
       }
@@ -134,7 +132,10 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
       await onSave(formData);
     } catch (error) {
       console.error('Error saving owner:', error);
-      setErrorMessage('Could not validate ownership age. Please try again.');
+      setBlockDialog({
+        title: 'Error',
+        message: error instanceof Error ? error.message : String(error),
+      });
       setIsSubmitting(false);
     }
   };
@@ -142,6 +143,7 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
   const isUSCountry = (formData.country || '').trim().toLowerCase() === 'united states';
 
   return (
+    <>
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
@@ -150,12 +152,6 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
             {isIndividual ? 'Add New Individual' : 'Add New Business'}
           </h2>
         </div>
-
-        {errorMessage && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mx-6 mt-4 flex-shrink-0">
-            <p className="text-red-700 font-medium">{errorMessage}</p>
-          </div>
-        )}
 
         <div className="p-8 space-y-6 overflow-y-auto">
           {/* Ownership Type */}
@@ -471,6 +467,15 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
         </div>
       </div>
     </div>
+
+    {blockDialog && (
+      <ValidationBlockDialog
+        message={blockDialog.message}
+        title={blockDialog.title}
+        onDismiss={() => setBlockDialog(null)}
+      />
+    )}
+    </>
   );
 };
 

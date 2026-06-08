@@ -5,6 +5,7 @@ import { useOwnershipSearch } from './hooks/useOwnership';
 import SearchControls from './components/SearchControls';
 import Pagination from './components/Pagination'; 
 import { RefDataProvider } from './context/RefDataContext';
+import { PortalProvider } from './context/PortalContext';
 import TabWorkspace from './components/TabWorkspace';
 
 const App = () => {
@@ -21,6 +22,7 @@ const App = () => {
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   // const env = urlParams.get('env');
   const passedRef = urlParams.get('referenceNumber');
+  const capId = urlParams.get('capId') || '';
   const [hideSearch] = useState(!!passedRef);
   const [searchInitiated, setSearchInitiated] = useState(false);
   
@@ -61,6 +63,7 @@ const App = () => {
 
   return (
     <RefDataProvider>
+      <PortalProvider capId={capId}>
       <div className="min-h-screen bg-slate-100 font-sans text-slate-700 pb-12">
         {!hideSearch && (
           <nav className="bg-[#1e3a8a] shadow-lg">
@@ -149,6 +152,7 @@ const App = () => {
           )}
         </div>
       </div>
+      </PortalProvider>
     </RefDataProvider>
   );
 };

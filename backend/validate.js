@@ -1,11 +1,20 @@
-// backend/validate.js
+// backend/validate.js — proxy only; rules live in API_VALIDATE_OWNERSHIP_PORTAL (EMSE)
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 const { getAccessToken } = require('./authentication');
 
+function extractScriptResult(accelaResult) {
+    return (
+        accelaResult?.result?.result ||
+        accelaResult?.result ||
+        accelaResult ||
+        {}
+    );
+}
+
 router.post('/api/validate-ownership', async (req, res) => {
-    const { dob, ownerArr } = req.body;
+    const { dob, ownerArr, capId } = req.body;
 
     try {
         const accessToken = await getAccessToken();
@@ -14,7 +23,8 @@ router.post('/api/validate-ownership', async (req, res) => {
             'https://apis.accela.com/v4/scripts/API_VALIDATE_OWNERSHIP_PORTAL',
             {
                 dob: dob || '',
-                ownerArr: ownerArr || ''
+                ownerArr: ownerArr || '',
+                capId: capId || ''
             },
             {
                 headers: {
@@ -24,26 +34,20 @@ router.post('/api/validate-ownership', async (req, res) => {
         );
 
         const accelaResult = scriptResponse.data;
-        const validation =
-            accelaResult?.result?.result ||
-            accelaResult?.result ||
-            accelaResult;
-
-        const blocked = validation?.blocked === true;
+        const validation = extractScriptResult(accelaResult);
 
         res.json({
             success: true,
             data: accelaResult,
-            blocked,
-            message: validation?.message || '',
-            age: typeof validation?.age === 'number' ? validation.age : -1
+            blocked: validation.blocked === true,
+            message: validation.message || '',
+            age: typeof validation.age === 'number' ? validation.age : -1
         });
     } catch (error) {
-        console.error('Accela validation error:', error.response?.data || error.message);
+        console.error('Accela validation proxy error:', error.response?.data || error.message);
         res.status(500).json({
             success: false,
-            blocked: true,
-            message: error.response?.data?.message || error.message || 'Validation request failed',
+            message: error.response?.data?.message || error.message || '',
             error: error.response?.data?.message || error.message
         });
     }

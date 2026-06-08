@@ -6,6 +6,7 @@ import SearchControls from './components/SearchControls';
 import Pagination from './components/Pagination'; 
 import { RefDataProvider } from './context/RefDataContext';
 import { PortalProvider } from './context/PortalContext';
+import { OwnershipStatusProvider } from './context/OwnershipStatusContext';
 import TabWorkspace from './components/TabWorkspace';
 
 const App = () => {
@@ -63,6 +64,7 @@ const App = () => {
 
   return (
     <RefDataProvider>
+      <OwnershipStatusProvider>
       <PortalProvider recordID={recordID}>
       <div className="min-h-screen bg-slate-100 font-sans text-slate-700 pb-12">
         {!hideSearch && (
@@ -153,6 +155,7 @@ const App = () => {
         </div>
       </div>
       </PortalProvider>
+      </OwnershipStatusProvider>
     </RefDataProvider>
   );
 };

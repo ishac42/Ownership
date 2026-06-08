@@ -64,6 +64,9 @@ export const normalizeEntity = (node) => ({
   // Ownership Math
   percentage: node.percentage ?? 0,
 
+  // Active / Inactive (CLARK-4145)
+  status: node.status || node.Status || 'Active',
+
   // Recursive mapping for the nested tree structure
   relatedContacts: Array.isArray(node.relatedContacts)
     ? node.relatedContacts.map(normalizeEntity)

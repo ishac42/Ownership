@@ -4,6 +4,8 @@ import EditOwnerForm from './EditOwnerForm';
 import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
 import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
+import { useOwnershipStatus } from '../context/OwnershipStatusContext';
+import { getOwnerReferenceNbr, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
 
 interface OwnerDetailsCardProps {
   owner: any;
@@ -15,15 +17,16 @@ interface OwnerDetailsCardProps {
 
 const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
   const { recordID } = usePortalParams();
+  const { getEffectiveStatus, setStatusOverride } = useOwnershipStatus();
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ ...owner });
+  const [formData, setFormData] = useState({ ...owner, status: getEffectiveStatus(owner) });
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [blockDialog, setBlockDialog] = useState<{ message: string; title?: string } | null>(null);
 
   useEffect(() => {
-    setFormData({ ...owner });
-  }, [owner]);
+    setFormData({ ...owner, status: getEffectiveStatus(owner) });
+  }, [owner, getEffectiveStatus]);
 
   useEffect(() => {
     if (successMessage) {
@@ -95,15 +98,23 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
       // Descriptions / notes
       businessDescription: "Business Description",
       locationDescription: "Location Description",
-      comments: "Comments"
+      comments: "Comments",
+      status: "Status",
     };
 
     const editArray: any[] = [];
     const changesObject: any = {};
+    const originalStatus = getEffectiveStatus(owner);
+    const newStatus = (formData.status || 'Active') as OwnerStatus;
+    const statusChanged = newStatus !== originalStatus;
 
     Object.keys(formData).forEach((key) => {
       let currentValue = formData[key];
-      const originalValue = owner[key];
+      let originalValue = owner[key];
+
+      if (key === 'status') {
+        originalValue = originalStatus;
+      }
 
       if (key === 'percentage' && shouldCalculateFromChildren) {
         currentValue = owner.totalChildrenPercentage;
@@ -122,8 +133,19 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
       editArray.push(changesObject);
     }
 
-    if (editArray.length === 0) {
+    if (editArray.length === 0 && !statusChanged) {
       setBlockDialog({ title: 'No Changes', message: 'No changes detected.' });
+      return;
+    }
+
+    // Phase 1: status is stored locally until Accela EMSE supports it
+    if (editArray.length === 0 && statusChanged) {
+      const refNbr = getOwnerReferenceNbr(owner);
+      if (refNbr && OWNER_STATUS_OPTIONS.includes(newStatus)) {
+        setStatusOverride(refNbr, newStatus);
+      }
+      setSuccessMessage('Status updated successfully');
+      setIsEditing(false);
       return;
     }
 
@@ -152,6 +174,11 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
       const result = await response.json();
 
       if (response.ok && result.success) {
+        const refNbr = getOwnerReferenceNbr(owner);
+        const newStatus = formData.status as OwnerStatus;
+        if (refNbr && OWNER_STATUS_OPTIONS.includes(newStatus)) {
+          setStatusOverride(refNbr, newStatus);
+        }
         setSuccessMessage(`Owner updated successfully`);
         setIsEditing(false);
         if (onRefresh) onRefresh();
@@ -173,7 +200,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
 
   const handleCancel = () => {
     if (!isLoading) {
-      setFormData({ ...owner });
+      setFormData({ ...owner, status: getEffectiveStatus(owner) });
       setBlockDialog(null);
       setIsEditing(false);
     }
@@ -235,6 +262,8 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                   />
                   <ViewField label={isIndividualOwner ? "Type of Entity" : "Business Type"} value={formData.type || formData.contactType} />
                 </div>
+
+                <ViewField label="Status" value={getEffectiveStatus(formData)} />
 
                 <ViewField 
                   label="Address" 

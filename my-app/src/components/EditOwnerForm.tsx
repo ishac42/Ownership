@@ -1,4 +1,4 @@
-import { useRefData } from '../context/RefDataContext';
+﻿import { useRefData } from '../context/RefDataContext';
 import {
   COUNTRY_LIST,
   SORTED_COUNTRY_LIST,
@@ -100,6 +100,25 @@ const EditOwnerForm = ({
               onChange={() => handleChange('ownershipType', 'Organization')}
             /> Organization
           </label>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="flex flex-col">
+          <label className="text-gray-500 font-medium mb-1">Status</label>
+          <select
+            value={formData.status || 'Active'}
+            onChange={(e) => handleChange('status', e.target.value)}
+            disabled={isLoading}
+            className={`w-full p-2.5 border border-gray-400 rounded-md bg-white text-gray-900 font-medium outline-none transition-shadow ${
+              isLoading
+                ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                : 'focus:ring-2 focus:ring-[#2c3e76]/10'
+            }`}
+          >
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
         </div>
       </div>
 

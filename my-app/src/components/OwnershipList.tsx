@@ -1,10 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, Eye, Plus, Loader2, Trash2, AlertTriangle, Users, Layers } from 'lucide-react'; 
 import { normalizeEntity } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
 import OwnerDetailsCard from "./OwnerDetailsCard";
 import AddOwnerForm from "./AddOwnerForm";
 import { buildAddOwnerPayload } from '../utils/ownerPayload';
+import ShowInactiveToggle from './ShowInactiveToggle';
+import { useOwnershipStatus } from '../context/OwnershipStatusContext';
+import {
+  filterContactsForDisplay,
+  sumActiveChildPercentages,
+  countHiddenInactive,
+} from '../utils/ownershipStatus';
 
 interface OwnershipListProps {
   entity: any; 
@@ -29,6 +36,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   expandedNodes,
   setExpandedNodes
 }) => {
+  const { showInactive, setShowInactive, isEffectivelyInactive, getEffectiveStatus } = useOwnershipStatus();
   const current = entity ? normalizeEntity(entity) : ({} as any);
   const nodeId = current.referenceNbr || current.referenceNumber || current.id || `depth-${depth}-${current.ownerName}`;
 
@@ -61,10 +69,17 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     }
   }, [successMessage]);
 
-  const childrenTotalPercentage = localChildren.reduce((sum, child) => {
-    const pct = parseFloat(String(child.percentage || child.ownershipPercentage || '0').replace('%', '')) || 0;
-    return sum + pct;
-  }, 0);
+  const visibleChildren = useMemo(
+    () => filterContactsForDisplay(localChildren, showInactive, isEffectivelyInactive) as any[],
+    [localChildren, showInactive, isEffectivelyInactive]
+  );
+
+  const hiddenInactiveCount = useMemo(
+    () => countHiddenInactive(localChildren, isEffectivelyInactive),
+    [localChildren, isEffectivelyInactive]
+  );
+
+  const childrenTotalPercentage = sumActiveChildPercentages(localChildren, isEffectivelyInactive);
 
   const handleToggleExpand = () => {
     if (setExpandedNodes) {
@@ -174,6 +189,16 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         <div className="absolute border-l-2 border-slate-200 z-10" style={{ left: '11px', top: '37px', bottom: '25px' }} />
       )}
 
+      {depth === 0 && !isReverseRelation && (
+        <div className="flex justify-end mb-2">
+          <ShowInactiveToggle
+            showInactive={showInactive}
+            onChange={setShowInactive}
+            hiddenCount={hiddenInactiveCount}
+          />
+        </div>
+      )}
+
       <div className="flex items-start gap-4 w-full">
         <div className="relative flex flex-col items-center flex-shrink-0 w-6">
           {localChildren.length > 0 ? (
@@ -238,19 +263,28 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
             </div>
           </div>
 
-          {isExpanded && localChildren.length > 0 && (
+          {isExpanded && visibleChildren.length > 0 && (
             <div className="divide-y divide-slate-50">
-              {localChildren.map((child, idx) => {
+              {visibleChildren.map((child, idx) => {
                 const name = child.ownerName || child.firstName || child.parentName || 'Unknown Entity';
                 const type = child.contactType || child.relationType || 'OWNER';
                 const percentage = child.percentage || child.ownershipPercentage || '0';
+                const childInactive = isEffectivelyInactive(child);
+                const childStatus = getEffectiveStatus(child);
 
                 return (
                   <div key={idx} className={`grid items-center py-3 px-4 hover:bg-slate-50 transition-colors ${
                     isReverseRelation ? 'grid-cols-[30px_1fr_120px_50px]' : 'grid-cols-[30px_1fr_120px_60px_80px]'
-                  }`}>
+                  } ${childInactive ? 'opacity-60 bg-slate-50/80' : ''}`}>
                     <span className="text-sm text-slate-500">{idx + 1}.</span>
-                    <span className="text-sm font-semibold text-slate-700 truncate">{name}</span>
+                    <span className="text-sm font-semibold text-slate-700 truncate flex items-center gap-2">
+                      {name}
+                      {childInactive && (
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-500">
+                          {childStatus}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-sm text-slate-400 font-bold uppercase text-[10px]">{type}</span>
                     
                     {!isReverseRelation && (
@@ -297,9 +331,9 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         </div>
       </div>
 
-      {isExpanded && localChildren.length > 0 && (
+      {isExpanded && visibleChildren.length > 0 && (
         <div className="ml-[11px] pl-8 relative">
-          {localChildren.map((child: any, idx: number) => (
+          {visibleChildren.map((child: any, idx: number) => (
             <div key={idx} className="relative">
               <div className="absolute -left-[32px] top-0 bottom-0 w-[32px]">
                 <div className="absolute left-0 top-[25px] w-full h-[2px] bg-slate-200" />

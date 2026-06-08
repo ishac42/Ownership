@@ -14,7 +14,7 @@ interface OwnerDetailsCardProps {
 }
 
 const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
-  const { capId } = usePortalParams();
+  const { recordID } = usePortalParams();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({ ...owner });
   const [isLoading, setIsLoading] = useState(false);
@@ -130,7 +130,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
     setIsLoading(true);
 
     try {
-      const validation = await callOwnershipPortalValidation(formData, capId);
+      const validation = await callOwnershipPortalValidation(formData, recordID);
       if (validation.blocked) {
         if (validation.message) {
           setBlockDialog({ message: validation.message });

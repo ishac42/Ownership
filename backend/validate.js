@@ -14,7 +14,7 @@ function extractScriptResult(accelaResult) {
 }
 
 router.post('/api/validate-ownership', async (req, res) => {
-    const { dob, ownerArr, capId } = req.body;
+    const { dob, ownerArr, recordID } = req.body;
 
     try {
         const accessToken = await getAccessToken();
@@ -24,7 +24,7 @@ router.post('/api/validate-ownership', async (req, res) => {
             {
                 dob: dob || '',
                 ownerArr: ownerArr || '',
-                capId: capId || ''
+                recordID: recordID || ''
             },
             {
                 headers: {

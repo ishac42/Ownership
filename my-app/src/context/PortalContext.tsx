@@ -1,20 +1,20 @@
 import { createContext, useContext, type ReactNode } from 'react';
 
 interface PortalContextValue {
-  capId: string;
+  recordID: string;
 }
 
-const PortalContext = createContext<PortalContextValue>({ capId: '' });
+const PortalContext = createContext<PortalContextValue>({ recordID: '' });
 
 export function PortalProvider({
-  capId,
+  recordID,
   children,
 }: {
-  capId: string;
+  recordID: string;
   children: ReactNode;
 }) {
   return (
-    <PortalContext.Provider value={{ capId: capId.trim() }}>
+    <PortalContext.Provider value={{ recordID: recordID.trim() }}>
       {children}
     </PortalContext.Provider>
   );

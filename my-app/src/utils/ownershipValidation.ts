@@ -10,7 +10,7 @@ export interface OwnershipPortalValidationResult {
 /** Proxies to API_VALIDATE_OWNERSHIP_PORTAL — no rules enforced in the web app. */
 export async function callOwnershipPortalValidation(
   formData: OwnerFormData,
-  capId?: string
+  recordID?: string
 ): Promise<OwnershipPortalValidationResult> {
   const response = await fetch(`${API_BASE_URL}/api/validate-ownership`, {
     method: 'POST',
@@ -18,7 +18,7 @@ export async function callOwnershipPortalValidation(
     body: JSON.stringify({
       dob: formData.dob || '',
       ownerArr: JSON.stringify(buildOwnerPayload(formData)),
-      capId: capId || '',
+      recordID: recordID || '',
     }),
   });
 

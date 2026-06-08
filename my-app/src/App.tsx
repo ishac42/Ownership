@@ -22,7 +22,7 @@ const App = () => {
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   // const env = urlParams.get('env');
   const passedRef = urlParams.get('referenceNumber');
-  const capId = urlParams.get('capId') || '';
+  const recordID = urlParams.get('recordID') || '';
   const [hideSearch] = useState(!!passedRef);
   const [searchInitiated, setSearchInitiated] = useState(false);
   
@@ -63,7 +63,7 @@ const App = () => {
 
   return (
     <RefDataProvider>
-      <PortalProvider capId={capId}>
+      <PortalProvider recordID={recordID}>
       <div className="min-h-screen bg-slate-100 font-sans text-slate-700 pb-12">
         {!hideSearch && (
           <nav className="bg-[#1e3a8a] shadow-lg">

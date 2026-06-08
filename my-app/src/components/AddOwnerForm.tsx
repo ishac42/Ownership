@@ -28,7 +28,7 @@ interface AddOwnerFormProps {
 
 const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
   const { entityTypes, isLoading: isRefDataLoading } = useRefData();
-  const { capId } = usePortalParams();
+  const { recordID } = usePortalParams();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [blockDialog, setBlockDialog] = useState<{ message: string; title?: string } | null>(null);
@@ -120,7 +120,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
 
     setIsSubmitting(true);
     try {
-      const validation = await callOwnershipPortalValidation(formData, capId);
+      const validation = await callOwnershipPortalValidation(formData, recordID);
       if (validation.blocked) {
         if (validation.message) {
           setBlockDialog({ message: validation.message });

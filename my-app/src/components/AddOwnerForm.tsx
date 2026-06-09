@@ -184,19 +184,6 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
             </div>
           </section>
 
-          <section>
-            <label className="block text-gray-900 font-bold text-lg mb-3">Status</label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              className="border border-gray-300 rounded-md p-2.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#2c3e76]/20 w-full max-w-xs"
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-          </section>
-
           {/* Name section */}
           <SectionTitle>{isIndividual ? 'Name' : 'Business'}</SectionTitle>
           {isIndividual ? (

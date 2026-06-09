@@ -2,27 +2,28 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import {
   getOwnerReferenceNbr,
   getOwnerStatus,
+  normalizeOwnerStatus,
   type OwnerStatus,
 } from '../utils/ownershipStatus';
 
 type StatusOverrides = Record<string, OwnerStatus>;
 
 interface OwnershipStatusContextValue {
-  showInactive: boolean;
-  setShowInactive: (value: boolean) => void;
-  getEffectiveStatus: (entity: unknown) => string;
-  isEffectivelyInactive: (entity: unknown) => boolean;
+  showTerminated: boolean;
+  setShowTerminated: (value: boolean) => void;
+  getEffectiveStatus: (entity: unknown) => OwnerStatus;
+  isEffectivelyTerminated: (entity: unknown) => boolean;
   setStatusOverride: (refNbr: string, status: OwnerStatus) => void;
 }
 
 const OwnershipStatusContext = createContext<OwnershipStatusContextValue | null>(null);
 
 export function OwnershipStatusProvider({ children }: { children: ReactNode }) {
-  const [showInactive, setShowInactive] = useState(false);
+  const [showTerminated, setShowTerminated] = useState(false);
   const [overrides, setOverrides] = useState<StatusOverrides>({});
 
   const getEffectiveStatus = useCallback(
-    (entity: unknown): string => {
+    (entity: unknown): OwnerStatus => {
       const ref = getOwnerReferenceNbr(entity);
       if (ref && overrides[ref]) return overrides[ref];
       return getOwnerStatus(entity);
@@ -30,25 +31,28 @@ export function OwnershipStatusProvider({ children }: { children: ReactNode }) {
     [overrides]
   );
 
-  const isEffectivelyInactive = useCallback(
-    (entity: unknown): boolean => getEffectiveStatus(entity).toLowerCase() === 'inactive',
+  const isEffectivelyTerminated = useCallback(
+    (entity: unknown): boolean => {
+      const status = getEffectiveStatus(entity);
+      return normalizeOwnerStatus(status) === 'Terminated';
+    },
     [getEffectiveStatus]
   );
 
   const setStatusOverride = useCallback((refNbr: string, status: OwnerStatus) => {
     if (!refNbr) return;
-    setOverrides((prev) => ({ ...prev, [refNbr]: status }));
+    setOverrides((prev) => ({ ...prev, [refNbr]: normalizeOwnerStatus(status) }));
   }, []);
 
   const value = useMemo(
     () => ({
-      showInactive,
-      setShowInactive,
+      showTerminated,
+      setShowTerminated,
       getEffectiveStatus,
-      isEffectivelyInactive,
+      isEffectivelyTerminated,
       setStatusOverride,
     }),
-    [showInactive, getEffectiveStatus, isEffectivelyInactive, setStatusOverride]
+    [showTerminated, getEffectiveStatus, isEffectivelyTerminated, setStatusOverride]
   );
 
   return (

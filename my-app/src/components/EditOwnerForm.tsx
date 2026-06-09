@@ -28,6 +28,7 @@ interface EditOwnerFormProps {
   currentTotalPercentage?: number;
   originalPercentage?: number;
   isFromList?: boolean;
+  showStatusField?: boolean;
 }
 
 const EditOwnerForm = ({
@@ -38,7 +39,8 @@ const EditOwnerForm = ({
   isLoading,
   totalChildrenPercentage = 0,
   isRoot = false,
-  isFromList = false
+  isFromList = false,
+  showStatusField = false,
 }: EditOwnerFormProps) => {
 
   const { entityTypes, isLoading: isRefDataLoading } = useRefData();
@@ -103,6 +105,7 @@ const EditOwnerForm = ({
         </div>
       </div>
 
+      {showStatusField && (
       <div className="grid grid-cols-2 gap-6">
         <div className="flex flex-col">
           <label className="text-gray-500 font-medium mb-1">Status</label>
@@ -117,10 +120,11 @@ const EditOwnerForm = ({
             }`}
           >
             <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
+            <option value="Terminated">Terminated</option>
           </select>
         </div>
       </div>
+      )}
 
       {/* Name */}
       <SectionTitle>{isIndividual ? 'Name' : 'Business'}</SectionTitle>

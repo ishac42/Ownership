@@ -8,6 +8,7 @@ export interface OwnerFormData {
   ownershipType?: string;
   type?: string;
   percentage?: string;
+  status?: string;
 
   // Organization
   ownerName?: string;
@@ -65,6 +66,7 @@ export const buildAddOwnerPayload = (formData: OwnerFormData) => [{
   'Type': formData.ownershipType,
   'Title': formData.type || 'Owner',
   'Percent Owned': formData.percentage,
+  'Status': formData.status || 'Active',
   'Entity Name': formData.ownerName,
   'First Name': formData.firstName,
   'Last Name': formData.lastName,
@@ -86,6 +88,7 @@ export const buildOwnerPayload = (formData: OwnerFormData) => {
     'Type': formData.ownershipType,
     'Title': formData.type || 'Owner',
     'Percent Owned': formData.percentage,
+  'Status': formData.status || 'Active',
 
     // Name
     'Entity Name': formData.ownerName,

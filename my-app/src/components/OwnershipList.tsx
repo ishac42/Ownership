@@ -5,13 +5,15 @@ import { API_BASE_URL } from '../config';
 import OwnerDetailsCard from "./OwnerDetailsCard";
 import AddOwnerForm from "./AddOwnerForm";
 import { buildAddOwnerPayload } from '../utils/ownerPayload';
-import ShowInactiveToggle from './ShowInactiveToggle';
+import ShowTerminatedToggle from './ShowTerminatedToggle';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import {
   filterContactsForDisplay,
   sumActiveChildPercentages,
-  countHiddenInactive,
+  countTerminatedInSubtree,
+  isOwnershipAsitRow,
 } from '../utils/ownershipStatus';
+import { prepareOwnershipChildren } from '../utils/ownershipTree';
 
 interface OwnershipListProps {
   entity: any; 
@@ -36,7 +38,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   expandedNodes,
   setExpandedNodes
 }) => {
-  const { showInactive, setShowInactive, isEffectivelyInactive, getEffectiveStatus } = useOwnershipStatus();
+  const { showTerminated, setShowTerminated, isEffectivelyTerminated, getEffectiveStatus } = useOwnershipStatus();
   const current = entity ? normalizeEntity(entity) : ({} as any);
   const nodeId = current.referenceNbr || current.referenceNumber || current.id || `depth-${depth}-${current.ownerName}`;
 
@@ -55,12 +57,13 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   const [localChildren, setLocalChildren] = useState<any[]>([]);
 
   useEffect(() => {
+    const parentRef = current.referenceNbr || current.referenceNumber || parentRefNbr;
     if (isReverseRelation && depth === 0) {
-      setLocalChildren(Array.isArray(reverseData) ? reverseData : []);
+      setLocalChildren(prepareOwnershipChildren(Array.isArray(reverseData) ? reverseData : [], parentRef));
     } else {
-      setLocalChildren(entity?.relatedContacts || []);
+      setLocalChildren(prepareOwnershipChildren(entity?.relatedContacts || [], parentRef));
     }
-  }, [entity, reverseData, isReverseRelation, depth]);
+  }, [entity, reverseData, isReverseRelation, depth, current.referenceNbr, current.referenceNumber, parentRefNbr]);
 
   useEffect(() => {
     if (successMessage) {
@@ -70,16 +73,16 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   }, [successMessage]);
 
   const visibleChildren = useMemo(
-    () => filterContactsForDisplay(localChildren, showInactive, isEffectivelyInactive) as any[],
-    [localChildren, showInactive, isEffectivelyInactive]
+    () => filterContactsForDisplay(localChildren, showTerminated, isEffectivelyTerminated) as any[],
+    [localChildren, showTerminated, isEffectivelyTerminated]
   );
 
-  const hiddenInactiveCount = useMemo(
-    () => countHiddenInactive(localChildren, isEffectivelyInactive),
-    [localChildren, isEffectivelyInactive]
+  const hiddenTerminatedCount = useMemo(
+    () => (depth === 0 ? countTerminatedInSubtree(entity, isEffectivelyTerminated) : 0),
+    [depth, entity, isEffectivelyTerminated]
   );
 
-  const childrenTotalPercentage = sumActiveChildPercentages(localChildren, isEffectivelyInactive);
+  const childrenTotalPercentage = sumActiveChildPercentages(localChildren, isEffectivelyTerminated);
 
   const handleToggleExpand = () => {
     if (setExpandedNodes) {
@@ -191,10 +194,10 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
 
       {depth === 0 && !isReverseRelation && (
         <div className="flex justify-end mb-2">
-          <ShowInactiveToggle
-            showInactive={showInactive}
-            onChange={setShowInactive}
-            hiddenCount={hiddenInactiveCount}
+          <ShowTerminatedToggle
+            showTerminated={showTerminated}
+            onChange={setShowTerminated}
+            hiddenCount={hiddenTerminatedCount}
           />
         </div>
       )}
@@ -269,17 +272,18 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                 const name = child.ownerName || child.firstName || child.parentName || 'Unknown Entity';
                 const type = child.contactType || child.relationType || 'OWNER';
                 const percentage = child.percentage || child.ownershipPercentage || '0';
-                const childInactive = isEffectivelyInactive(child);
-                const childStatus = getEffectiveStatus(child);
+                const isAsitRow = isOwnershipAsitRow(child);
+                const childTerminated = isAsitRow && isEffectivelyTerminated(child);
+                const childStatus = isAsitRow ? getEffectiveStatus(child) : '';
 
                 return (
                   <div key={idx} className={`grid items-center py-3 px-4 hover:bg-slate-50 transition-colors ${
                     isReverseRelation ? 'grid-cols-[30px_1fr_120px_50px]' : 'grid-cols-[30px_1fr_120px_60px_80px]'
-                  } ${childInactive ? 'opacity-60 bg-slate-50/80' : ''}`}>
+                  } ${childTerminated ? 'opacity-60 bg-slate-50/80' : ''}`}>
                     <span className="text-sm text-slate-500">{idx + 1}.</span>
                     <span className="text-sm font-semibold text-slate-700 truncate flex items-center gap-2">
                       {name}
-                      {childInactive && (
+                      {childTerminated && (
                         <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-500">
                           {childStatus}
                         </span>

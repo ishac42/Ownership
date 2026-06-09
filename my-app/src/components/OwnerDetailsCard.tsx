@@ -5,7 +5,7 @@ import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
 import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
-import { getOwnerReferenceNbr, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
+import { getOwnerReferenceNbr, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
 
 interface OwnerDetailsCardProps {
   owner: any;
@@ -41,6 +41,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
   const hasChildren = (owner.totalChildrenPercentage ?? 0) > 0;
   const shouldCalculateFromChildren = hasChildren && (isRootParent || isFromList);
   const originalPct = parseFloat(String(owner.percentage || '0').replace('%', '')) || 0;
+  const showStatusField = isOwnershipAsitRow(owner);
 
   const handleUpdate = async () => {
     setBlockDialog(null);
@@ -138,12 +139,14 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
       return;
     }
 
-    // Phase 1: status is stored locally until Accela EMSE supports it
-    if (editArray.length === 0 && statusChanged) {
+    if (statusChanged) {
       const refNbr = getOwnerReferenceNbr(owner);
       if (refNbr && OWNER_STATUS_OPTIONS.includes(newStatus)) {
         setStatusOverride(refNbr, newStatus);
       }
+    }
+
+    if (editArray.length === 0) {
       setSuccessMessage('Status updated successfully');
       setIsEditing(false);
       return;
@@ -166,7 +169,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           editArray: JSON.stringify(editArray), 
-          editRefNbr: owner.refNbr || owner.referenceNbr || owner.id, 
+          editRefNbr: getOwnerReferenceNbr(owner), 
           parentRefNbr: owner.parentRefNbr
         }),
       });
@@ -247,6 +250,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                 currentTotalPercentage={currentTotalPercentage}
                 originalPercentage={originalPct}
                 isFromList={isFromList}
+                showStatusField={showStatusField}
               />
             ) : (
               <div className="p-10 bg-[#f0f4f8] space-y-8">
@@ -263,7 +267,9 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                   <ViewField label={isIndividualOwner ? "Type of Entity" : "Business Type"} value={formData.type || formData.contactType} />
                 </div>
 
-                <ViewField label="Status" value={getEffectiveStatus(formData)} />
+                {showStatusField && (
+                  <ViewField label="Status" value={getEffectiveStatus(formData)} />
+                )}
 
                 <ViewField 
                   label="Address" 

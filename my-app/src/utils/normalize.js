@@ -64,8 +64,15 @@ export const normalizeEntity = (node) => ({
   // Ownership Math
   percentage: node.percentage ?? 0,
 
-  // Active / Inactive (CLARK-4145)
+  // Ownership ASIT status (CLARK-4145): Active | Terminated
   status: node.status || node.Status || 'Active',
+
+  // Preserve ids for status overrides / filtering
+  referenceNumber: node.referenceNumber || node.referenceNbr || '',
+  id: node.id || node.referenceNbr || node.referenceNumber || '',
+  parentRefNbr: node.parentRefNbr || '',
+  isChildOfCurrent: node.isChildOfCurrent || false,
+  isLicenseNode: node.isLicenseNode || false,
 
   // Recursive mapping for the nested tree structure
   relatedContacts: Array.isArray(node.relatedContacts)

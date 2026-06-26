@@ -1,8 +1,8 @@
 # Render Blueprint — Ownership Portal (TEST)
 # https://render.com/docs/blueprint-spec
 #
-# If you already created services manually, match these settings in the dashboard
-# or connect this blueprint as a new stack and retire the old services.
+# If Root Directory is the repo root (not my-app), set Publish Directory to my-app/dist
+# and Build Command to: npm install && npm run build
 
 services:
   - type: web

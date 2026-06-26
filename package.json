@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "postinstall": "cd backend && npm install",
+    "build": "cd my-app && npm install && npm run build",
     "start": "node server.js"
   },
   "devDependencies": {

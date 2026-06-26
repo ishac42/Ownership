@@ -1,0 +1,43 @@
+# Render Blueprint — Ownership Portal (TEST)
+# https://render.com/docs/blueprint-spec
+#
+# If you already created services manually, match these settings in the dashboard
+# or connect this blueprint as a new stack and retire the old services.
+
+services:
+  - type: web
+    name: Ownership-Test
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ACCELA_CLIENT_ID
+        sync: false
+      - key: ACCELA_CLIENT_SECRET
+        sync: false
+      - key: ACCELA_USERNAME
+        sync: false
+      - key: ACCELA_PASSWORD
+        sync: false
+      - key: ACCELA_AGENCY
+        sync: false
+      - key: ACCELA_ENVIRONMENT
+        sync: false
+      - key: ACCELA_SCOPE
+        value: run_emse_script
+
+  - type: web
+    name: Ownership-UI-TEST
+    runtime: static
+    rootDir: my-app
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: Ownership-Test
+          envVarKey: RENDER_EXTERNAL_URL

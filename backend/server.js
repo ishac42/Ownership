@@ -12,6 +12,13 @@ const validateRoute = require('./validate');
 const app = express();
 app.use(cors());
 app.use(express.json());
+// Normalize //api/... paths (trailing slash on VITE_API_URL causes 404s in Express).
+app.use((req, _res, next) => {
+  if (req.url.includes('//')) {
+    req.url = req.url.replace(/\/{2,}/g, '/');
+  }
+  next();
+});
 
 app.post('/api/retrieve-info', async (req, res) => {
   const { name, referenceNo, nvBusinessId } = req.body;

@@ -36,7 +36,4 @@ services:
     staticPublishPath: ownership-ui-test
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: Ownership-Test
-          envVarKey: RENDER_EXTERNAL_URL
+        value: https://ownership-test.onrender.com

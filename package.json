@@ -1,4 +1,10 @@
 {
+  "name": "ownership",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd backend && npm install",
+    "start": "node server.js"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18"
   },

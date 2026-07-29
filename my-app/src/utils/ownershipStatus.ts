@@ -59,9 +59,6 @@ export const filterContactsForDisplay = (
 ): unknown[] =>
   (contacts || []).filter((child) => shouldDisplayOwner(child, showTerminated, isTerminated));
 
-/** True when active child ownership percentages do not sum to exactly 100%. */
-export const hasInvalidOwnershipTotal = (total: number): boolean => total !== 100;
-
 /** Sum percentages for Active ownership ASIT rows only. */
 export const sumActiveChildPercentages = (
   children: unknown[],

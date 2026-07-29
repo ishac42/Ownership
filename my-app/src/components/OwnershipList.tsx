@@ -10,7 +10,6 @@ import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import {
   filterContactsForDisplay,
   sumActiveChildPercentages,
-  hasInvalidOwnershipTotal,
   countTerminatedInSubtree,
   isOwnershipAsitRow,
 } from '../utils/ownershipStatus';
@@ -228,8 +227,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
             <div className="flex items-center gap-3">
               {!isReverseRelation && localChildren.length > 0 && (
                 <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border ${
-                  hasInvalidOwnershipTotal(childrenTotalPercentage)
-                    ? 'bg-red-50 text-red-700 border-red-200'
+                  childrenTotalPercentage > 100 
+                    ? 'bg-red-50 text-red-700 border-red-200' 
                     : 'bg-slate-100 text-slate-600 border-slate-200'
                 }`}>
                   <Users size={12} />

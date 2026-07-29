@@ -5,7 +5,7 @@ import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
 import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
-import { getOwnerReferenceNbr, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
+import { getOwnerReferenceNbr, hasInvalidOwnershipTotal, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
 
 interface OwnerDetailsCardProps {
   owner: any;
@@ -344,7 +344,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                   value={
                     shouldCalculateFromChildren ? (
                       <span className="flex flex-col">
-                        <span className={owner.totalChildrenPercentage > 100 ? 'text-red-600' : 'text-[#24417a]'}>
+                        <span className={hasInvalidOwnershipTotal(owner.totalChildrenPercentage) ? 'text-red-600' : 'text-[#24417a]'}>
                           {owner.totalChildrenPercentage}%
                         </span>
                         <span className="text-xs text-gray-400 font-normal mt-1">(Total sum of all owners)</span>

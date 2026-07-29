@@ -7,6 +7,7 @@ import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import {
   filterContactsForDisplay,
   sumActiveChildPercentages,
+  hasInvalidOwnershipTotal,
   countTerminatedInSubtree,
   isOwnershipAsitRow,
 } from '../utils/ownershipStatus';
@@ -125,10 +126,14 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'opacity-60 ring-2 ring-slate-300 ring-offset-2' : ''}`}>
         
         {/* Over-allocation Warning Icon */}
-        {childrenTotalPercentage > 100 && !isLicenseNode && (
+        {hasInvalidOwnershipTotal(childrenTotalPercentage) && !isLicenseNode && (
           <div 
             className="absolute -top-3 -right-3 bg-red-600 text-white p-1.5 rounded-full shadow-md animate-pulse border-2 border-white"
-            title={`Warning: Children exceed 100% total (${childrenTotalPercentage}%). Please adjust ownership.`}
+            title={
+              childrenTotalPercentage > 100
+                ? `Warning: Children exceed 100% total (${childrenTotalPercentage}%). Please adjust ownership.`
+                : `Warning: Children total ${childrenTotalPercentage}% — must equal 100%. Please adjust ownership.`
+            }
           >
             <AlertTriangle size={14} strokeWidth={3} />
           </div>

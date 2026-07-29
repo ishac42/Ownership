@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiPostJson, ApiRequestError } from '../utils/apiFetch';
+import { API_BASE_URL } from '../config';
 
 // ✅ Define proper type
 interface EntityType {
@@ -26,29 +26,35 @@ export const RefDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       try {
         setIsLoading(true);
 
-        const result = await apiPostJson<{ data?: { result?: { result?: { values?: any[] } } } }>(
-          '/api/get-entity-types',
-          {}
-        );
+        const response = await fetch(`${API_BASE_URL}/api/get-entity-types`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
 
-        const rawValues = result.data?.result?.result?.values || [];
+        if (!response.ok) {
+          throw new Error(`Server returned ${response.status}`);
+        }
 
-        const formatted: EntityType[] = rawValues.map((item: any) => ({
-          value: item.value,
-          description: item.description,
-        }));
+        const result = await response.json();
 
-        setEntityTypes(formatted);
+        if (result.success) {
+          // ✅ Safely extract + normalize data
+          const rawValues = result.data?.result?.result?.values || [];
 
-      } catch (err: unknown) {
+          const formatted: EntityType[] = rawValues.map((item: any) => ({
+            value: item.value,
+            description: item.description,
+          }));
+
+          setEntityTypes(formatted);
+        } else {
+          throw new Error(result.error || 'Failed to fetch data');
+        }
+
+      } catch (err: any) {
         console.error('Fetch error:', err);
-        setError(
-          err instanceof ApiRequestError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : 'Failed to fetch reference data'
-        );
+        setError(err.message);
       } finally {
         setIsLoading(false);
       }

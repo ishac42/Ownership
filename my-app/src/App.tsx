@@ -15,18 +15,14 @@ const App = () => {
   refNo, setRefNo, 
   nvBusId, setNvBusId,
   results, selectedRecord, setSelectedRecord, 
-  isLoading, searchError, handleSearch,
+  isLoading, handleSearch,
   refreshSelectedRecord,
   bulkCache,          // ← add this
 } = useOwnershipSearch();
   
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
   // const env = urlParams.get('env');
-  const passedRef =
-    urlParams.get('referenceNumber') ||
-    urlParams.get('referenceNo') ||
-    urlParams.get('referenceNbr') ||
-    '';
+  const passedRef = urlParams.get('referenceNumber');
   const recordID = urlParams.get('recordID') || '';
   const [hideSearch] = useState(!!passedRef);
   const [searchInitiated, setSearchInitiated] = useState(false);
@@ -36,14 +32,17 @@ const App = () => {
   const totalPages = Math.ceil((results?.length || 0) / itemsPerPage);
   const currentResults = (results || []).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // Auto-search for direct navigation (portal embed with ?referenceNumber=...)
+  // Auto-search for direct navigation
   useEffect(() => {
-    if (!hideSearch || !passedRef || searchInitiated) return;
-
-    setRefNo(passedRef);
-    setSearchInitiated(true);
-    void handleSearch({ referenceNo: passedRef });
-  }, [hideSearch, passedRef, searchInitiated, setRefNo, handleSearch]);
+    if (hideSearch && passedRef) {
+      if (refNo !== passedRef) {
+        setRefNo(passedRef);
+      } else if (!searchInitiated) {
+        setSearchInitiated(true);
+        handleSearch();
+      }
+    }
+  }, [refNo, passedRef, hideSearch, setRefNo, handleSearch, searchInitiated]);
 
   // Auto-select first result
   useEffect(() => {
@@ -82,11 +81,6 @@ const App = () => {
         )}
 
         <div className="max-w-7xl mx-auto p-6 space-y-6">
-          {searchError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-              {searchError}
-            </div>
-          )}
           {!hideSearch && (
             <>
               <SearchControls 
@@ -140,9 +134,7 @@ const App = () => {
               <div className="bg-white p-20 text-center rounded-lg border border-dashed text-slate-400 italic">Searching and loading record details...</div>
             ) : !selectedRecord ? (
               <div className="bg-white p-20 text-center rounded-lg border border-dashed text-slate-400 italic">
-                {hideSearch
-                  ? searchError || 'No record found for the provided reference number.'
-                  : 'Select a record from the search results to visualize its structure.'}
+                {hideSearch ? "No record found for the provided reference number." : "Select a record from the search results to visualize its structure."}
               </div>
             ) : (
              <TabWorkspace 

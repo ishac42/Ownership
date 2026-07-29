@@ -1,6 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { API_BASE_URL } from '../config';
-import { patchOwnerInTree } from '../utils/ownershipTree';
 
 // Shared utility — move to utils/buildCacheMap.ts if you prefer
 const buildCacheMap = (data: any[]): Record<string, any[]> => {
@@ -82,7 +81,7 @@ export const useOwnershipSearch = () => {
     }
   };
 
-  const refreshSelectedRecord = useCallback(async () => {
+  const refreshSelectedRecord = async () => {
     if (!selectedRecord?.referenceNbr) return;
     try {
       const res = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
@@ -92,7 +91,7 @@ export const useOwnershipSearch = () => {
       });
       const json = await res.json();
       const owners = json.data?.result?.result?.owners;
-      if (owners && owners.length > 0) {
+      if (owners?.length > 0) {
         setSelectedRecord(owners[0]);
         setResults((prev: any[]) =>
           prev.map((item: any) =>
@@ -103,13 +102,7 @@ export const useOwnershipSearch = () => {
     } catch (error) {
       console.error('Failed to refresh record', error);
     }
-  }, [selectedRecord?.referenceNbr]);
-
-  const patchOwnerInSelectedRecord = useCallback((refNbr: string, updates: Record<string, unknown>) => {
-    if (!refNbr) return;
-    setSelectedRecord((prev: any) => (prev ? patchOwnerInTree(prev, refNbr, updates) : prev));
-    setResults((prev: any[]) => prev.map((item: any) => patchOwnerInTree(item, refNbr, updates)));
-  }, []);
+  };
 
   return {
     searchName, setSearchName,
@@ -118,7 +111,6 @@ export const useOwnershipSearch = () => {
     results, selectedRecord, setSelectedRecord,
     isLoading, handleSearch,
     refreshSelectedRecord,
-    patchOwnerInSelectedRecord,
     bulkCache,             // Pass this down through TabWorkspace → RelatedBusinessesView
   };
 };

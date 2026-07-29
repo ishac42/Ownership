@@ -10,13 +10,12 @@ import { getOwnerReferenceNbr, hasInvalidOwnershipTotal, isOwnershipAsitRow, OWN
 interface OwnerDetailsCardProps {
   owner: any;
   onClose: () => void;
-  onRefresh: () => void | Promise<void>;
-  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onRefresh: () => void;
   currentTotalPercentage?: number; 
   isFromList?: boolean;
 }
 
-const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
+const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
   const { recordID } = usePortalParams();
   const { getEffectiveStatus, setStatusOverride } = useOwnershipStatus();
   const [isEditing, setIsEditing] = useState(false);
@@ -183,19 +182,9 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
         if (refNbr && OWNER_STATUS_OPTIONS.includes(newStatus)) {
           setStatusOverride(refNbr, newStatus);
         }
-
-        const updates: Record<string, unknown> = {
-          ...formData,
-          status: newStatus,
-          ownershipPercentage: formData.percentage,
-        };
-        if (refNbr && onOwnerUpdated) {
-          onOwnerUpdated(refNbr, updates);
-        }
-
         setSuccessMessage(`Owner updated successfully`);
         setIsEditing(false);
-        if (onRefresh) await onRefresh();
+        if (onRefresh) onRefresh();
       } else {
         setBlockDialog({
           title: 'Update Failed',

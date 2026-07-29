@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
+import { applyAllOwnerPatches } from '../utils/ownershipTree';
 
 // Shared utility — move to utils/buildCacheMap.ts if you prefer
 const buildCacheMap = (data: any[]): Record<string, any[]> => {
@@ -36,6 +37,7 @@ export const useOwnershipSearch = () => {
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [bulkCache, setBulkCache] = useState<Record<string, any[]>>({});
+  const ownerPatchesRef = useRef<Record<string, Record<string, unknown>>>({});
 
   const handleSearch = async () => {
     if (!searchName && !refNo && !nvBusId)
@@ -43,11 +45,11 @@ export const useOwnershipSearch = () => {
 
     setResults([]);
     setSelectedRecord(null);
-    setBulkCache({});         // Clear stale cache from previous search
+    setBulkCache({});
+    ownerPatchesRef.current = {};
     setIsLoading(true);
 
     try {
-      // 1. Main search
       const searchRes = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,13 +61,11 @@ export const useOwnershipSearch = () => {
 
       if (owners.length === 0) return;
 
-      // 2. Collect every ref number across all results and their children in one pass
       const allRefs = owners.flatMap((record: any) => extractChildReferenceNumbers(record));
       const uniqueRefs = [...new Set(allRefs)];
 
       if (uniqueRefs.length === 0) return;
 
-      // 3. Single bulk reverse-relations call — one DB hit, upfront, done
       const reverseRes = await fetch(`${API_BASE_URL}/api/reverseRelation`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +73,6 @@ export const useOwnershipSearch = () => {
       });
       const reverseData = await reverseRes.json();
       setBulkCache(buildCacheMap(reverseData));
-
     } catch (error) {
       console.error('Error during search:', error);
     } finally {
@@ -81,36 +80,62 @@ export const useOwnershipSearch = () => {
     }
   };
 
-  const refreshSelectedRecord = async () => {
-    if (!selectedRecord?.referenceNbr) return;
+  const refreshSelectedRecord = useCallback(async () => {
+    const rootRef = selectedRecord?.referenceNbr;
+    if (!rootRef) return;
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '', referenceNo: selectedRecord.referenceNbr }),
+        body: JSON.stringify({ name: '', referenceNo: rootRef }),
       });
       const json = await res.json();
       const owners = json.data?.result?.result?.owners;
-      if (owners?.length > 0) {
-        setSelectedRecord(owners[0]);
+      if (owners && owners.length > 0) {
+        const patched = applyAllOwnerPatches(owners[0], ownerPatchesRef.current);
+        setSelectedRecord(patched);
         setResults((prev: any[]) =>
           prev.map((item: any) =>
-            item.referenceNbr === selectedRecord.referenceNbr ? owners[0] : item
+            item.referenceNbr === rootRef ? patched : applyAllOwnerPatches(item, ownerPatchesRef.current)
           )
         );
       }
     } catch (error) {
       console.error('Failed to refresh record', error);
     }
-  };
+  }, [selectedRecord?.referenceNbr]);
+
+  const patchOwnerInSelectedRecord = useCallback((refNbr: string, updates: Record<string, unknown>) => {
+    if (!refNbr) return;
+
+    ownerPatchesRef.current = {
+      ...ownerPatchesRef.current,
+      [refNbr]: { ...(ownerPatchesRef.current[refNbr] ?? {}), ...updates },
+    };
+
+    setSelectedRecord((prev: any) =>
+      prev ? applyAllOwnerPatches(prev, ownerPatchesRef.current) : prev
+    );
+    setResults((prev: any[]) =>
+      prev.map((item: any) => applyAllOwnerPatches(item, ownerPatchesRef.current))
+    );
+  }, []);
 
   return {
-    searchName, setSearchName,
-    refNo, setRefNo,
-    nvBusId, setNvBusId,
-    results, selectedRecord, setSelectedRecord,
-    isLoading, handleSearch,
+    searchName,
+    setSearchName,
+    refNo,
+    setRefNo,
+    nvBusId,
+    setNvBusId,
+    results,
+    selectedRecord,
+    setSelectedRecord,
+    isLoading,
+    handleSearch,
     refreshSelectedRecord,
-    bulkCache,             // Pass this down through TabWorkspace → RelatedBusinessesView
+    patchOwnerInSelectedRecord,
+    bulkCache,
   };
 };

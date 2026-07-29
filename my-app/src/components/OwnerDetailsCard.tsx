@@ -6,16 +6,18 @@ import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import { getOwnerReferenceNbr, hasInvalidOwnershipTotal, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
+import { buildSavedOwnerUpdates } from '../utils/ownershipTree';
 
 interface OwnerDetailsCardProps {
   owner: any;
   onClose: () => void;
-  onRefresh: () => void;
+  onRefresh?: () => void | Promise<void>;
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   currentTotalPercentage?: number; 
   isFromList?: boolean;
 }
 
-const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
+const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
   const { recordID } = usePortalParams();
   const { getEffectiveStatus, setStatusOverride } = useOwnershipStatus();
   const [isEditing, setIsEditing] = useState(false);
@@ -24,9 +26,12 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [blockDialog, setBlockDialog] = useState<{ message: string; title?: string } | null>(null);
 
+  const ownerRefNbr = getOwnerReferenceNbr(owner);
+
   useEffect(() => {
+    if (isEditing) return;
     setFormData({ ...owner, status: getEffectiveStatus(owner) });
-  }, [owner, getEffectiveStatus]);
+  }, [ownerRefNbr, owner, getEffectiveStatus, isEditing]);
 
   useEffect(() => {
     if (successMessage) {
@@ -147,6 +152,10 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
     }
 
     if (editArray.length === 0) {
+      const refNbr = getOwnerReferenceNbr(owner);
+      const savedUpdates = buildSavedOwnerUpdates(formData, newStatus);
+      setFormData(savedUpdates);
+      if (refNbr) onOwnerUpdated?.(refNbr, savedUpdates);
       setSuccessMessage('Status updated successfully');
       setIsEditing(false);
       return;
@@ -182,9 +191,14 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
         if (refNbr && OWNER_STATUS_OPTIONS.includes(newStatus)) {
           setStatusOverride(refNbr, newStatus);
         }
+
+        const savedUpdates = buildSavedOwnerUpdates(formData, newStatus);
+        setFormData(savedUpdates);
+        if (refNbr) onOwnerUpdated?.(refNbr, savedUpdates);
+
         setSuccessMessage(`Owner updated successfully`);
         setIsEditing(false);
-        if (onRefresh) onRefresh();
+        void onRefresh?.();
       } else {
         setBlockDialog({
           title: 'Update Failed',

@@ -10,6 +10,7 @@ import {
   hasInvalidOwnershipTotal,
   countTerminatedInSubtree,
   isOwnershipAsitRow,
+  getOwnerReferenceNbr,
 } from '../utils/ownershipStatus';
 import { prepareOwnershipChildren } from '../utils/ownershipTree';
 
@@ -262,14 +263,16 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 interface OwnershipChartProps {
   entity: any; // Can now seamlessly accept an individual Object or a Base Array containing multiple parent nodes
   onRefresh?: () => Promise<void> | void;
-  onViewRelated?: (entity: any) => void; 
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onViewRelated?: (entity: any) => void;
   isReverseRelation?: boolean; 
   reverseData?: any[] | null;   
 }
 
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
   entity, 
-  onRefresh, 
+  onRefresh,
+  onOwnerUpdated,
   onViewRelated,
   isReverseRelation = false,
   reverseData = null
@@ -513,11 +516,16 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       )}
 
       {selectedOwner && (
-        <OwnerDetailsCard 
-          owner={selectedOwner} 
-          onClose={() => setSelectedOwner(null)} 
+        <OwnerDetailsCard
+          key={getOwnerReferenceNbr(selectedOwner)}
+          owner={selectedOwner}
+          onClose={() => setSelectedOwner(null)}
           onRefresh={handleEditRefresh}
-          currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : selectedOwner.totalChildrenPercentage} 
+          onOwnerUpdated={(refNbr, updates) => {
+            onOwnerUpdated?.(refNbr, updates);
+            setSelectedOwner((prev: any) => (prev ? { ...prev, ...updates } : null));
+          }}
+          currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : selectedOwner.totalChildrenPercentage}
           isFromList={false}
         />
       )}

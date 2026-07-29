@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { API_BASE_URL } from '../config';
+import { patchOwnerInTree } from '../utils/ownershipTree';
 
 // Shared utility — move to utils/buildCacheMap.ts if you prefer
 const buildCacheMap = (data: any[]): Record<string, any[]> => {
@@ -104,6 +105,12 @@ export const useOwnershipSearch = () => {
     }
   };
 
+  const patchOwnerInSelectedRecord = useCallback((refNbr: string, updates: Record<string, unknown>) => {
+    if (!refNbr) return;
+    setSelectedRecord((prev: any) => (prev ? patchOwnerInTree(prev, refNbr, updates) : prev));
+    setResults((prev: any[]) => prev.map((item: any) => patchOwnerInTree(item, refNbr, updates)));
+  }, []);
+
   return {
     searchName, setSearchName,
     refNo, setRefNo,
@@ -111,6 +118,7 @@ export const useOwnershipSearch = () => {
     results, selectedRecord, setSelectedRecord,
     isLoading, handleSearch,
     refreshSelectedRecord,
-    bulkCache,             // Pass this down through TabWorkspace → RelatedBusinessesView
+    patchOwnerInSelectedRecord,
+    bulkCache,
   };
 };

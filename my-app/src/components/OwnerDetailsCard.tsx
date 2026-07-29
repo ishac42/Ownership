@@ -10,12 +10,20 @@ import { getOwnerReferenceNbr, hasInvalidOwnershipTotal, isOwnershipAsitRow, OWN
 interface OwnerDetailsCardProps {
   owner: any;
   onClose: () => void;
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   currentTotalPercentage?: number; 
   isFromList?: boolean;
 }
 
-const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
+const buildSavedOwnerDisplay = (data: Record<string, unknown>, status: OwnerStatus) => ({
+  ...data,
+  status,
+  ownershipPercentage: data.percentage,
+  contactAddress: data.ownershipAddr || data.contactAddress,
+});
+
+const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
   const { recordID } = usePortalParams();
   const { getEffectiveStatus, setStatusOverride } = useOwnershipStatus();
   const [isEditing, setIsEditing] = useState(false);
@@ -23,10 +31,12 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [blockDialog, setBlockDialog] = useState<{ message: string; title?: string } | null>(null);
+  const ownerRefNbr = getOwnerReferenceNbr(owner);
 
+  // Only reload form when a different owner is opened — not on parent API refresh.
   useEffect(() => {
     setFormData({ ...owner, status: getEffectiveStatus(owner) });
-  }, [owner, getEffectiveStatus]);
+  }, [ownerRefNbr]);
 
   useEffect(() => {
     if (successMessage) {
@@ -147,6 +157,10 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
     }
 
     if (editArray.length === 0) {
+      const refNbr = getOwnerReferenceNbr(owner);
+      const savedDisplay = buildSavedOwnerDisplay(formData, newStatus);
+      setFormData(savedDisplay);
+      if (refNbr) onOwnerUpdated?.(refNbr, savedDisplay);
       setSuccessMessage('Status updated successfully');
       setIsEditing(false);
       return;
@@ -182,9 +196,14 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
         if (refNbr && OWNER_STATUS_OPTIONS.includes(newStatus)) {
           setStatusOverride(refNbr, newStatus);
         }
+
+        const savedDisplay = buildSavedOwnerDisplay(formData, newStatus);
+        setFormData(savedDisplay);
+        if (refNbr) onOwnerUpdated?.(refNbr, savedDisplay);
+
         setSuccessMessage(`Owner updated successfully`);
         setIsEditing(false);
-        if (onRefresh) onRefresh();
+        void onRefresh?.();
       } else {
         setBlockDialog({
           title: 'Update Failed',

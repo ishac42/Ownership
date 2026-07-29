@@ -17,8 +17,7 @@ const App = () => {
   results, selectedRecord, setSelectedRecord, 
   isLoading, handleSearch,
   refreshSelectedRecord,
-  patchOwnerInSelectedRecord,
-  bulkCache,
+  bulkCache,          // ← add this
 } = useOwnershipSearch();
   
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -141,8 +140,7 @@ const App = () => {
              <TabWorkspace 
                 selectedRecord={selectedRecord} 
                 onRefresh={refreshSelectedRecord}
-                onOwnerUpdated={patchOwnerInSelectedRecord}
-                bulkCache={bulkCache}
+                bulkCache={bulkCache}   // ← add this
               />
             )}
           </div>

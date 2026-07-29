@@ -5,12 +5,11 @@ import OwnershipChart from './OwnershipChart';
 
 interface TabWorkspaceProps {
   selectedRecord: any;
-  onRefresh: () => Promise<void> | void;
-  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onRefresh: () => void;
   bulkCache: Record<string, any[]>;
 }
 
-const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, onOwnerUpdated, bulkCache }) => {
+const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, bulkCache }) => {
   const [tabs, setTabs] = useState<any[]>([
     { id: 'main', title: 'Entity Details', type: 'main', entity: null, viewMode: 'list' }
   ]);
@@ -144,8 +143,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
                     <div className={`${viewMode === 'list' ? 'block animate-in fade-in duration-200' : 'hidden'}`}>
                       <OwnershipList 
                         entity={selectedRecord} 
-                        onRefresh={onRefresh}
-                        onOwnerUpdated={onOwnerUpdated}
+                        onRefresh={onRefresh} 
                         onViewRelated={handleViewRelated}
                         isReverseRelation={false}
                         reverseData={null}
@@ -158,8 +156,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
                       <div className="overflow-x-auto pb-10 flex justify-center">
                         <OwnershipChart 
                           entity={selectedRecord} 
-                          onRefresh={onRefresh}
-                          onOwnerUpdated={onOwnerUpdated}
+                          onRefresh={onRefresh} 
                           onViewRelated={handleViewRelated}
                           isReverseRelation={false}
                           reverseData={null}
@@ -173,8 +170,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
                     <div className="overflow-x-auto pb-10 flex justify-center">
                       <OwnershipChart 
                         entity={tab.entity} 
-                        onRefresh={onRefresh}
-                        onOwnerUpdated={onOwnerUpdated}
+                        onRefresh={onRefresh} 
                         onViewRelated={handleViewRelated}
                         isReverseRelation={true}
                         reverseData={bulkCache[tab.id] ?? null}

@@ -1,5 +1,11 @@
-import { useState } from 'react';
-import { API_BASE_URL } from '../config';
+import { useCallback, useState } from 'react';
+import { apiPostJson, ApiRequestError } from '../utils/apiFetch';
+
+export interface SearchParams {
+  name?: string;
+  referenceNo?: string;
+  nvBusinessId?: string;
+}
 
 // Shared utility — move to utils/buildCacheMap.ts if you prefer
 const buildCacheMap = (data: any[]): Record<string, any[]> => {
@@ -35,63 +41,68 @@ export const useOwnershipSearch = () => {
   const [results, setResults] = useState<any[]>([]);
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [bulkCache, setBulkCache] = useState<Record<string, any[]>>({});
 
-  const handleSearch = async () => {
-    if (!searchName && !refNo && !nvBusId)
-      return alert('Please enter a name, reference number, or NV Business ID');
+  const handleSearch = useCallback(async (overrides?: SearchParams) => {
+    const name = overrides?.name ?? searchName;
+    const referenceNo = overrides?.referenceNo ?? refNo;
+    const nvBusinessId = overrides?.nvBusinessId ?? nvBusId;
+
+    if (!name && !referenceNo && !nvBusinessId) {
+      alert('Please enter a name, reference number, or NV Business ID');
+      return;
+    }
 
     setResults([]);
     setSelectedRecord(null);
-    setBulkCache({});         // Clear stale cache from previous search
+    setBulkCache({});
+    setSearchError(null);
     setIsLoading(true);
 
     try {
-      // 1. Main search
-      const searchRes = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: searchName, referenceNo: refNo, nvBusinessId: nvBusId }),
-      });
-      const searchJson = await searchRes.json();
+      const searchJson = await apiPostJson<{ data?: { result?: { result?: { owners?: any[] } } } }>(
+        '/api/retrieve-info',
+        { name, referenceNo, nvBusinessId }
+      );
       const owners: any[] = searchJson.data?.result?.result?.owners ?? [];
       setResults(owners);
 
-      if (owners.length === 0) return;
+      if (owners.length === 0) {
+        setSearchError('No matching records were found in Accela for that search.');
+        return;
+      }
 
-      // 2. Collect every ref number across all results and their children in one pass
       const allRefs = owners.flatMap((record: any) => extractChildReferenceNumbers(record));
       const uniqueRefs = [...new Set(allRefs)];
 
       if (uniqueRefs.length === 0) return;
 
-      // 3. Single bulk reverse-relations call — one DB hit, upfront, done
-      const reverseRes = await fetch(`${API_BASE_URL}/api/reverseRelation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ referenceNumbers: uniqueRefs }),
+      const reverseData = await apiPostJson<any[]>('/api/reverseRelation', {
+        referenceNumbers: uniqueRefs,
       });
-      const reverseData = await reverseRes.json();
       setBulkCache(buildCacheMap(reverseData));
-
     } catch (error) {
       console.error('Error during search:', error);
+      setSearchError(
+        error instanceof ApiRequestError
+          ? error.message
+          : 'Search failed unexpectedly. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchName, refNo, nvBusId]);
 
   const refreshSelectedRecord = async () => {
     if (!selectedRecord?.referenceNbr) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: '', referenceNo: selectedRecord.referenceNbr }),
-      });
-      const json = await res.json();
+      const json = await apiPostJson<{ data?: { result?: { result?: { owners?: any[] } } } }>(
+        '/api/retrieve-info',
+        { name: '', referenceNo: selectedRecord.referenceNbr }
+      );
       const owners = json.data?.result?.result?.owners;
-      if (owners?.length > 0) {
+      if (owners && owners.length > 0) {
         setSelectedRecord(owners[0]);
         setResults((prev: any[]) =>
           prev.map((item: any) =>
@@ -105,12 +116,19 @@ export const useOwnershipSearch = () => {
   };
 
   return {
-    searchName, setSearchName,
-    refNo, setRefNo,
-    nvBusId, setNvBusId,
-    results, selectedRecord, setSelectedRecord,
-    isLoading, handleSearch,
+    searchName,
+    setSearchName,
+    refNo,
+    setRefNo,
+    nvBusId,
+    setNvBusId,
+    results,
+    selectedRecord,
+    setSelectedRecord,
+    isLoading,
+    searchError,
+    handleSearch,
     refreshSelectedRecord,
-    bulkCache,             // Pass this down through TabWorkspace → RelatedBusinessesView
+    bulkCache,
   };
 };

@@ -262,6 +262,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 interface OwnershipChartProps {
   entity: any; // Can now seamlessly accept an individual Object or a Base Array containing multiple parent nodes
   onRefresh?: () => Promise<void> | void;
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   onViewRelated?: (entity: any) => void; 
   isReverseRelation?: boolean; 
   reverseData?: any[] | null;   
@@ -269,7 +270,8 @@ interface OwnershipChartProps {
 
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
   entity, 
-  onRefresh, 
+  onRefresh,
+  onOwnerUpdated,
   onViewRelated,
   isReverseRelation = false,
   reverseData = null
@@ -517,6 +519,10 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
           owner={selectedOwner} 
           onClose={() => setSelectedOwner(null)} 
           onRefresh={handleEditRefresh}
+          onOwnerUpdated={(refNbr, updates) => {
+            onOwnerUpdated?.(refNbr, updates);
+            setSelectedOwner((prev: any) => (prev ? { ...prev, ...updates } : null));
+          }}
           currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : selectedOwner.totalChildrenPercentage} 
           isFromList={false}
         />

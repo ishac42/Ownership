@@ -19,7 +19,8 @@ import { prepareOwnershipChildren } from '../utils/ownershipTree';
 interface OwnershipListProps {
   entity: any; 
   depth?: number;
-  onRefresh?: () => Promise<void> | void; 
+  onRefresh?: () => Promise<void> | void;
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   parentRefNbr?: string; 
   onViewRelated?: (entity: any) => void;
   isReverseRelation?: boolean;    
@@ -32,6 +33,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   entity, 
   depth = 0, 
   onRefresh,
+  onOwnerUpdated,
   parentRefNbr = "0",
   onViewRelated,
   isReverseRelation = false,
@@ -346,7 +348,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
               <OwnershipList 
                   entity={child} 
                   depth={depth + 1} 
-                  onRefresh={onRefresh} 
+                  onRefresh={onRefresh}
+                  onOwnerUpdated={onOwnerUpdated}
                   parentRefNbr={current.referenceNbr}
                   onViewRelated={onViewRelated}
                   isReverseRelation={isReverseRelation}
@@ -370,7 +373,11 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         <OwnerDetailsCard 
             owner={selectedOwner} 
             onClose={() => setSelectedOwner(null)} 
-            onRefresh={() => { if (onRefresh) onRefresh(); }}
+            onRefresh={async () => { if (onRefresh) await onRefresh(); }}
+            onOwnerUpdated={(refNbr, updates) => {
+              onOwnerUpdated?.(refNbr, updates);
+              setSelectedOwner((prev: any) => (prev ? { ...prev, ...updates } : null));
+            }}
             currentTotalPercentage={selectedOwner.isChildOfCurrent ? childrenTotalPercentage : selectedOwner.totalChildrenPercentage}
             isFromList={true}
         />

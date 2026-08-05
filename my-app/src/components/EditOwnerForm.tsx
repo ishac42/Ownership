@@ -159,7 +159,7 @@ const EditOwnerForm = ({
               isLoading={isLoading}
               isRefDataLoading={isRefDataLoading}
               onChange={(v) => handleChange('type', v)}
-              label="Business Type"
+              label="Entity Type"
             />
           </div>
           <div className="col-span-3">

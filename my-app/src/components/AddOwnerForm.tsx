@@ -211,7 +211,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
               </div>
               <div className="col-span-4">
                 <div className="flex flex-col">
-                  <label className="text-gray-500 font-medium mb-1">Business Type</label>
+                  <label className="text-gray-500 font-medium mb-1">Entity Type</label>
                   <select
                     name="type"
                     value={formData.type}

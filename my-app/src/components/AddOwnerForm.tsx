@@ -5,7 +5,6 @@ import {
   STATE_LIST_USA,
   ADDRESS_TYPES,
   UNIT_TYPES,
-  NAME_TITLE_OPTIONS,
   NAME_SUFFIX_OPTIONS,
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
@@ -188,16 +187,13 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           <SectionTitle>{isIndividual ? 'Name' : 'Business'}</SectionTitle>
           {isIndividual ? (
             <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-2">
-                <SelectField label="Title" name="nameTitle" value={formData.nameTitle} onChange={handleChange} options={NAME_TITLE_OPTIONS} placeholder="--" />
-              </div>
-              <div className="col-span-3">
+              <div className="col-span-4">
                 <FormField label="First Name" name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} />
               </div>
               <div className="col-span-1">
                 <FormField label="M.I." name="middleInitial" placeholder="M.I." value={formData.middleInitial} onChange={handleChange} />
               </div>
-              <div className="col-span-4">
+              <div className="col-span-5">
                 <FormField label="Last Name" name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} />
               </div>
               <div className="col-span-2">
@@ -252,7 +248,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           {isIndividual && (
             <div className="grid grid-cols-2 gap-6">
               <div className="flex flex-col">
-                <label className="text-gray-500 font-medium mb-1">Type of Entity</label>
+                <label className="text-gray-500 font-medium mb-1">Ownership Title</label>
                 <select
                   name="type"
                   value={formData.type}

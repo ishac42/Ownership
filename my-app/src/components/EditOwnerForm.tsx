@@ -5,7 +5,6 @@ import {
   STATE_LIST_USA,
   ADDRESS_TYPES,
   UNIT_TYPES,
-  NAME_TITLE_OPTIONS,
   NAME_SUFFIX_OPTIONS,
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
@@ -130,16 +129,13 @@ const EditOwnerForm = ({
       <SectionTitle>{isIndividual ? 'Name' : 'Business'}</SectionTitle>
       {isIndividual ? (
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-2">
-            <SelectField label="Title" value={formData.nameTitle} onChange={(v) => handleChange('nameTitle', v)} options={NAME_TITLE_OPTIONS} disabled={isLoading} placeholder="--" />
-          </div>
-          <div className="col-span-3">
+          <div className="col-span-4">
             <InputField label="First Name" value={formData.firstName} onChange={(v) => handleChange('firstName', v)} disabled={isLoading} />
           </div>
           <div className="col-span-1">
             <InputField label="M.I." value={formData.middleInitial} onChange={(v) => handleChange('middleInitial', v)} disabled={isLoading} />
           </div>
-          <div className="col-span-4">
+          <div className="col-span-5">
             <InputField label="Last Name" value={formData.lastName} onChange={(v) => handleChange('lastName', v)} disabled={isLoading} />
           </div>
           <div className="col-span-2">
@@ -185,7 +181,7 @@ const EditOwnerForm = ({
             isLoading={isLoading}
             isRefDataLoading={isRefDataLoading}
             onChange={(v) => handleChange('type', v)}
-            label="Type of Entity"
+            label="Ownership Title"
           />
         </div>
       )}

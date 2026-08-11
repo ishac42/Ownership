@@ -366,7 +366,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
                         <span className={hasInvalidOwnershipTotal(owner.totalChildrenPercentage) ? 'text-red-600' : 'text-[#24417a]'}>
                           {owner.totalChildrenPercentage}%
                         </span>
-                        <span className="text-xs text-gray-400 font-normal mt-1">(Total sum of all owners)</span>
+                        <span className="text-xs text-gray-600 font-normal mt-1">(Total sum of all owners)</span>
                       </span>
                     ) : (
                       formData.percentage ? `${formData.percentage}%` : "0%"

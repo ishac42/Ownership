@@ -306,7 +306,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                         </span>
                       )}
                     </span>
-                    <span className="text-sm text-slate-400 font-bold uppercase text-[10px]">{type}</span>
+                    <span className="text-sm text-slate-600 font-bold uppercase text-[10px]">{type}</span>
                     
                     {!isReverseRelation && (
                       <span className="text-sm font-bold text-slate-700 text-right">

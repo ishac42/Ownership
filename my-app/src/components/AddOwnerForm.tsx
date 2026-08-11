@@ -212,7 +212,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
               </div>
               <div className="col-span-4">
                 <div className="flex flex-col">
-                  <label htmlFor="add-owner-entity-type" className="text-gray-500 font-medium mb-1">Entity Type</label>
+                  <label htmlFor="add-owner-entity-type" className="text-gray-600 font-medium mb-1">Entity Type</label>
                   <select
                     id="add-owner-entity-type"
                     name="type"
@@ -254,7 +254,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           {isIndividual && (
             <div className="grid grid-cols-2 gap-6">
               <div className="flex flex-col">
-                <label htmlFor="add-owner-ownership-title" className="text-gray-500 font-medium mb-1">Ownership Title</label>
+                <label htmlFor="add-owner-ownership-title" className="text-gray-600 font-medium mb-1">Ownership Title</label>
                 <select
                   id="add-owner-ownership-title"
                   name="type"
@@ -305,7 +305,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
 
           <div className="grid grid-cols-8 gap-4">
             <div className="col-span-2 flex flex-col">
-              <label htmlFor="add-owner-country" className="text-gray-500 font-medium mb-1">Country</label>
+              <label htmlFor="add-owner-country" className="text-gray-600 font-medium mb-1">Country</label>
               <select
                 id="add-owner-country"
                 name="country"
@@ -322,7 +322,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
               <FormField label="City" name="city" placeholder="City" value={formData.city} onChange={handleChange} />
             </div>
             <div className="col-span-1 flex flex-col">
-              <label htmlFor="add-owner-state" className="text-gray-500 font-medium mb-1">State</label>
+              <label htmlFor="add-owner-state" className="text-gray-600 font-medium mb-1">State</label>
               {isUSCountry ? (
                 <select
                   id="add-owner-state"
@@ -366,9 +366,10 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
               <div className="grid grid-cols-3 gap-6">
                 <FormField label="Driver's License" name="driversLicense" placeholder="Driver's License" value={formData.driversLicense} onChange={handleChange} />
                 <div className="flex flex-col">
-                  <label className="text-gray-500 font-medium mb-1">License State</label>
+                  <label htmlFor="add-owner-drivers-license-state" className="text-gray-600 font-medium mb-1">License State</label>
                   {isUSCountry ? (
                     <select
+                      id="add-owner-drivers-license-state"
                       name="driversLicenseState"
                       value={formData.driversLicenseState}
                       onChange={handleChange}
@@ -381,6 +382,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
                     </select>
                   ) : (
                     <input
+                      id="add-owner-drivers-license-state"
                       type="text"
                       name="driversLicenseState"
                       value={formData.driversLicenseState}
@@ -504,7 +506,7 @@ interface FormFieldProps {
 
 const FormField = ({ label, name, placeholder, value, onChange, type = 'text', subLabel }: FormFieldProps) => (
   <div className="flex flex-col">
-    <label htmlFor={name} className="text-gray-500 font-medium mb-1">{label}</label>
+    <label htmlFor={name} className="text-gray-600 font-medium mb-1">{label}</label>
     <input
       id={name}
       type={type}
@@ -529,7 +531,7 @@ interface SelectFieldProps {
 
 const SelectField = ({ label, name, value, onChange, options, placeholder = 'Select' }: SelectFieldProps) => (
   <div className="flex flex-col">
-    <label htmlFor={name} className="text-gray-500 font-medium mb-1">{label}</label>
+    <label htmlFor={name} className="text-gray-600 font-medium mb-1">{label}</label>
     <select
       id={name}
       name={name}
@@ -554,7 +556,7 @@ interface TextAreaFieldProps {
 
 const TextAreaField = ({ label, name, value, onChange }: TextAreaFieldProps) => (
   <div className="flex flex-col">
-    <label htmlFor={name} className="text-gray-500 font-medium mb-1">{label}</label>
+    <label htmlFor={name} className="text-gray-600 font-medium mb-1">{label}</label>
     <textarea
       id={name}
       name={name}

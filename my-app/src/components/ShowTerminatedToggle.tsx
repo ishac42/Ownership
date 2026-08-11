@@ -23,10 +23,10 @@ const ShowTerminatedToggle = ({
       onChange={(e) => onChange(e.target.checked)}
       className="w-4 h-4 accent-[#24417a] cursor-pointer"
     />
-    {showTerminated ? <Eye size={14} className="text-slate-500" /> : <EyeOff size={14} className="text-slate-400" />}
+    {showTerminated ? <Eye size={14} className="text-slate-500" aria-hidden="true" /> : <EyeOff size={14} className="text-slate-500" aria-hidden="true" />}
     <span>Show terminated</span>
     {!showTerminated && hiddenCount > 0 && (
-      <span className="text-slate-400 font-semibold">({hiddenCount})</span>
+      <span className="text-slate-500 font-semibold">({hiddenCount})</span>
     )}
   </label>
 );

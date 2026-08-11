@@ -127,9 +127,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
         <div className="flex justify-between items-start mb-4">
           <div className="flex flex-col overflow-hidden mr-2">
-            <h4 className="text-xs font-bold uppercase truncate" title={current.ownerName}>
+            <h3 className="text-xs font-bold uppercase truncate" title={current.ownerName}>
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
-            </h4>
+            </h3>
             {nodeTerminated && (
               <span className="text-[9px] font-bold uppercase mt-1 opacity-90">
                 Terminated
@@ -161,9 +161,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                     onViewRelated(current); 
                   }}
                   className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
-                  title="Open in new tab"
+                  aria-label={`Open related licenses for ${current.ownerName || 'entity'}`}
                 >
-                  <Layers size={14} className="opacity-80 group-hover:opacity-100" />
+                  <Layers size={14} className="opacity-80 group-hover:opacity-100" aria-hidden="true" />
                 </button>
               )}
 
@@ -173,9 +173,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   onViewDetails(current, parentRefNbr, siblingTotalPercentage, childrenTotalPercentage); 
                 }}
                 className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
-                title="View Details"
+                aria-label={`View details for ${current.ownerName || 'entity'}`}
               >
-                <Eye size={14} className="opacity-80 group-hover:opacity-100" />
+                <Eye size={14} className="opacity-80 group-hover:opacity-100" aria-hidden="true" />
               </button>
 
               {isChild && !isReverseRelation && (
@@ -185,9 +185,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                     if (onDelete) onDelete(current, parentRefNbr); 
                 }}
                   className="p-1.5 hover:bg-red-500/40 rounded-full transition-colors group"
-                  title="Remove Owner"
+                  aria-label={`Remove ${current.ownerName || 'owner'}`}
                 >
-                  <Trash2 size={14} className="text-red-200 group-hover:text-white" />
+                  <Trash2 size={14} className="text-red-200 group-hover:text-white" aria-hidden="true" />
                 </button>
               )}
               
@@ -198,8 +198,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                     onOpenAdd(current, childrenTotalPercentage); 
                   }}
                   className="flex items-center gap-1 px-2 py-1 rounded transition-colors border bg-white/10 hover:bg-white/25 border-white/10"
+                  aria-label={`Add owner to ${current.ownerName || 'entity'}`}
                 >
-                  <Plus size={10} strokeWidth={3} />
+                  <Plus size={10} strokeWidth={3} aria-hidden="true" />
                   <span className="text-[9px] font-bold uppercase">Add</span>
                 </button>
               )}

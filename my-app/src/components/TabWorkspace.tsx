@@ -77,26 +77,38 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
   return (
     <div className="w-full bg-[#f8f9fa] shadow-md rounded-t-lg rounded-b-xl border border-slate-200 flex flex-col">
       {/* Tab Header Strip */}
-      <div className="flex items-end px-2 pt-2 bg-[#e8eaed] gap-1 overflow-x-auto rounded-t-lg border-b border-slate-200 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div role="tablist" aria-label="Entity tabs" className="flex items-end px-2 pt-2 bg-[#e8eaed] gap-1 overflow-x-auto rounded-t-lg border-b border-slate-200 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {tabs.map((tab) => (
           <button
             key={tab.id}
+            role="tab"
+            id={`tab-${tab.id}`}
+            aria-selected={activeTabId === tab.id}
+            aria-controls={`tabpanel-${tab.id}`}
             onClick={() => setActiveTabId(tab.id)}
             style={{ marginBottom: activeTabId === tab.id ? '-1px' : '0' }}
             className={`group flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold rounded-t-md border-t border-l border-r transition-colors min-w-[120px] max-w-[180px] shrink-0 ${activeTabId === tab.id ? 'bg-white border-slate-200 text-blue-700 z-10' : 'bg-[#dadce0] border-transparent text-slate-600 hover:bg-[#f1f3f4]'}`}
           >
             {tab.type === 'main'
-              ? <Building2 size={12} className={activeTabId === tab.id ? 'text-blue-600' : 'text-slate-500'} />
-              : <div className={`w-1.5 h-1.5 rounded-full ${activeTabId === tab.id ? 'bg-blue-500' : 'bg-slate-400'}`} />}
+              ? <Building2 size={12} className={activeTabId === tab.id ? 'text-blue-600' : 'text-slate-500'} aria-hidden="true" />
+              : <div className={`w-1.5 h-1.5 rounded-full ${activeTabId === tab.id ? 'bg-blue-500' : 'bg-slate-400'}`} aria-hidden="true" />}
             <span className="truncate flex-1 text-left uppercase">{tab.title}</span>
             {tab.id !== 'main' && (
-              <div
+              <span
+                role="button"
+                tabIndex={0}
                 onClick={(e) => handleCloseTab(e, tab.id)}
-                className={`p-0.5 rounded transition-colors ${activeTabId === tab.id ? 'hover:bg-slate-100 text-slate-400 hover:text-red-500' : 'hover:bg-slate-300 text-slate-500'}`}
-                title="Close Tab"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCloseTab(e as unknown as React.MouseEvent, tab.id);
+                  }
+                }}
+                className={`p-0.5 rounded transition-colors ${activeTabId === tab.id ? 'hover:bg-slate-100 text-slate-500 hover:text-red-500' : 'hover:bg-slate-300 text-slate-500'}`}
+                aria-label={`Close ${tab.title} tab`}
               >
-                <X size={12} />
-              </div>
+                <X size={12} aria-hidden="true" />
+              </span>
             )}
           </button>
         ))}
@@ -105,22 +117,25 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
 
       {/* Tab Content Workspace Area */}
       <div className="bg-white px-5 py-3 rounded-b-xl min-h-[450px]">
+        <h2 className="sr-only">{activeTab.title} workspace</h2>
         
         {/* Only show the toggle buttons if it is the main tab */}
         {activeTabId === 'main' && (
-          <div className="flex justify-end items-center mb-3">
+          <div className="flex justify-end items-center mb-3" role="group" aria-label="View mode">
             <div className="flex border border-slate-200 rounded shadow-sm bg-white overflow-hidden">
               <button 
                 onClick={() => setTabViewMode('list')} 
+                aria-pressed={currentViewMode === 'list'}
                 className={`flex items-center gap-2 px-4 py-2 text-xs font-bold transition-colors ${currentViewMode === 'list' ? 'bg-[#24417a] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <List size={14} /> List View
+                <List size={14} aria-hidden="true" /> List View
               </button>
               <button 
                 onClick={() => setTabViewMode('chart')} 
+                aria-pressed={currentViewMode === 'chart'}
                 className={`flex items-center gap-2 px-4 py-2 text-xs font-bold transition-colors border-l border-slate-200 ${currentViewMode === 'chart' ? 'bg-[#24417a] text-white' : 'text-slate-600 hover:bg-slate-50'}`}
               >
-                <BarChart3 size={14} /> Chart View
+                <BarChart3 size={14} aria-hidden="true" /> Chart View
               </button>
             </div>
           </div>
@@ -134,7 +149,11 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
 
             return (
               <div 
-                key={tab.id} 
+                key={tab.id}
+                role="tabpanel"
+                id={`tabpanel-${tab.id}`}
+                aria-labelledby={`tab-${tab.id}`}
+                hidden={!isActive}
                 className={`${isActive ? 'block' : 'hidden'}`}
               >
                 {tab.id === 'main' ? (

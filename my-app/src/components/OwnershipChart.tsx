@@ -123,7 +123,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   return (
     <div className="flex flex-col items-center">
       {/* Node Card — original visuals + accessible control names */}
-      <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'opacity-60 ring-2 ring-slate-300 ring-offset-2' : ''}`}>
+      <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'ring-2 ring-slate-300 ring-offset-2' : ''}`}>
 
         <div className="flex justify-between items-start mb-4">
           <div className="flex flex-col overflow-hidden mr-2">
@@ -131,7 +131,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
             </p>
             {nodeTerminated && (
-              <span className="text-[9px] font-bold uppercase mt-1 opacity-90">
+              <span className="text-[9px] font-bold uppercase mt-1 px-1.5 py-0.5 rounded bg-black text-white w-fit">
                 Terminated
               </span>
             )}

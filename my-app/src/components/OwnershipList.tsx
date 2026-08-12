@@ -296,20 +296,20 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                 return (
                   <div key={idx} className={`grid items-center py-3 px-4 hover:bg-slate-50 transition-colors ${
                     isReverseRelation ? 'grid-cols-[30px_1fr_120px_50px]' : 'grid-cols-[30px_1fr_120px_60px_80px]'
-                  } ${childTerminated ? 'opacity-60 bg-slate-50/80' : ''}`}>
-                    <span className="text-sm text-slate-500">{idx + 1}.</span>
-                    <span className="text-sm font-semibold text-slate-700 truncate flex items-center gap-2">
+                  } ${childTerminated ? 'bg-slate-100 border-l-4 border-slate-400' : ''}`}>
+                    <span className={`text-sm ${childTerminated ? 'text-slate-700' : 'text-slate-500'}`}>{idx + 1}.</span>
+                    <span className={`text-sm font-semibold truncate flex items-center gap-2 ${childTerminated ? 'text-slate-800' : 'text-slate-700'}`}>
                       {name}
                       {childTerminated && (
-                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-500">
+                        <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-700 text-white">
                           {childStatus}
                         </span>
                       )}
                     </span>
-                    <span className="text-sm text-slate-600 font-bold uppercase text-[10px]">{type}</span>
+                    <span className={`text-sm font-bold uppercase text-[10px] ${childTerminated ? 'text-slate-700' : 'text-slate-600'}`}>{type}</span>
                     
                     {!isReverseRelation && (
-                      <span className="text-sm font-bold text-slate-700 text-right">
+                      <span className={`text-sm font-bold text-right ${childTerminated ? 'text-slate-800' : 'text-slate-700'}`}>
                         {String(percentage).includes('%') ? percentage : `${percentage}%`}
                       </span>
                     )}
@@ -318,7 +318,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                       {!isReverseRelation && (
                         <button
                           onClick={() => onViewRelated && onViewRelated(normalizeEntity(child))}
-                          className="text-gray-500 hover:text-blue-600 transition-colors focus:outline-none"
+                          className="text-slate-700 hover:text-blue-700 transition-colors focus:outline-none"
                           aria-label={`View related licenses for ${name}`}
                         >
                           <Layers size={18} aria-hidden="true" />
@@ -335,7 +335,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                               isChildOfCurrent: true
                           });
                         }}
-                        className="text-gray-500 hover:text-[#24417a] transition-colors focus:outline-none"
+                        className="text-slate-700 hover:text-[#24417a] transition-colors focus:outline-none"
                         aria-label={`View details for ${name}`}
                       >
                         <Eye size={18} aria-hidden="true" />
@@ -345,7 +345,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDeleteClick(child, current.referenceNbr)}
-                          className="text-slate-500 hover:text-red-600 transition-colors focus:outline-none"
+                          className="text-slate-700 hover:text-red-700 transition-colors focus:outline-none"
                           aria-label={`Delete ${name}`}
                         >
                           <Trash2 size={18} aria-hidden="true" />

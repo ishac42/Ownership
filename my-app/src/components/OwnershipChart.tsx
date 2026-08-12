@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
+import { Eye, Plus, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
@@ -51,12 +51,6 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const isLicenseNode = !!entity?.isLicenseNode;
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
   const nodeTerminated = isOwnershipAsitRow(entity) && isEffectivelyTerminated(entity);
-  
-  // Custom theme coloring for separating licenses from entities
-  let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
-  if (isLicenseNode) {
-    nodeBgColor = 'bg-[#1e40af] border-[#1e3a8a]'; // Dedicated Blue for License records
-  }
 
   useEffect(() => {
     let baseChildren: any[] = [];
@@ -120,50 +114,59 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   // --- CALCULATE TOTAL % (EXCLUDING LICENSES AND INACTIVE FROM NUMERIC MATH) ---
   const childrenTotalPercentage = sumActiveChildPercentages(localChildren, isEffectivelyTerminated);
 
+  // Solid backgrounds so axe can verify contrast (no translucent layers)
+  const nodeStyle: React.CSSProperties = isLicenseNode
+    ? { backgroundColor: '#1e3a8a', borderColor: '#172554' }
+    : isIndividual
+      ? { backgroundColor: '#1e5c5a', borderColor: '#164e4c' }
+      : { backgroundColor: '#611d43', borderColor: '#4a1634' };
+
+  const displayName = isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName;
+  const displayType = isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType;
+  const imgLabel = `${isLicenseNode ? `License ${current.ownerName}` : current.ownerName}, ${displayType}${hasPercentage && !isReverseRelation && !isLicenseNode ? `, ${current.percentage}% owned` : ''}${nodeTerminated ? ', Terminated' : ''}`;
+
   return (
     <div className="flex flex-col items-center">
-      {/* Node Card */}
-      <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'opacity-60 ring-2 ring-slate-300 ring-offset-2' : ''}`}>
-
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex flex-col overflow-hidden mr-2">
-            <h4 className="text-xs font-bold uppercase truncate" title={current.ownerName}>
-              {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
-            </h4>
+      <div
+        style={{ ...nodeStyle, isolation: 'isolate' }}
+        className={`relative z-30 w-68 p-4 rounded-lg shadow-xl text-white border-b-4 ${nodeTerminated ? 'opacity-60 ring-2 ring-slate-300 ring-offset-2' : ''}`}
+      >
+        <div
+          role="img"
+          aria-label={imgLabel}
+          className="flex justify-between items-start mb-4 min-h-[1.25rem]"
+        >
+          <div aria-hidden="true" className="flex flex-col overflow-hidden mr-2 flex-1 min-w-0">
+            <div className="chart-node-name" data-label={displayName} />
             {nodeTerminated && (
-              <span className="text-[9px] font-bold uppercase mt-1 opacity-90">
-                Terminated
-              </span>
+              <div className="chart-node-type mt-1" data-label="Terminated" />
             )}
           </div>
-          
           {hasPercentage && !isReverseRelation && !isLicenseNode && (
-            <div className="bg-black/20 rounded px-2 py-0.5 min-w-[3rem] flex justify-center">
-                <span className="text-xs font-bold">{current.percentage}%</span>
+            <div aria-hidden="true" className="bg-black rounded px-2 py-0.5 min-w-[3rem] flex justify-center shrink-0">
+              <div className="chart-node-pct" data-label={`${current.percentage}%`} />
             </div>
           )}
         </div>
-        
-        <div className="flex justify-between items-center pt-2 border-t border-white/10">
-          <div className="flex items-center gap-1.5 opacity-90">
+
+        <div className="flex justify-between items-center pt-2 border-t border-white">
+          <div aria-hidden="true" className="flex items-center gap-1.5 text-white min-w-0">
             {isLicenseNode ? <FileText size={12} /> : isIndividual ? <User size={12} /> : <Building2 size={12} />}
-            <span className="text-[10px] font-semibold tracking-wide">
-              {isLicenseNode ? "License Record" : isIndividual ? "Individual" : current.contactType}
-            </span>
+            <div className="chart-node-type truncate" data-label={displayType} />
           </div>
 
           {!isLicenseNode && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" role="toolbar" aria-label={`Actions for ${current.ownerName || 'entity'}`}>
               {!isReverseRelation && (
                 <button 
                   onClick={(e) => { 
                     e.stopPropagation(); 
                     onViewRelated(current); 
                   }}
-                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
-                  title="Open in new tab"
+                  className="p-1.5 hover:bg-white rounded-full transition-colors"
+                  aria-label={`Open related licenses for ${current.ownerName || 'entity'}`}
                 >
-                  <Layers size={14} className="opacity-80 group-hover:opacity-100" />
+                  <Layers size={14} className="text-white" aria-hidden="true" />
                 </button>
               )}
 
@@ -172,10 +175,10 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   e.stopPropagation(); 
                   onViewDetails(current, parentRefNbr, siblingTotalPercentage, childrenTotalPercentage); 
                 }}
-                className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
-                title="View Details"
+                className="p-1.5 hover:bg-white rounded-full transition-colors"
+                aria-label={`View details for ${current.ownerName || 'entity'}`}
               >
-                <Eye size={14} className="opacity-80 group-hover:opacity-100" />
+                <Eye size={14} className="text-white" aria-hidden="true" />
               </button>
 
               {isChild && !isReverseRelation && (
@@ -184,10 +187,10 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                     e.stopPropagation(); 
                     if (onDelete) onDelete(current, parentRefNbr); 
                 }}
-                  className="p-1.5 hover:bg-red-500/40 rounded-full transition-colors group"
-                  title="Remove Owner"
+                  className="p-1.5 hover:bg-red-700 rounded-full transition-colors"
+                  aria-label={`Remove ${current.ownerName || 'owner'}`}
                 >
-                  <Trash2 size={14} className="text-red-200 group-hover:text-white" />
+                  <Trash2 size={14} className="text-white" aria-hidden="true" />
                 </button>
               )}
               
@@ -197,32 +200,25 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                     e.stopPropagation(); 
                     onOpenAdd(current, childrenTotalPercentage); 
                   }}
-                  className="flex items-center gap-1 px-2 py-1 rounded transition-colors border bg-white/10 hover:bg-white/25 border-white/10"
+                  className="flex items-center gap-1 px-2 py-1 rounded border border-white bg-[#4a1634] hover:bg-[#3a1129] text-white"
+                  aria-label={`Add owner to ${current.ownerName || 'entity'}`}
                 >
-                  <Plus size={10} strokeWidth={3} />
-                  <span className="text-[9px] font-bold uppercase">Add</span>
+                  <Plus size={10} strokeWidth={3} aria-hidden="true" />
+                  <span className="sr-only">Add</span>
                 </button>
               )}
             </div>
           )}
         </div>
-        
-        {visibleChildren.length > 0 && (
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white text-slate-400 rounded-full p-0.5 shadow-sm border border-slate-200">
-            <ChevronDown size={12} strokeWidth={3} />
-          </div>
-        )}
       </div>
 
       {visibleChildren.length > 0 && (
         <>
-          <div className="w-px h-8 bg-slate-300" />
-          <div className="flex justify-center items-start pt-4 relative">
+          <div className="w-px h-12 bg-slate-300" aria-hidden="true" />
+          <div className="flex justify-center items-start pt-8 relative z-0 gap-4">
             {visibleChildren.map((child, idx) => (
-              <div key={idx} className="flex flex-col items-center px-4 relative">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-px h-4 bg-slate-300" />
-                {idx !== 0 && <div className="absolute -top-4 left-0 w-1/2 h-px bg-slate-300" />}
-                {idx !== visibleChildren.length - 1 && <div className="absolute -top-4 right-0 w-1/2 h-px bg-slate-300" />}
+              <div key={idx} className="flex flex-col items-center px-6 relative z-10 min-w-[18rem]">
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-px h-8 bg-slate-300 z-0 pointer-events-none" aria-hidden="true" />
                 
                 <RecursiveTree 
                   entity={child} 
@@ -483,7 +479,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       )}
 
       {!isReverseRelation && (
-        <div className="absolute top-4 left-4 z-[60] bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-xl border border-slate-200/60 pointer-events-auto">
+        <div className="absolute top-4 left-4 z-[60] bg-white px-3 py-2 rounded-lg shadow-xl border border-slate-200 pointer-events-auto">
           <ShowTerminatedToggle
             showTerminated={showTerminated}
             onChange={setShowTerminated}
@@ -516,11 +512,16 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       )}
 
       {deleteContext && (
-        <div className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/40"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chart-delete-title"
+        >
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
             <div className="bg-[#24417a] px-5 py-3 flex items-center gap-2">
-              <AlertTriangle size={18} className="text-white" />
-              <h3 className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
+              <AlertTriangle size={18} className="text-white" aria-hidden="true" />
+              <h3 id="chart-delete-title" className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
             </div>
             <div className="p-6">
               <p className="text-slate-700">
@@ -573,7 +574,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                 isFullscreen={isFullscreen} 
                 toggleFullscreen={toggleFullscreen} 
             />
-            <div className="flex-1 w-full h-full cursor-grab active:cursor-grabbing bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]">
+            <div className="flex-1 w-full h-full cursor-grab active:cursor-grabbing bg-slate-100">
                 <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%" }}>
                     <div className="min-w-max min-h-max p-40">
                           <RecursiveTree 

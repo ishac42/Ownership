@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Accessibility scan reports (regenerated locally)
+a11y-*.json
+a11y-*-report.json

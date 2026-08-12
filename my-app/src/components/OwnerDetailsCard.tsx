@@ -226,23 +226,28 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
   return (
     <>
       {successMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out">
-          <div className="bg-green-600 text-white px-8 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 border border-green-400">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out" role="status" aria-live="polite">
+          <div className="bg-green-700 text-white px-8 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 border border-green-500">
             <div className="bg-white/20 rounded-full p-1">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <span className="font-bold tracking-wide">{successMessage}</span>
-            <button onClick={() => setSuccessMessage(null)} className="ml-4 text-white/70 hover:text-white text-xl font-bold">×</button>
+            <button onClick={() => setSuccessMessage(null)} className="ml-4 text-white/70 hover:text-white text-xl font-bold" aria-label="Dismiss notification">×</button>
           </div>
         </div>
       )}
 
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div
+        className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="owner-details-title"
+      >
         <div className="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
           <div className="bg-[#2c3e76] text-white px-6 py-4 flex-shrink-0">
-            <h2 className="text-xl font-semibold tracking-wide">
+            <h2 id="owner-details-title" className="text-xl font-semibold tracking-wide">
               {isEditing ? "Edit Entity Details" : "Entity Details"}
             </h2>
           </div>
@@ -361,7 +366,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
                         <span className={hasInvalidOwnershipTotal(owner.totalChildrenPercentage) ? 'text-red-600' : 'text-[#24417a]'}>
                           {owner.totalChildrenPercentage}%
                         </span>
-                        <span className="text-xs text-gray-400 font-normal mt-1">(Total sum of all owners)</span>
+                        <span className="text-xs text-gray-600 font-normal mt-1">(Total sum of all owners)</span>
                       </span>
                     ) : (
                       formData.percentage ? `${formData.percentage}%` : "0%"
@@ -392,7 +397,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
 
 const ViewField = ({ label, value }: { label: string, value: any }) => (
   <section>
-    <p className="text-gray-500 text-[15px] font-medium mb-2">{label}</p>
+    <p className="text-gray-600 text-[15px] font-medium mb-2">{label}</p>
     <p className="font-bold text-gray-900 text-lg break-words whitespace-normal">{value || "N/A"}</p>
   </section>
 );

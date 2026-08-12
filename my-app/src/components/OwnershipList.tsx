@@ -100,7 +100,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   
   if (isReverseRelation && reverseData === null && depth === 0) {
     return (
-      <div className="flex items-center justify-center p-8 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+      <div className="flex items-center justify-center p-8 text-xs font-semibold text-slate-600 uppercase tracking-wider">
         No reverse relationships found.
       </div>
     );
@@ -170,6 +170,9 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
     }
   };
 
+  const entityHeadingLevel = depth === 0 ? 3 : depth === 1 ? 4 : 5;
+  const EntityHeadingTag = (`h${entityHeadingLevel}` as 'h3' | 'h4' | 'h5');
+
   return (
     <div className="flex flex-col relative w-full">
       {isLoading && !deleteContext && (
@@ -179,15 +182,15 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       )}
 
       {successMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out">
-          <div className="bg-green-600 text-white px-8 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 border border-green-400">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out" role="status" aria-live="polite">
+          <div className="bg-green-700 text-white px-8 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 border border-green-500">
             <div className="bg-white/20 rounded-full p-1">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <span className="font-bold tracking-wide">{successMessage}</span>
-            <button onClick={() => setSuccessMessage(null)} className="ml-4 text-white/70 hover:text-white text-xl font-bold">×</button>
+            <button onClick={() => setSuccessMessage(null)} className="ml-4 text-white/70 hover:text-white text-xl font-bold" aria-label="Dismiss notification">×</button>
           </div>
         </div>
       )}
@@ -209,11 +212,16 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       <div className="flex items-start gap-4 w-full">
         <div className="relative flex flex-col items-center flex-shrink-0 w-6">
           {localChildren.length > 0 ? (
-            <button onClick={handleToggleExpand} className="mt-[13px] w-6 h-6 border border-slate-300 flex items-center justify-center bg-white z-20 shadow-sm cursor-pointer">
-              <ChevronDown size={14} className={`text-slate-500 transition-transform ${!isExpanded ? '-rotate-90' : ''}`} />
+            <button
+              onClick={handleToggleExpand}
+              aria-expanded={isExpanded}
+              aria-label={`${isExpanded ? 'Collapse' : 'Expand'} owners for ${current.ownerName || 'entity'}`}
+              className="mt-[13px] w-6 h-6 border border-slate-300 flex items-center justify-center bg-white z-20 shadow-sm cursor-pointer"
+            >
+              <ChevronDown size={14} className={`text-slate-600 transition-transform ${!isExpanded ? '-rotate-90' : ''}`} aria-hidden="true" />
             </button>
           ) : (
-            <div className="mt-[19px] w-3 h-3 bg-[#24417a] z-20" />
+            <div className="mt-[19px] w-3 h-3 bg-[#24417a] z-20" aria-hidden="true" />
           )}
         </div>
 
@@ -223,9 +231,9 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
               <span className="text-slate-400">
                 {isIndividual ? "👤" : "🏢"}
               </span>
-              <h4 className="font-bold text-[#1a2b4b] text-sm uppercase">
+              <EntityHeadingTag className="font-bold text-[#1a2b4b] text-sm uppercase">
                 {current.ownerName || entity?.ownerName || entity?.firstName}
-              </h4>
+              </EntityHeadingTag>
             </div>
             
             <div className="flex items-center gap-3">
@@ -243,20 +251,25 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
               {!isReverseRelation && (
                 <button
                   onClick={() => onViewRelated && onViewRelated(current)}
-                  className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
-                  title="View Related Licenses"
+                  className="p-1.5 text-gray-500 hover:text-blue-600 transition-colors"
+                  aria-label={`View related licenses for ${current.ownerName || 'entity'}`}
                 >
-                  <Layers size={18} />
+                  <Layers size={18} aria-hidden="true" />
                 </button>
               )}
 
-              <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
+              <button
+                type="button"
                 onClick={() => setSelectedOwner({ 
                     ...current, 
                     parentRefNbr: parentRefNbr,
                     totalChildrenPercentage: childrenTotalPercentage
-                })} 
-              />
+                })}
+                className="p-1.5 text-gray-500 hover:text-[#24417a] transition-colors"
+                aria-label={`View details for ${current.ownerName || 'entity'}`}
+              >
+                <Eye size={18} aria-hidden="true" />
+              </button>
               
               {!isIndividual && !isReverseRelation && (
                 <button 
@@ -293,7 +306,7 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                         </span>
                       )}
                     </span>
-                    <span className="text-sm text-slate-400 font-bold uppercase text-[10px]">{type}</span>
+                    <span className="text-sm text-slate-600 font-bold uppercase text-[10px]">{type}</span>
                     
                     {!isReverseRelation && (
                       <span className="text-sm font-bold text-slate-700 text-right">
@@ -305,14 +318,15 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                       {!isReverseRelation && (
                         <button
                           onClick={() => onViewRelated && onViewRelated(normalizeEntity(child))}
-                          className="text-gray-300 hover:text-blue-600 transition-colors focus:outline-none"
-                          title="View Related Licenses"
+                          className="text-gray-500 hover:text-blue-600 transition-colors focus:outline-none"
+                          aria-label={`View related licenses for ${name}`}
                         >
-                          <Layers size={18} />
+                          <Layers size={18} aria-hidden="true" />
                         </button>
                       )}
                       
-                      <Eye className="cursor-pointer text-gray-400 hover:text-[#24417a] transition-colors" 
+                      <button
+                        type="button"
                         onClick={() => {
                           const normalizedChild = normalizeEntity(child);
                           setSelectedOwner({ 
@@ -320,15 +334,22 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                               parentRefNbr: current.referenceNbr,
                               isChildOfCurrent: true
                           });
-                        }} 
-                      />
+                        }}
+                        className="text-gray-500 hover:text-[#24417a] transition-colors focus:outline-none"
+                        aria-label={`View details for ${name}`}
+                      >
+                        <Eye size={18} aria-hidden="true" />
+                      </button>
                       
                       {!isReverseRelation && (
-                        <Trash2 
-                          size={18} 
-                          className="cursor-pointer text-slate-300 hover:text-red-600 transition-colors" 
-                          onClick={() => handleDeleteClick(child, current.referenceNbr)} 
-                        />
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClick(child, current.referenceNbr)}
+                          className="text-slate-500 hover:text-red-600 transition-colors focus:outline-none"
+                          aria-label={`Delete ${name}`}
+                        >
+                          <Trash2 size={18} aria-hidden="true" />
+                        </button>
                       )}
                     </div>
                   </div>
@@ -386,11 +407,16 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       )}
 
       {deleteContext && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-owner-title"
+        >
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="bg-[#24417a] px-5 py-3 flex items-center gap-2">
-              <AlertTriangle size={18} className="text-white" />
-              <h3 className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
+              <AlertTriangle size={18} className="text-white" aria-hidden="true" />
+              <h3 id="delete-owner-title" className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
             </div>
             <div className="p-6">
               <p className="text-slate-700">

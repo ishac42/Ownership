@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "a11y": "node scripts/a11y-audit.mjs",
+    "a11y:local": "node scripts/a11y-local.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

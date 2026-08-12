@@ -121,38 +121,38 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       ? { backgroundColor: '#1e5c5a', borderColor: '#164e4c' }
       : { backgroundColor: '#611d43', borderColor: '#4a1634' };
 
+  const displayName = isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName;
+  const displayType = isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType;
+  const imgLabel = `${isLicenseNode ? `License ${current.ownerName}` : current.ownerName}, ${displayType}${hasPercentage && !isReverseRelation && !isLicenseNode ? `, ${current.percentage}% owned` : ''}${nodeTerminated ? ', Terminated' : ''}`;
+
   return (
     <div className="flex flex-col items-center">
       <div
         style={{ ...nodeStyle, isolation: 'isolate' }}
-        className={`relative z-20 w-68 p-4 rounded-lg shadow-xl text-white border-b-4 ${nodeTerminated ? 'opacity-60 ring-2 ring-slate-300 ring-offset-2' : ''}`}
+        className={`relative z-30 w-68 p-4 rounded-lg shadow-xl text-white border-b-4 ${nodeTerminated ? 'opacity-60 ring-2 ring-slate-300 ring-offset-2' : ''}`}
       >
         <div
           role="img"
-          aria-label={`${isLicenseNode ? `License ${current.ownerName}` : current.ownerName}, ${isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType}${hasPercentage && !isReverseRelation && !isLicenseNode ? `, ${current.percentage}% owned` : ''}${nodeTerminated ? ', Terminated' : ''}`}
-          className="flex justify-between items-start mb-4"
+          aria-label={imgLabel}
+          className="flex justify-between items-start mb-4 min-h-[1.25rem]"
         >
-          <div aria-hidden="true" className="flex flex-col overflow-hidden mr-2">
-            <p className="text-xs font-bold uppercase truncate text-white">
-              {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
-            </p>
+          <div aria-hidden="true" className="flex flex-col overflow-hidden mr-2 flex-1 min-w-0">
+            <div className="chart-node-name" data-label={displayName} />
             {nodeTerminated && (
-              <span className="text-[9px] font-bold uppercase mt-1 text-white">Terminated</span>
+              <div className="chart-node-type mt-1" data-label="Terminated" />
             )}
           </div>
           {hasPercentage && !isReverseRelation && !isLicenseNode && (
-            <div aria-hidden="true" className="bg-black rounded px-2 py-0.5 min-w-[3rem] flex justify-center">
-              <span className="text-xs font-bold text-white">{current.percentage}%</span>
+            <div aria-hidden="true" className="bg-black rounded px-2 py-0.5 min-w-[3rem] flex justify-center shrink-0">
+              <div className="chart-node-pct" data-label={`${current.percentage}%`} />
             </div>
           )}
         </div>
 
         <div className="flex justify-between items-center pt-2 border-t border-white">
-          <div aria-hidden="true" className="flex items-center gap-1.5 text-white">
+          <div aria-hidden="true" className="flex items-center gap-1.5 text-white min-w-0">
             {isLicenseNode ? <FileText size={12} /> : isIndividual ? <User size={12} /> : <Building2 size={12} />}
-            <span className="text-[10px] font-semibold tracking-wide text-white">
-              {isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType}
-            </span>
+            <div className="chart-node-type truncate" data-label={displayType} />
           </div>
 
           {!isLicenseNode && (

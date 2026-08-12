@@ -22,41 +22,37 @@ const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages, onPage
   };
 
   return (
-    <nav aria-label="Pagination" className="flex items-center gap-3 p-2 bg-white">
+    <div className="flex items-center gap-3 p-2 bg-white">
       <div className="flex items-center gap-1.5">
-        <label htmlFor="pagination-page" className="text-slate-700 text-sm">Page</label>
+        <span className="text-slate-700 text-sm">Page</span>
         <input
-          id="pagination-page"
           type="number"
           min="1"
-          max={totalPages || 1}
           value={currentPage || ""}
           onChange={handleInputChange}
-          aria-label={`Current page, of ${totalPages || 1}`}
+          /* "no-spinner" class removes the up/down arrows */
           className="no-spinner w-10 h-8 border border-slate-300 rounded text-center focus:outline-none focus:border-blue-500 text-sm"
         />
         <span className="text-slate-600 text-sm">of {totalPages || 1}</span>
       </div>
-
+      
       <div className="flex border border-slate-300 rounded overflow-hidden shadow-sm">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          aria-label="Previous page"
           className="p-1 border-r border-slate-300 hover:bg-slate-50 disabled:opacity-30 bg-white"
         >
-          <ChevronLeft size={18} className="text-slate-600" aria-hidden="true" />
+          <ChevronLeft size={18} className="text-slate-400" />
         </button>
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages}
-          aria-label="Next page"
           className="p-1 hover:bg-slate-50 disabled:opacity-30 bg-white"
         >
-          <ChevronRight size={18} className="text-slate-600" aria-hidden="true" />
+          <ChevronRight size={18} className="text-slate-400" />
         </button>
       </div>
-    </nav>
+    </div>
   );
 };
 

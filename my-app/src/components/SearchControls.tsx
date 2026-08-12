@@ -12,86 +12,76 @@ interface SearchControlsProps {
   handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
-const SearchField = ({
-  id,
-  label,
-  placeholder,
-  value,
-  onChange,
-  onKeyDown,
-  onSearch,
-}: {
-  id: string;
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  onSearch: () => void;
-}) => (
-  <div className="relative">
-    <label htmlFor={id} className="sr-only">{label}</label>
-    <input
-      id={id}
-      type="text"
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      onKeyDown={onKeyDown}
-      className="w-full pl-3 pr-10 py-2.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-    />
-    <button
-      onClick={onSearch}
-      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-600 hover:text-blue-600"
-      type="button"
-      aria-label={`Submit ${label.toLowerCase()} search`}
-    >
-      <Search size={18} aria-hidden="true" />
-    </button>
-  </div>
-);
-
-const SearchControls: React.FC<SearchControlsProps> = ({
-  searchName,
-  setSearchName,
-  refNo,
+const SearchControls: React.FC<SearchControlsProps> = ({ 
+  searchName, 
+  setSearchName, 
+  refNo, 
   setRefNo,
   nvBusId,
   setNvBusId,
-  handleSearch,
-  handleKeyDown,
+  handleSearch, 
+  handleKeyDown 
 }) => (
-  <section aria-label="Search ownership records" className="flex flex-col md:flex-row gap-4 items-end bg-white p-5 rounded-lg shadow-sm border border-slate-200">
+  <div className="flex flex-col md:flex-row gap-4 items-end bg-white p-5 rounded-lg shadow-sm border border-slate-200">
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 w-full">
-      <SearchField
-        id="search-name"
-        label="Name"
-        placeholder="Search by name..."
-        value={searchName}
-        onChange={(e) => setSearchName(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onSearch={handleSearch}
-      />
-      <SearchField
-        id="search-ref-no"
-        label="Reference Number"
-        placeholder="Search by ref no..."
-        value={refNo}
-        onChange={(e) => setRefNo(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onSearch={handleSearch}
-      />
-      <SearchField
-        id="search-nv-business-id"
-        label="NV Business ID"
-        placeholder="Search by NV Business ID..."
-        value={nvBusId}
-        onChange={(e) => setNvBusId(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onSearch={handleSearch}
-      />
+      {/* Name Search Input */}
+      <div className="relative">
+        <input 
+          type="text" 
+          placeholder="Search by name..." 
+          value={searchName}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchName(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full pl-3 pr-10 py-2.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+        />
+        <button 
+          onClick={handleSearch} 
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-blue-600"
+          type="button"
+        >
+          <Search size={18} />
+        </button>
+      </div>
+
+      {/* Reference Number Input */}
+      <div className="relative">
+        <input 
+          type="text" 
+          placeholder="Search by ref no..." 
+          value={refNo}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRefNo(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full pl-3 pr-10 py-2.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+        />
+        <button 
+          onClick={handleSearch} 
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-blue-600"
+          type="button"
+        >
+          <Search size={18} />
+        </button>
+      </div>
+
+      {/* NV Business ID Input */}
+      <div className="relative">
+        <input 
+          type="text" 
+          placeholder="Search by NV Business ID..." 
+          value={nvBusId}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNvBusId(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full pl-3 pr-10 py-2.5 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all" 
+        />
+        <button 
+          onClick={handleSearch} 
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-blue-600"
+          type="button"
+        >
+          <Search size={18} />
+        </button>
+      </div>
     </div>
-  </section>
+  </div>
 );
 
 export default SearchControls;

@@ -5,17 +5,19 @@ import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
 import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
-import { getOwnerReferenceNbr, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
+import { getOwnerReferenceNbr, hasInvalidOwnershipTotal, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
+import { buildSavedOwnerUpdates } from '../utils/ownershipTree';
 
 interface OwnerDetailsCardProps {
   owner: any;
   onClose: () => void;
-  onRefresh: () => void;
+  onRefresh?: () => void | Promise<void>;
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   currentTotalPercentage?: number; 
   isFromList?: boolean;
 }
 
-const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
+const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
   const { recordID } = usePortalParams();
   const { getEffectiveStatus, setStatusOverride } = useOwnershipStatus();
   const [isEditing, setIsEditing] = useState(false);
@@ -24,9 +26,12 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [blockDialog, setBlockDialog] = useState<{ message: string; title?: string } | null>(null);
 
+  const ownerRefNbr = getOwnerReferenceNbr(owner);
+
   useEffect(() => {
+    if (isEditing) return;
     setFormData({ ...owner, status: getEffectiveStatus(owner) });
-  }, [owner, getEffectiveStatus]);
+  }, [ownerRefNbr, owner, getEffectiveStatus, isEditing]);
 
   useEffect(() => {
     if (successMessage) {
@@ -147,6 +152,10 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
     }
 
     if (editArray.length === 0) {
+      const refNbr = getOwnerReferenceNbr(owner);
+      const savedUpdates = buildSavedOwnerUpdates(formData, newStatus);
+      setFormData(savedUpdates);
+      if (refNbr) onOwnerUpdated?.(refNbr, savedUpdates);
       setSuccessMessage('Status updated successfully');
       setIsEditing(false);
       return;
@@ -182,9 +191,14 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
         if (refNbr && OWNER_STATUS_OPTIONS.includes(newStatus)) {
           setStatusOverride(refNbr, newStatus);
         }
+
+        const savedUpdates = buildSavedOwnerUpdates(formData, newStatus);
+        setFormData(savedUpdates);
+        if (refNbr) onOwnerUpdated?.(refNbr, savedUpdates);
+
         setSuccessMessage(`Owner updated successfully`);
         setIsEditing(false);
-        if (onRefresh) onRefresh();
+        void onRefresh?.();
       } else {
         setBlockDialog({
           title: 'Update Failed',
@@ -212,23 +226,28 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
   return (
     <>
       {successMessage && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out">
-          <div className="bg-green-600 text-white px-8 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 border border-green-400">
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-in-out" role="status" aria-live="polite">
+          <div className="bg-green-700 text-white px-8 py-4 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.3)] flex items-center gap-4 border border-green-500">
             <div className="bg-white/20 rounded-full p-1">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <span className="font-bold tracking-wide">{successMessage}</span>
-            <button onClick={() => setSuccessMessage(null)} className="ml-4 text-white/70 hover:text-white text-xl font-bold">×</button>
+            <button onClick={() => setSuccessMessage(null)} className="ml-4 text-white/70 hover:text-white text-xl font-bold" aria-label="Dismiss notification">×</button>
           </div>
         </div>
       )}
 
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div
+        className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="owner-details-title"
+      >
         <div className="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
           <div className="bg-[#2c3e76] text-white px-6 py-4 flex-shrink-0">
-            <h2 className="text-xl font-semibold tracking-wide">
+            <h2 id="owner-details-title" className="text-xl font-semibold tracking-wide">
               {isEditing ? "Edit Entity Details" : "Entity Details"}
             </h2>
           </div>
@@ -264,7 +283,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                         : formData.ownerName
                     }
                   />
-                  <ViewField label={isIndividualOwner ? "Type of Entity" : "Business Type"} value={formData.type || formData.contactType} />
+                  <ViewField label={isIndividualOwner ? "Ownership Title" : "Entity Type"} value={formData.type || formData.contactType} />
                 </div>
 
                 {showStatusField && (
@@ -344,10 +363,10 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
                   value={
                     shouldCalculateFromChildren ? (
                       <span className="flex flex-col">
-                        <span className={owner.totalChildrenPercentage > 100 ? 'text-red-600' : 'text-[#24417a]'}>
+                        <span className={hasInvalidOwnershipTotal(owner.totalChildrenPercentage) ? 'text-red-600' : 'text-[#24417a]'}>
                           {owner.totalChildrenPercentage}%
                         </span>
-                        <span className="text-xs text-gray-400 font-normal mt-1">(Total sum of all owners)</span>
+                        <span className="text-xs text-gray-600 font-normal mt-1">(Total sum of all owners)</span>
                       </span>
                     ) : (
                       formData.percentage ? `${formData.percentage}%` : "0%"
@@ -378,7 +397,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, currentTotalPercentage, i
 
 const ViewField = ({ label, value }: { label: string, value: any }) => (
   <section>
-    <p className="text-gray-500 text-[15px] font-medium mb-2">{label}</p>
+    <p className="text-gray-600 text-[15px] font-medium mb-2">{label}</p>
     <p className="font-bold text-gray-900 text-lg break-words whitespace-normal">{value || "N/A"}</p>
   </section>
 );

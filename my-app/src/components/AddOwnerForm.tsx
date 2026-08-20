@@ -5,7 +5,6 @@ import {
   STATE_LIST_USA,
   ADDRESS_TYPES,
   UNIT_TYPES,
-  NAME_TITLE_OPTIONS,
   NAME_SUFFIX_OPTIONS,
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
@@ -145,11 +144,16 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
 
   return (
     <>
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-owner-title"
+    >
       <div className="bg-white rounded-lg w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
         <div className="bg-[#2c3e76] text-white px-6 py-4 flex-shrink-0">
-          <h2 className="text-xl font-semibold tracking-wide">
+          <h2 id="add-owner-title" className="text-xl font-semibold tracking-wide">
             {isIndividual ? 'Add New Individual' : 'Add New Business'}
           </h2>
         </div>
@@ -188,16 +192,13 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           <SectionTitle>{isIndividual ? 'Name' : 'Business'}</SectionTitle>
           {isIndividual ? (
             <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-2">
-                <SelectField label="Title" name="nameTitle" value={formData.nameTitle} onChange={handleChange} options={NAME_TITLE_OPTIONS} placeholder="--" />
-              </div>
-              <div className="col-span-3">
+              <div className="col-span-4">
                 <FormField label="First Name" name="firstName" placeholder="First Name" value={formData.firstName} onChange={handleChange} />
               </div>
               <div className="col-span-1">
                 <FormField label="M.I." name="middleInitial" placeholder="M.I." value={formData.middleInitial} onChange={handleChange} />
               </div>
-              <div className="col-span-4">
+              <div className="col-span-5">
                 <FormField label="Last Name" name="lastName" placeholder="Last Name" value={formData.lastName} onChange={handleChange} />
               </div>
               <div className="col-span-2">
@@ -211,8 +212,9 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
               </div>
               <div className="col-span-4">
                 <div className="flex flex-col">
-                  <label className="text-gray-500 font-medium mb-1">Business Type</label>
+                  <label htmlFor="add-owner-entity-type" className="text-gray-600 font-medium mb-1">Entity Type</label>
                   <select
+                    id="add-owner-entity-type"
                     name="type"
                     value={formData.type}
                     onChange={handleChange}
@@ -252,8 +254,9 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           {isIndividual && (
             <div className="grid grid-cols-2 gap-6">
               <div className="flex flex-col">
-                <label className="text-gray-500 font-medium mb-1">Type of Entity</label>
+                <label htmlFor="add-owner-ownership-title" className="text-gray-600 font-medium mb-1">Ownership Title</label>
                 <select
+                  id="add-owner-ownership-title"
                   name="type"
                   value={formData.type}
                   onChange={handleChange}
@@ -302,8 +305,9 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
 
           <div className="grid grid-cols-8 gap-4">
             <div className="col-span-2 flex flex-col">
-              <label className="text-gray-500 font-medium mb-1">Country</label>
+              <label htmlFor="add-owner-country" className="text-gray-600 font-medium mb-1">Country</label>
               <select
+                id="add-owner-country"
                 name="country"
                 value={formData.country}
                 onChange={handleChange}
@@ -318,9 +322,10 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
               <FormField label="City" name="city" placeholder="City" value={formData.city} onChange={handleChange} />
             </div>
             <div className="col-span-1 flex flex-col">
-              <label className="text-gray-500 font-medium mb-1">State</label>
+              <label htmlFor="add-owner-state" className="text-gray-600 font-medium mb-1">State</label>
               {isUSCountry ? (
                 <select
+                  id="add-owner-state"
                   name="state"
                   value={formData.state}
                   onChange={handleChange}
@@ -333,6 +338,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
                 </select>
               ) : (
                 <input
+                  id="add-owner-state"
                   type="text"
                   name="state"
                   placeholder="State"
@@ -360,9 +366,10 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
               <div className="grid grid-cols-3 gap-6">
                 <FormField label="Driver's License" name="driversLicense" placeholder="Driver's License" value={formData.driversLicense} onChange={handleChange} />
                 <div className="flex flex-col">
-                  <label className="text-gray-500 font-medium mb-1">License State</label>
+                  <label htmlFor="add-owner-drivers-license-state" className="text-gray-600 font-medium mb-1">License State</label>
                   {isUSCountry ? (
                     <select
+                      id="add-owner-drivers-license-state"
                       name="driversLicenseState"
                       value={formData.driversLicenseState}
                       onChange={handleChange}
@@ -375,6 +382,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
                     </select>
                   ) : (
                     <input
+                      id="add-owner-drivers-license-state"
                       type="text"
                       name="driversLicenseState"
                       value={formData.driversLicenseState}
@@ -498,8 +506,9 @@ interface FormFieldProps {
 
 const FormField = ({ label, name, placeholder, value, onChange, type = 'text', subLabel }: FormFieldProps) => (
   <div className="flex flex-col">
-    <label className="text-gray-500 font-medium mb-1">{label}</label>
+    <label htmlFor={name} className="text-gray-600 font-medium mb-1">{label}</label>
     <input
+      id={name}
       type={type}
       name={name}
       placeholder={placeholder}
@@ -522,8 +531,9 @@ interface SelectFieldProps {
 
 const SelectField = ({ label, name, value, onChange, options, placeholder = 'Select' }: SelectFieldProps) => (
   <div className="flex flex-col">
-    <label className="text-gray-500 font-medium mb-1">{label}</label>
+    <label htmlFor={name} className="text-gray-600 font-medium mb-1">{label}</label>
     <select
+      id={name}
       name={name}
       value={value}
       onChange={onChange}
@@ -546,8 +556,9 @@ interface TextAreaFieldProps {
 
 const TextAreaField = ({ label, name, value, onChange }: TextAreaFieldProps) => (
   <div className="flex flex-col">
-    <label className="text-gray-500 font-medium mb-1">{label}</label>
+    <label htmlFor={name} className="text-gray-600 font-medium mb-1">{label}</label>
     <textarea
+      id={name}
       name={name}
       value={value}
       onChange={onChange}

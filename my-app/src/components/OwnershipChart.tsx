@@ -9,6 +9,7 @@ import {
   sumActiveChildPercentages,
   countTerminatedInSubtree,
   isOwnershipAsitRow,
+  getOwnerReferenceNbr,
 } from '../utils/ownershipStatus';
 import { prepareOwnershipChildren } from '../utils/ownershipTree';
 
@@ -50,11 +51,11 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const isLicenseNode = !!entity?.isLicenseNode;
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
   const nodeTerminated = isOwnershipAsitRow(entity) && isEffectivelyTerminated(entity);
-  
-  // Custom theme coloring for separating licenses from entities
+
+  // Original theme colors (licenses vs individuals vs organizations)
   let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
   if (isLicenseNode) {
-    nodeBgColor = 'bg-[#1e40af] border-[#1e3a8a]'; // Dedicated Blue for License records
+    nodeBgColor = 'bg-[#1e40af] border-[#1e3a8a]';
   }
 
   useEffect(() => {
@@ -121,103 +122,97 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Node Card */}
-      <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'opacity-60 ring-2 ring-slate-300 ring-offset-2' : ''}`}>
-        
-        {/* Over-allocation Warning Icon */}
-        {childrenTotalPercentage > 100 && !isLicenseNode && (
-          <div 
-            className="absolute -top-3 -right-3 bg-red-600 text-white p-1.5 rounded-full shadow-md animate-pulse border-2 border-white"
-            title={`Warning: Children exceed 100% total (${childrenTotalPercentage}%). Please adjust ownership.`}
-          >
-            <AlertTriangle size={14} strokeWidth={3} />
-          </div>
-        )}
+      {/* Node Card — original visuals + accessible control names */}
+      <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'ring-2 ring-slate-300 ring-offset-2' : ''}`}>
 
         <div className="flex justify-between items-start mb-4">
           <div className="flex flex-col overflow-hidden mr-2">
-            <h4 className="text-xs font-bold uppercase truncate" title={current.ownerName}>
+            <p className="text-xs font-bold uppercase truncate" title={current.ownerName}>
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
-            </h4>
+            </p>
             {nodeTerminated && (
-              <span className="text-[9px] font-bold uppercase mt-1 opacity-90">
+              <span className="text-[9px] font-bold uppercase mt-1 px-1.5 py-0.5 rounded bg-black text-white w-fit">
                 Terminated
               </span>
             )}
           </div>
-          
+
           {hasPercentage && !isReverseRelation && !isLicenseNode && (
             <div className="bg-black/20 rounded px-2 py-0.5 min-w-[3rem] flex justify-center">
-                <span className="text-xs font-bold">{current.percentage}%</span>
+              <span className="text-xs font-bold">{current.percentage}%</span>
             </div>
           )}
         </div>
-        
+
         <div className="flex justify-between items-center pt-2 border-t border-white/10">
           <div className="flex items-center gap-1.5 opacity-90">
-            {isLicenseNode ? <FileText size={12} /> : isIndividual ? <User size={12} /> : <Building2 size={12} />}
+            {isLicenseNode ? <FileText size={12} aria-hidden="true" /> : isIndividual ? <User size={12} aria-hidden="true" /> : <Building2 size={12} aria-hidden="true" />}
             <span className="text-[10px] font-semibold tracking-wide">
-              {isLicenseNode ? "License Record" : isIndividual ? "Individual" : current.contactType}
+              {isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType}
             </span>
           </div>
 
           {!isLicenseNode && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" role="toolbar" aria-label={`Actions for ${current.ownerName || 'entity'}`}>
               {!isReverseRelation && (
-                <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onViewRelated(current); 
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewRelated(current);
                   }}
                   className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
+                  aria-label={`Open related licenses for ${current.ownerName || 'entity'}`}
                   title="Open in new tab"
                 >
-                  <Layers size={14} className="opacity-80 group-hover:opacity-100" />
+                  <Layers size={14} className="opacity-80 group-hover:opacity-100" aria-hidden="true" />
                 </button>
               )}
 
-              <button 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  onViewDetails(current, parentRefNbr, siblingTotalPercentage, childrenTotalPercentage); 
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetails(current, parentRefNbr, siblingTotalPercentage, childrenTotalPercentage);
                 }}
                 className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
+                aria-label={`View details for ${current.ownerName || 'entity'}`}
                 title="View Details"
               >
-                <Eye size={14} className="opacity-80 group-hover:opacity-100" />
+                <Eye size={14} className="opacity-80 group-hover:opacity-100" aria-hidden="true" />
               </button>
 
               {isChild && !isReverseRelation && (
-                <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    if (onDelete) onDelete(current, parentRefNbr); 
-                }}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onDelete) onDelete(current, parentRefNbr);
+                  }}
                   className="p-1.5 hover:bg-red-500/40 rounded-full transition-colors group"
+                  aria-label={`Remove ${current.ownerName || 'owner'}`}
                   title="Remove Owner"
                 >
-                  <Trash2 size={14} className="text-red-200 group-hover:text-white" />
+                  <Trash2 size={14} className="text-red-200 group-hover:text-white" aria-hidden="true" />
                 </button>
               )}
-              
+
               {!isIndividual && !isReverseRelation && (
                 <button
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    onOpenAdd(current, childrenTotalPercentage); 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenAdd(current, childrenTotalPercentage);
                   }}
                   className="flex items-center gap-1 px-2 py-1 rounded transition-colors border bg-white/10 hover:bg-white/25 border-white/10"
+                  aria-label={`Add owner to ${current.ownerName || 'entity'}`}
                 >
-                  <Plus size={10} strokeWidth={3} />
+                  <Plus size={10} strokeWidth={3} aria-hidden="true" />
                   <span className="text-[9px] font-bold uppercase">Add</span>
                 </button>
               )}
             </div>
           )}
         </div>
-        
+
         {visibleChildren.length > 0 && (
-          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white text-slate-400 rounded-full p-0.5 shadow-sm border border-slate-200">
+          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-white text-slate-400 rounded-full p-0.5 shadow-sm border border-slate-200" aria-hidden="true">
             <ChevronDown size={12} strokeWidth={3} />
           </div>
         )}
@@ -225,22 +220,22 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
       {visibleChildren.length > 0 && (
         <>
-          <div className="w-px h-8 bg-slate-300" />
+          <div className="w-px h-8 bg-slate-300" aria-hidden="true" />
           <div className="flex justify-center items-start pt-4 relative">
             {visibleChildren.map((child, idx) => (
               <div key={idx} className="flex flex-col items-center px-4 relative">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-px h-4 bg-slate-300" />
-                {idx !== 0 && <div className="absolute -top-4 left-0 w-1/2 h-px bg-slate-300" />}
-                {idx !== visibleChildren.length - 1 && <div className="absolute -top-4 right-0 w-1/2 h-px bg-slate-300" />}
-                
-                <RecursiveTree 
-                  entity={child} 
-                  onViewDetails={onViewDetails} 
-                  onViewRelated={onViewRelated} 
-                  onOpenAdd={onOpenAdd} 
-                  onDelete={onDelete} 
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-px h-4 bg-slate-300" aria-hidden="true" />
+                {idx !== 0 && <div className="absolute -top-4 left-0 w-1/2 h-px bg-slate-300" aria-hidden="true" />}
+                {idx !== visibleChildren.length - 1 && <div className="absolute -top-4 right-0 w-1/2 h-px bg-slate-300" aria-hidden="true" />}
+
+                <RecursiveTree
+                  entity={child}
+                  onViewDetails={onViewDetails}
+                  onViewRelated={onViewRelated}
+                  onOpenAdd={onOpenAdd}
+                  onDelete={onDelete}
                   parentRefNbr={current.referenceNbr}
-                  siblingTotalPercentage={childrenTotalPercentage} 
+                  siblingTotalPercentage={childrenTotalPercentage}
                   isReverseRelation={isReverseRelation}
                   reverseData={null}
                 />
@@ -257,14 +252,16 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 interface OwnershipChartProps {
   entity: any; // Can now seamlessly accept an individual Object or a Base Array containing multiple parent nodes
   onRefresh?: () => Promise<void> | void;
-  onViewRelated?: (entity: any) => void; 
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onViewRelated?: (entity: any) => void;
   isReverseRelation?: boolean; 
   reverseData?: any[] | null;   
 }
 
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
   entity, 
-  onRefresh, 
+  onRefresh,
+  onOwnerUpdated,
   onViewRelated,
   isReverseRelation = false,
   reverseData = null
@@ -490,7 +487,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       )}
 
       {!isReverseRelation && (
-        <div className="absolute top-4 left-4 z-[60] bg-white/90 backdrop-blur-sm px-3 py-2 rounded-lg shadow-xl border border-slate-200/60 pointer-events-auto">
+        <div className="absolute top-4 left-4 z-[60] bg-white px-3 py-2 rounded-lg shadow-xl border border-slate-200/60 pointer-events-auto">
           <ShowTerminatedToggle
             showTerminated={showTerminated}
             onChange={setShowTerminated}
@@ -508,21 +505,31 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       )}
 
       {selectedOwner && (
-        <OwnerDetailsCard 
-          owner={selectedOwner} 
-          onClose={() => setSelectedOwner(null)} 
+        <OwnerDetailsCard
+          key={getOwnerReferenceNbr(selectedOwner)}
+          owner={selectedOwner}
+          onClose={() => setSelectedOwner(null)}
           onRefresh={handleEditRefresh}
-          currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : selectedOwner.totalChildrenPercentage} 
+          onOwnerUpdated={(refNbr, updates) => {
+            onOwnerUpdated?.(refNbr, updates);
+            setSelectedOwner((prev: any) => (prev ? { ...prev, ...updates } : null));
+          }}
+          currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : selectedOwner.totalChildrenPercentage}
           isFromList={false}
         />
       )}
 
       {deleteContext && (
-        <div className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="chart-delete-title"
+        >
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
             <div className="bg-[#24417a] px-5 py-3 flex items-center gap-2">
-              <AlertTriangle size={18} className="text-white" />
-              <h3 className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
+              <AlertTriangle size={18} className="text-white" aria-hidden="true" />
+              <h3 id="chart-delete-title" className="text-white font-semibold text-sm tracking-wide">Confirm Deletion</h3>
             </div>
             <div className="p-6">
               <p className="text-slate-700">

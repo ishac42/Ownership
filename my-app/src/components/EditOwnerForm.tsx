@@ -5,7 +5,6 @@ import {
   STATE_LIST_USA,
   ADDRESS_TYPES,
   UNIT_TYPES,
-  NAME_TITLE_OPTIONS,
   NAME_SUFFIX_OPTIONS,
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
@@ -108,8 +107,9 @@ const EditOwnerForm = ({
       {showStatusField && (
       <div className="grid grid-cols-2 gap-6">
         <div className="flex flex-col">
-          <label className="text-gray-500 font-medium mb-1">Status</label>
+          <label htmlFor="edit-status" className="text-gray-600 font-medium mb-1">Status</label>
           <select
+            id="edit-status"
             value={formData.status || 'Active'}
             onChange={(e) => handleChange('status', e.target.value)}
             disabled={isLoading}
@@ -130,16 +130,13 @@ const EditOwnerForm = ({
       <SectionTitle>{isIndividual ? 'Name' : 'Business'}</SectionTitle>
       {isIndividual ? (
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-2">
-            <SelectField label="Title" value={formData.nameTitle} onChange={(v) => handleChange('nameTitle', v)} options={NAME_TITLE_OPTIONS} disabled={isLoading} placeholder="--" />
-          </div>
-          <div className="col-span-3">
+          <div className="col-span-4">
             <InputField label="First Name" value={formData.firstName} onChange={(v) => handleChange('firstName', v)} disabled={isLoading} />
           </div>
           <div className="col-span-1">
             <InputField label="M.I." value={formData.middleInitial} onChange={(v) => handleChange('middleInitial', v)} disabled={isLoading} />
           </div>
-          <div className="col-span-4">
+          <div className="col-span-5">
             <InputField label="Last Name" value={formData.lastName} onChange={(v) => handleChange('lastName', v)} disabled={isLoading} />
           </div>
           <div className="col-span-2">
@@ -159,7 +156,7 @@ const EditOwnerForm = ({
               isLoading={isLoading}
               isRefDataLoading={isRefDataLoading}
               onChange={(v) => handleChange('type', v)}
-              label="Business Type"
+              label="Entity Type"
             />
           </div>
           <div className="col-span-3">
@@ -185,7 +182,7 @@ const EditOwnerForm = ({
             isLoading={isLoading}
             isRefDataLoading={isRefDataLoading}
             onChange={(v) => handleChange('type', v)}
-            label="Type of Entity"
+            label="Ownership Title"
           />
         </div>
       )}
@@ -226,8 +223,9 @@ const EditOwnerForm = ({
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-3">
           <div className="w-full text-left">
-            <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>Country</label>
+            <label htmlFor="edit-country" className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>Country</label>
             <select
+              id="edit-country"
               value={selectedCountry}
               onChange={(e) => handleChange('country', e.target.value)}
               disabled={isLoading}
@@ -246,9 +244,10 @@ const EditOwnerForm = ({
           <InputField label="City" value={formData.city} onChange={(v) => handleChange('city', v)} disabled={isLoading} />
         </div>
         <div className="col-span-2 flex flex-col text-left">
-          <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>State</label>
+          <label htmlFor="edit-state" className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>State</label>
           {isUSCountry ? (
             <select
+              id="edit-state"
               value={formData.state || ''}
               onChange={(e) => handleChange('state', e.target.value)}
               disabled={isLoading}
@@ -261,6 +260,7 @@ const EditOwnerForm = ({
             </select>
           ) : (
             <input
+              id="edit-state"
               type="text"
               value={formData.state || ''}
               onChange={(e) => handleChange('state', e.target.value)}
@@ -286,9 +286,10 @@ const EditOwnerForm = ({
           <div className="grid grid-cols-3 gap-6">
             <InputField label="Driver's License" value={formData.driversLicense} onChange={(v) => handleChange('driversLicense', v)} disabled={isLoading} />
             <div className="flex flex-col text-left">
-              <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>License State</label>
+              <label htmlFor="edit-license-state" className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>License State</label>
               {isUSCountry ? (
                 <select
+                  id="edit-license-state"
                   value={formData.driversLicenseState || ''}
                   onChange={(e) => handleChange('driversLicenseState', e.target.value)}
                   disabled={isLoading}
@@ -301,6 +302,7 @@ const EditOwnerForm = ({
                 </select>
               ) : (
                 <input
+                  id="edit-license-state"
                   type="text"
                   value={formData.driversLicenseState || ''}
                   onChange={(e) => handleChange('driversLicenseState', e.target.value)}
@@ -426,6 +428,9 @@ interface EntityTypeSelectProps {
   label: string;
 }
 
+const fieldIdFromLabel = (label: string) =>
+  `edit-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+
 const EntityTypeSelect = ({
   entityType,
   filteredEntityTypes,
@@ -434,10 +439,13 @@ const EntityTypeSelect = ({
   isRefDataLoading,
   onChange,
   label
-}: EntityTypeSelectProps) => (
+}: EntityTypeSelectProps) => {
+  const fieldId = fieldIdFromLabel(label);
+  return (
   <div className="flex flex-col text-left">
-    <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>{label}</label>
+    <label htmlFor={fieldId} className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${isLoading ? 'opacity-60' : ''}`}>{label}</label>
     <select
+      id={fieldId}
       value={entityType}
       onChange={(e) => onChange(e.target.value)}
       disabled={isLoading || isRefDataLoading}
@@ -456,7 +464,8 @@ const EntityTypeSelect = ({
       )}
     </select>
   </div>
-);
+  );
+};
 
 interface InputFieldProps {
   label: string;
@@ -467,10 +476,13 @@ interface InputFieldProps {
   type?: string;
 }
 
-const InputField = ({ label, value, onChange, subLabel, disabled, type = 'text' }: InputFieldProps) => (
+const InputField = ({ label, value, onChange, subLabel, disabled, type = 'text' }: InputFieldProps) => {
+  const fieldId = fieldIdFromLabel(label);
+  return (
   <div className="w-full text-left">
-    <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${disabled ? 'opacity-60' : ''}`}>{label}</label>
+    <label htmlFor={fieldId} className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${disabled ? 'opacity-60' : ''}`}>{label}</label>
     <input
+      id={fieldId}
       type={type}
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
@@ -479,9 +491,10 @@ const InputField = ({ label, value, onChange, subLabel, disabled, type = 'text' 
         disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'focus:ring-2 focus:ring-[#2c3e76]/10'
       }`}
     />
-    {subLabel && <p className={`text-[11px] text-gray-500 mt-1 font-medium ${disabled ? 'opacity-60' : ''}`}>{subLabel}</p>}
+    {subLabel && <p className={`text-[11px] text-gray-600 mt-1 font-medium ${disabled ? 'opacity-60' : ''}`}>{subLabel}</p>}
   </div>
-);
+  );
+};
 
 interface SelectFieldProps {
   label: string;
@@ -492,10 +505,13 @@ interface SelectFieldProps {
   placeholder?: string;
 }
 
-const SelectField = ({ label, value, onChange, options, disabled, placeholder = 'Select' }: SelectFieldProps) => (
+const SelectField = ({ label, value, onChange, options, disabled, placeholder = 'Select' }: SelectFieldProps) => {
+  const fieldId = fieldIdFromLabel(label);
+  return (
   <div className="w-full text-left">
-    <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${disabled ? 'opacity-60' : ''}`}>{label}</label>
+    <label htmlFor={fieldId} className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${disabled ? 'opacity-60' : ''}`}>{label}</label>
     <select
+      id={fieldId}
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
@@ -507,7 +523,8 @@ const SelectField = ({ label, value, onChange, options, disabled, placeholder = 
       ))}
     </select>
   </div>
-);
+  );
+};
 
 interface TextAreaFieldProps {
   label: string;
@@ -516,10 +533,13 @@ interface TextAreaFieldProps {
   disabled?: boolean;
 }
 
-const TextAreaField = ({ label, value, onChange, disabled }: TextAreaFieldProps) => (
+const TextAreaField = ({ label, value, onChange, disabled }: TextAreaFieldProps) => {
+  const fieldId = fieldIdFromLabel(label);
+  return (
   <div className="w-full text-left">
-    <label className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${disabled ? 'opacity-60' : ''}`}>{label}</label>
+    <label htmlFor={fieldId} className={`block text-gray-600 text-[15px] font-bold mb-1.5 ${disabled ? 'opacity-60' : ''}`}>{label}</label>
     <textarea
+      id={fieldId}
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
@@ -529,6 +549,7 @@ const TextAreaField = ({ label, value, onChange, disabled }: TextAreaFieldProps)
       }`}
     />
   </div>
-);
+  );
+};
 
 export default EditOwnerForm;

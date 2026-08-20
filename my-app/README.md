@@ -1,6 +1,17 @@
-# React + TypeScript + Vite
+# Ownership Portal (React + TypeScript + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend for the Ownership Portal. Uses Vite with HMR and ESLint.
+
+## Accessibility (WCAG 2.1 AA / axe)
+
+Uses the same **axe-core** engine as axe DevTools (Playwright). With the app running on `http://localhost:3000`:
+
+```bash
+npm run a11y          # full-page audit across search, detail, chart, modals
+node scripts/a11y-full-scan.mjs
+```
+
+Reports are written to `a11y-report.json` and `a11y-full-report.json`.
 
 Currently, two official plugins are available:
 

@@ -285,7 +285,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           {/* Address section */}
           <SectionTitle>Address</SectionTitle>
           <div className="grid grid-cols-2 gap-6">
-            <SelectField label="Address Type" name="addressType" value={formData.addressType} onChange={handleChange} options={addressTypeOptions} />
+            <SelectField label="Address Type" name="addressType" value={formData.addressType} onChange={handleChange} options={addressTypeOptions} placeholder={isRefDataLoading ? 'Loading...' : 'Select'} />
             {isIndividual ? (
               <FormField label="Attention Line 1" name="attentionLine1" placeholder="Attention Line 1" value={formData.attentionLine1} onChange={handleChange} />
             ) : (
@@ -396,7 +396,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
-                <SelectField label="Professional Type" name="professionalType" value={formData.professionalType} onChange={handleChange} options={professionalTypeOptions} placeholder="Select Professional Type" />
+                <SelectField label="Professional Type" name="professionalType" value={formData.professionalType} onChange={handleChange} options={professionalTypeOptions} placeholder={isRefDataLoading ? 'Loading...' : 'Select Professional Type'} />
                 <FormField label="Professional Lic. Number" name="professionalLicNumber" placeholder="Professional Lic. Number" value={formData.professionalLicNumber} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-2 gap-6">
@@ -412,7 +412,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
                 <FormField label="State Sales Tax Number" name="stateSalesTaxNumber" placeholder="State Sales Tax Number" value={formData.stateSalesTaxNumber} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-2 gap-6">
-                <SelectField label="Professional License Type" name="professionalLicenseType" value={formData.professionalLicenseType} onChange={handleChange} options={professionalTypeOptions} placeholder="--" />
+                <SelectField label="Professional License Type" name="professionalLicenseType" value={formData.professionalLicenseType} onChange={handleChange} options={professionalTypeOptions} placeholder={isRefDataLoading ? 'Loading...' : '--'} />
                 <FormField label="Prof License #" name="profLicenseNumber" placeholder="Prof License #" value={formData.profLicenseNumber} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-2 gap-6">

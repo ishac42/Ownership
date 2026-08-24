@@ -193,7 +193,7 @@ const EditOwnerForm = ({
       {/* Address */}
       <SectionTitle>Address</SectionTitle>
       <div className="grid grid-cols-2 gap-6">
-        <SelectField label="Address Type" value={formData.addressType} onChange={(v) => handleChange('addressType', v)} options={addressTypeOptions} disabled={isLoading} placeholder="Select" />
+        <SelectField label="Address Type" value={formData.addressType} onChange={(v) => handleChange('addressType', v)} options={addressTypeOptions} disabled={isLoading || isRefDataLoading} placeholder={isRefDataLoading ? 'Loading...' : 'Select'} />
         {isIndividual ? (
           <InputField label="Attention Line 1" value={formData.attentionLine1} onChange={(v) => handleChange('attentionLine1', v)} disabled={isLoading} />
         ) : (
@@ -316,7 +316,7 @@ const EditOwnerForm = ({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-6">
-            <SelectField label="Professional Type" value={formData.professionalType} onChange={(v) => handleChange('professionalType', v)} options={professionalTypeOptions} disabled={isLoading} placeholder="Select Professional Type" />
+            <SelectField label="Professional Type" value={formData.professionalType} onChange={(v) => handleChange('professionalType', v)} options={professionalTypeOptions} disabled={isLoading || isRefDataLoading} placeholder={isRefDataLoading ? 'Loading...' : 'Select Professional Type'} />
             <InputField label="Professional Lic. Number" value={formData.professionalLicNumber} onChange={(v) => handleChange('professionalLicNumber', v)} disabled={isLoading} />
           </div>
           <div className="grid grid-cols-2 gap-6">
@@ -332,7 +332,7 @@ const EditOwnerForm = ({
             <InputField label="State Sales Tax Number" value={formData.stateSalesTaxNumber} onChange={(v) => handleChange('stateSalesTaxNumber', v)} disabled={isLoading} />
           </div>
           <div className="grid grid-cols-2 gap-6">
-            <SelectField label="Professional License Type" value={formData.professionalLicenseType} onChange={(v) => handleChange('professionalLicenseType', v)} options={professionalTypeOptions} disabled={isLoading} placeholder="--" />
+            <SelectField label="Professional License Type" value={formData.professionalLicenseType} onChange={(v) => handleChange('professionalLicenseType', v)} options={professionalTypeOptions} disabled={isLoading || isRefDataLoading} placeholder={isRefDataLoading ? 'Loading...' : '--'} />
             <InputField label="Prof License #" value={formData.profLicenseNumber} onChange={(v) => handleChange('profLicenseNumber', v)} disabled={isLoading} />
           </div>
           <div className="grid grid-cols-2 gap-6">

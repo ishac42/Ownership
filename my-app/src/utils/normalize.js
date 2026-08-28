@@ -73,6 +73,9 @@ export const normalizeEntity = (node) => ({
   parentRefNbr: node.parentRefNbr || '',
   isChildOfCurrent: node.isChildOfCurrent || false,
   isLicenseNode: node.isLicenseNode || false,
+  licenseType: node.licenseType || '',
+  businessName: node.businessName || '',
+  locationAddress: node.locationAddress || '',
 
   // Recursive mapping for the nested tree structure
   relatedContacts: Array.isArray(node.relatedContacts)

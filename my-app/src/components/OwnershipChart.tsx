@@ -12,6 +12,12 @@ import {
   getOwnerReferenceNbr,
 } from '../utils/ownershipStatus';
 import { prepareOwnershipChildren } from '../utils/ownershipTree';
+import {
+  collectLicenseDetails,
+  relatedLicenseFromItem,
+  upsertRelatedLicense,
+  type RelatedLicense,
+} from '../utils/relatedLicenses';
 
 // --- Imports ---
 import AddOwnerForm from "./AddOwnerForm"; 
@@ -68,29 +74,12 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       baseChildren = entity?.relatedContacts ? [...entity.relatedContacts] : [];
     }
 
-    // 2. Extract all individual unique licenses found on this node
-    const uniqueLicenses = new Set<string>();
-
-    // Read pre-processed array from our top-level grouping
-    if (Array.isArray(entity?._licenses)) {
-      entity._licenses.forEach((lic: any) => {
-        if (lic) uniqueLicenses.add(String(lic).trim());
-      });
-    }
-
-    // Fallbacks for inline strings (comma/space-separated) or other raw database casings
-    const licenseFields = [entity?.licenseAltId, entity?.LICENSESALTID, entity?.licensesAltId, (current as any)?.licenseAltId];
-    licenseFields.forEach(field => {
-      if (typeof field === 'string' && field.trim() !== "") {
-        field.split(/[\s,;]+/).forEach(lic => {
-          if (lic.trim()) uniqueLicenses.add(lic.trim());
-        });
-      }
-    });
+    // 2. Extract unique licenses on this node (alt ID + reverse-lookup details)
+    const licenseDetails = collectLicenseDetails(entity, (current as any)?.licenseAltId);
 
     // 3. Inject separate visual child nodes for each license found
     if (!isLicenseNode) {
-      uniqueLicenses.forEach(licenseId => {
+      licenseDetails.forEach((rec, licenseId) => {
         const alreadyExists = baseChildren.some(child => child.isLicenseNode && child.ownerName === licenseId);
         if (!alreadyExists) {
           baseChildren.push({
@@ -99,6 +88,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
             ownershipType: 'License',
             isLicenseNode: true,
             referenceNbr: `lic-${licenseId}`,
+            licenseType: rec.licenseType,
+            businessName: rec.businessName,
+            locationAddress: rec.locationAddress,
             relatedContacts: []
           });
         }
@@ -130,6 +122,25 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
             <p className="text-xs font-bold uppercase truncate" title={current.ownerName}>
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
             </p>
+            {isLicenseNode && isReverseRelation && (
+              <div className="mt-2 space-y-1 normal-case" aria-label="License record details">
+                {current.licenseType ? (
+                  <p className="text-[10px] leading-snug break-words" title={current.licenseType}>
+                    {current.licenseType}
+                  </p>
+                ) : null}
+                {current.businessName ? (
+                  <p className="text-[10px] leading-snug break-words" title={current.businessName}>
+                    {current.businessName}
+                  </p>
+                ) : null}
+                {current.locationAddress ? (
+                  <p className="text-[10px] leading-snug break-words opacity-90" title={current.locationAddress}>
+                    {current.locationAddress}
+                  </p>
+                ) : null}
+              </div>
+            )}
             {nodeTerminated && (
               <span className="text-[9px] font-bold uppercase mt-1 px-1.5 py-0.5 rounded bg-black text-white w-fit">
                 Terminated
@@ -395,14 +406,12 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       if (!item) return;
       // Combine business name and account reference ID to create unique mapping keys
       const identityKey = `${item.ownerName || ''}_${item.referenceNbr || ''}`;
-      const activeLicense = item.licenseAltId || item.LICENSESALTID || item.licensesAltId || '';
+      const activeLicense = relatedLicenseFromItem(item);
 
       if (uniqueRootMap.has(identityKey)) {
         const existingNode = uniqueRootMap.get(identityKey);
-        // Append unique licenses to string tracking arrays
-        if (activeLicense && !existingNode._licenses.includes(activeLicense)) {
-          existingNode._licenses.push(activeLicense);
-        }
+        if (!Array.isArray(existingNode._licenses)) existingNode._licenses = [];
+        upsertRelatedLicense(existingNode._licenses as RelatedLicense[], activeLicense);
         // Merge downstream related nested structures cleanly
         if (Array.isArray(item.relatedContacts)) {
           item.relatedContacts.forEach((child: any) => {
@@ -413,7 +422,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       } else {
         const structuralClone = { 
           ...item,
-          _licenses: activeLicense ? [activeLicense] : [],
+          _licenses: activeLicense ? [activeLicense] : ([] as RelatedLicense[]),
           relatedContacts: Array.isArray(item.relatedContacts) ? [...item.relatedContacts] : []
         };
         uniqueRootMap.set(identityKey, structuralClone);
@@ -447,12 +456,11 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
     reverseData.forEach(item => {
       const key = `${item.ownerName || ''}_${item.referenceNbr || ''}`;
       const existing = parentMap.get(key);
-      const currentLic = item.licenseAltId || item.LICENSESALTID || item.licensesAltId || '';
+      const currentLic = relatedLicenseFromItem(item);
       
       if (existing) {
-        if (currentLic && !existing._licenses.includes(currentLic)) {
-          existing._licenses.push(currentLic);
-        }
+        if (!Array.isArray(existing._licenses)) existing._licenses = [];
+        upsertRelatedLicense(existing._licenses as RelatedLicense[], currentLic);
       } else {
         const newItem = { ...item };
         newItem._licenses = currentLic ? [currentLic] : [];

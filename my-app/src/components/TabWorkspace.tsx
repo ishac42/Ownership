@@ -1,22 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { List, BarChart3, X, Building2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { List, BarChart3, X, Building2, Loader2 } from 'lucide-react';
 import OwnershipList from './OwnershipList';
 import OwnershipChart from './OwnershipChart';
+import { getEntityRef, ownershipTabId } from '../utils/entityType';
+import { patchOwnerInTree } from '../utils/ownershipTree';
 
 interface TabWorkspaceProps {
   selectedRecord: any;
   onRefresh: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  loadEntityByRef: (referenceNo: string) => Promise<any | null>;
   bulkCache: Record<string, any[]>;
 }
 
-const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, onOwnerUpdated, bulkCache }) => {
+const TabWorkspace: React.FC<TabWorkspaceProps> = ({
+  selectedRecord,
+  onRefresh,
+  onOwnerUpdated,
+  loadEntityByRef,
+  bulkCache,
+}) => {
   const [tabs, setTabs] = useState<any[]>([
     { id: 'main', title: 'Entity Details', type: 'main', entity: null, viewMode: 'list' }
   ]);
   const [activeTabId, setActiveTabId] = useState('main');
   
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+  const ownershipFetchInFlight = useRef(new Set<string>());
 
   const mainRecordId = selectedRecord?.referenceNbr || selectedRecord?.referenceNumber || selectedRecord?.id;
 
@@ -68,6 +78,105 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
     setActiveTabId(tabId);
   };
 
+  const handleViewOperatingEntity = async (entity: any) => {
+    const ref = getEntityRef(entity);
+    if (!ref) {
+      alert('This operating entity has no reference number.');
+      return;
+    }
+
+    const tabId = ownershipTabId(ref);
+    const existing = tabs.find((t) => t.id === tabId);
+    let blockedByLimit = false;
+
+    setTabs((prev) => {
+      if (prev.some((t) => t.id === tabId)) return prev;
+      if (prev.length >= 13) {
+        blockedByLimit = true;
+        return prev;
+      }
+      return [
+        ...prev,
+        {
+          id: tabId,
+          title: entity.ownerName || entity.firstName || 'Operating Entity',
+          type: 'ownership',
+          entity: null,
+          viewMode: 'chart',
+          loading: true,
+          error: null,
+          referenceNbr: ref,
+        },
+      ];
+    });
+
+    if (blockedByLimit) {
+      alert('Maximum limit of 13 tabs reached. Please close a tab to open a new one.');
+      return;
+    }
+
+    setActiveTabId(tabId);
+
+    if (existing?.entity && !existing.loading && !existing.error) {
+      return;
+    }
+    if (ownershipFetchInFlight.current.has(ref)) {
+      return;
+    }
+
+    ownershipFetchInFlight.current.add(ref);
+    try {
+      const record = await loadEntityByRef(ref);
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === tabId
+            ? {
+                ...t,
+                entity: record,
+                loading: false,
+                error: record ? null : 'No ownership structure found for this entity.',
+                title: record?.ownerName || t.title,
+              }
+            : t
+        )
+      );
+    } catch (error) {
+      console.error('Failed to load operating entity ownership structure:', error);
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === tabId
+            ? {
+                ...t,
+                loading: false,
+                error: 'Could not load ownership structure for this operating entity.',
+              }
+            : t
+        )
+      );
+    } finally {
+      ownershipFetchInFlight.current.delete(ref);
+    }
+  };
+
+  const refreshOwnershipTab = async (tabId: string, ref: string) => {
+    try {
+      const record = await loadEntityByRef(ref);
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === tabId
+            ? {
+                ...t,
+                entity: record,
+                error: record ? null : 'No ownership structure found for this entity.',
+              }
+            : t
+        )
+      );
+    } catch (error) {
+      console.error('Failed to refresh operating entity ownership structure:', error);
+    }
+  };
+
   const handleCloseTab = (tabId: string) => {
     setTabs(prev => prev.filter(t => t.id !== tabId));
     if (activeTabId === tabId) setActiveTabId('main');
@@ -110,7 +219,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
                     : 'bg-[#dadce0] border-transparent text-slate-600 hover:bg-[#f1f3f4]'
                 }`}
               >
-                {tab.type === 'main'
+                {tab.type === 'main' || tab.type === 'ownership'
                   ? <Building2 size={12} className={isActive ? 'text-blue-600' : 'text-slate-500'} aria-hidden="true" />
                   : <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-blue-500' : 'bg-slate-400'}`} aria-hidden="true" />}
                 <span className="truncate flex-1 text-left uppercase">{tab.title}</span>
@@ -196,12 +305,45 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
                           onRefresh={onRefresh}
                           onOwnerUpdated={onOwnerUpdated}
                           onViewRelated={handleViewRelated}
+                          onViewOperatingEntity={handleViewOperatingEntity}
                           isReverseRelation={false}
                           reverseData={null}
                         />
                       </div>
                     </div>
                   </>
+                ) : tab.type === 'ownership' ? (
+                  <div className="block animate-in fade-in duration-200">
+                    {tab.loading ? (
+                      <div className="flex justify-center items-center py-20" role="status">
+                        <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
+                        <span className="sr-only">Loading ownership structure</span>
+                      </div>
+                    ) : tab.error ? (
+                      <div className="text-center py-20 text-slate-600 italic">{tab.error}</div>
+                    ) : tab.entity ? (
+                      <div className="overflow-x-auto pb-10 flex justify-center">
+                        <OwnershipChart
+                          entity={tab.entity}
+                          onRefresh={() => refreshOwnershipTab(tab.id, tab.referenceNbr)}
+                          onOwnerUpdated={(refNbr, updates) => {
+                            onOwnerUpdated?.(refNbr, updates);
+                            setTabs((prev) =>
+                              prev.map((t) =>
+                                t.id === tab.id && t.entity
+                                  ? { ...t, entity: patchOwnerInTree(t.entity, refNbr, updates) }
+                                  : t
+                              )
+                            );
+                          }}
+                          onViewRelated={handleViewRelated}
+                          onViewOperatingEntity={handleViewOperatingEntity}
+                          isReverseRelation={false}
+                          reverseData={null}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
                   /* --- RELATED (REVERSE) TABS --- */
                   <div className="block animate-in fade-in duration-200">
@@ -211,6 +353,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
                         onRefresh={onRefresh}
                         onOwnerUpdated={onOwnerUpdated}
                         onViewRelated={handleViewRelated}
+                        onViewOperatingEntity={handleViewOperatingEntity}
                         isReverseRelation={true}
                         reverseData={bulkCache[tab.id] ?? null}
                       />

@@ -353,12 +353,9 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                       <div className="overflow-x-auto pb-10 flex justify-center">
                         <OwnershipChart
                           entity={tab.entity}
-                          onRefresh={onRefresh}
-                          onOwnerUpdated={onOwnerUpdated}
-                          onViewRelated={handleViewRelated}
-                          onViewOperatingEntity={handleViewOperatingEntity}
                           isReverseRelation={false}
                           reverseData={null}
+                          viewOnly
                         />
                       </div>
                     ) : tab.loadError ? (

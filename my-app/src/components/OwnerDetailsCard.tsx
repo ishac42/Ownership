@@ -15,9 +15,10 @@ interface OwnerDetailsCardProps {
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   currentTotalPercentage?: number; 
   isFromList?: boolean;
+  readOnly?: boolean;
 }
 
-const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTotalPercentage, isFromList }: OwnerDetailsCardProps) => {
+const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTotalPercentage, isFromList, readOnly = false }: OwnerDetailsCardProps) => {
   const { recordID } = usePortalParams();
   const { getEffectiveStatus, setStatusOverride } = useOwnershipStatus();
   const [isEditing, setIsEditing] = useState(false);
@@ -375,7 +376,9 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
                 />
 
                 <div className="flex justify-end gap-5 pt-6">
-                  <button onClick={() => setIsEditing(true)} className="px-14 py-2.5 border-2 border-[#2c3e76] text-[#2c3e76] font-bold rounded-md bg-white hover:bg-gray-50 transition-colors">Edit</button>
+                  {!readOnly && (
+                    <button onClick={() => setIsEditing(true)} className="px-14 py-2.5 border-2 border-[#2c3e76] text-[#2c3e76] font-bold rounded-md bg-white hover:bg-gray-50 transition-colors">Edit</button>
+                  )}
                   <button onClick={onClose} className="px-16 py-2.5 bg-[#2c3e76] text-white font-bold rounded-md hover:bg-[#1e2a52] transition-colors">OK</button>
                 </div>
               </div>

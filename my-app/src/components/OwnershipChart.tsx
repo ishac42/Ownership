@@ -38,7 +38,8 @@ interface RecursiveTreeProps {
   parentRefNbr?: string;
   siblingTotalPercentage?: number; 
   isReverseRelation?: boolean; 
-  reverseData?: any[] | null;  
+  reverseData?: any[] | null;
+  viewOnly?: boolean;
 }
 
 export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
@@ -51,7 +52,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   parentRefNbr = "",
   siblingTotalPercentage,
   isReverseRelation = false,
-  reverseData = null
+  reverseData = null,
+  viewOnly = false,
 }) => {
   const { showTerminated, isEffectivelyTerminated } = useOwnershipStatus();
   const [localChildren, setLocalChildren] = useState<any[]>([]);
@@ -196,7 +198,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
           {!isLicenseNode && (
             <div className="flex items-center gap-2" role="toolbar" aria-label={`Actions for ${current.ownerName || 'entity'}`}>
-              {!isReverseRelation && (
+              {!viewOnly && !isReverseRelation && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -222,7 +224,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                 <Eye size={14} className="opacity-80 group-hover:opacity-100" aria-hidden="true" />
               </button>
 
-              {isChild && !isReverseRelation && (
+              {!viewOnly && isChild && !isReverseRelation && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -236,7 +238,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                 </button>
               )}
 
-              {!isIndividual && !isReverseRelation && (
+              {!viewOnly && !isIndividual && !isReverseRelation && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -281,6 +283,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   siblingTotalPercentage={childrenTotalPercentage}
                   isReverseRelation={isReverseRelation}
                   reverseData={null}
+                  viewOnly={viewOnly}
                 />
               </div>
             ))}
@@ -299,7 +302,8 @@ interface OwnershipChartProps {
   onViewRelated?: (entity: any) => void;
   onViewOperatingEntity?: (entity: any) => void;
   isReverseRelation?: boolean; 
-  reverseData?: any[] | null;   
+  reverseData?: any[] | null;
+  viewOnly?: boolean;
 }
 
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
@@ -309,7 +313,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   onViewRelated,
   onViewOperatingEntity,
   isReverseRelation = false,
-  reverseData = null
+  reverseData = null,
+  viewOnly = false,
 }) => {
   const { showTerminated, setShowTerminated, isEffectivelyTerminated } = useOwnershipStatus();
   const hiddenTerminatedCount = countTerminatedInSubtree(entity, isEffectivelyTerminated);
@@ -543,7 +548,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         </div>
       )}
 
-      {addingToParent && (
+      {!viewOnly && addingToParent && (
         <AddOwnerForm 
           onCancel={() => setAddingToParent(null)} 
           onSave={handleSaveOwner} 
@@ -556,17 +561,18 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
           key={getOwnerReferenceNbr(selectedOwner)}
           owner={selectedOwner}
           onClose={() => setSelectedOwner(null)}
-          onRefresh={handleEditRefresh}
-          onOwnerUpdated={(refNbr, updates) => {
+          onRefresh={viewOnly ? undefined : handleEditRefresh}
+          onOwnerUpdated={viewOnly ? undefined : (refNbr, updates) => {
             onOwnerUpdated?.(refNbr, updates);
             setSelectedOwner((prev: any) => (prev ? { ...prev, ...updates } : null));
           }}
           currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : selectedOwner.totalChildrenPercentage}
           isFromList={false}
+          readOnly={viewOnly}
         />
       )}
 
-      {deleteContext && (
+      {!viewOnly && deleteContext && (
         <div
           className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm"
           role="dialog"
@@ -643,6 +649,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                             onDelete={handleDeleteClick} 
                             isReverseRelation={isReverseRelation}
                             reverseData={processedReverseData}
+                            viewOnly={viewOnly}
                           />
                     </div>
                 </TransformComponent>

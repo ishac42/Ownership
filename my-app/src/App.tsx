@@ -18,6 +18,7 @@ const App = () => {
   isLoading, handleSearch,
   refreshSelectedRecord,
   patchOwnerInSelectedRecord,
+  loadEntityByRef,
   bulkCache,
 } = useOwnershipSearch();
   
@@ -157,6 +158,7 @@ const App = () => {
                 selectedRecord={selectedRecord} 
                 onRefresh={refreshSelectedRecord}
                 onOwnerUpdated={patchOwnerInSelectedRecord}
+                loadEntityByRef={loadEntityByRef}
                 bulkCache={bulkCache}
               />
             )}

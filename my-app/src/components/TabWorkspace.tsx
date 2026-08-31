@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { List, BarChart3, X, Building2 } from 'lucide-react';
+import { List, BarChart3, X, Building2, Loader2 } from 'lucide-react';
 import OwnershipList from './OwnershipList';
 import OwnershipChart from './OwnershipChart';
 import { getEntityRef, ownershipTabId } from '../utils/entityType';
@@ -100,6 +100,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
           title: entity.ownerName || entity.firstName || 'Operating Entity',
           type: 'ownership',
           entity: null,
+          loading: true,
+          loadError: null,
           viewMode: 'chart',
         },
       ]);
@@ -107,14 +109,29 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     setActiveTabId(tabId);
 
     const existing = tabs.find((t) => t.id === tabId);
-    if (existing?.entity?.relatedContacts || ownershipFetchInFlight.current.has(ref)) {
+    if (existing?.entity || ownershipFetchInFlight.current.has(ref)) {
       return;
+    }
+
+    if (tabExists) {
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, loading: true, loadError: null } : t))
+      );
     }
 
     ownershipFetchInFlight.current.add(ref);
     void loadEntityByRef(ref)
       .then((record) => {
-        if (!record) return;
+        if (!record) {
+          setTabs((prev) =>
+            prev.map((t) =>
+              t.id === tabId
+                ? { ...t, entity: null, loading: false, loadError: 'No ownership record found for this operating entity.' }
+                : t
+            )
+          );
+          return;
+        }
         const forwardTree = {
           ...record,
           relatedContacts: Array.isArray(record.relatedContacts) ? record.relatedContacts : [],
@@ -126,13 +143,31 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
         setTabs((prev) =>
           prev.map((t) =>
             t.id === tabId
-              ? { ...t, entity: forwardTree, title: forwardTree.ownerName || t.title }
+              ? {
+                  ...t,
+                  entity: forwardTree,
+                  title: forwardTree.ownerName || t.title,
+                  loading: false,
+                  loadError: null,
+                }
               : t
           )
         );
       })
       .catch((error) => {
         console.error('Failed to load operating entity chart:', error);
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.id === tabId
+              ? {
+                  ...t,
+                  entity: null,
+                  loading: false,
+                  loadError: 'Could not load this operating entity chart. Try the link again.',
+                }
+              : t
+          )
+        );
       })
       .finally(() => {
         ownershipFetchInFlight.current.delete(ref);
@@ -275,7 +310,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                     </div>
                   </>
                 ) : tab.type === 'ownership' ? (
-                  <div className="block animate-in fade-in duration-200">
+                  <div className="block animate-in fade-in duration-200" aria-busy={Boolean(tab.loading && !tab.entity)}>
                     {tab.entity ? (
                       <div className="overflow-x-auto pb-10 flex justify-center">
                         <OwnershipChart
@@ -288,7 +323,16 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                           reverseData={null}
                         />
                       </div>
-                    ) : null}
+                    ) : tab.loadError ? (
+                      <div className="flex items-center justify-center min-h-[360px] px-6" role="alert">
+                        <p className="text-sm text-slate-600 text-center">{tab.loadError}</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center min-h-[360px] gap-3" role="status" aria-live="polite">
+                        <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
+                        <p className="text-sm font-medium text-slate-600">Loading ownership chart…</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   /* --- RELATED (REVERSE) TABS --- */

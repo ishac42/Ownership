@@ -38,6 +38,7 @@ export const useOwnershipSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [bulkCache, setBulkCache] = useState<Record<string, any[]>>({});
   const ownerPatchesRef = useRef<Record<string, Record<string, unknown>>>({});
+  const entityByRefCache = useRef<Record<string, any>>({});
 
   const handleSearch = async () => {
     if (!searchName && !refNo && !nvBusId)
@@ -47,6 +48,7 @@ export const useOwnershipSearch = () => {
     setSelectedRecord(null);
     setBulkCache({});
     ownerPatchesRef.current = {};
+    entityByRefCache.current = {};
     setIsLoading(true);
 
     try {
@@ -126,6 +128,10 @@ export const useOwnershipSearch = () => {
     const ref = String(referenceNo || '').trim();
     if (!ref || ref === 'N/A') return null;
 
+    if (entityByRefCache.current[ref]) {
+      return applyAllOwnerPatches(entityByRefCache.current[ref], ownerPatchesRef.current);
+    }
+
     const searchRes = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -144,24 +150,27 @@ export const useOwnershipSearch = () => {
       owners[0];
     if (!match) return null;
 
+    entityByRefCache.current[ref] = match;
+
     const uniqueRefs = extractChildReferenceNumbers(match);
     if (uniqueRefs.length > 0) {
-      try {
-        const reverseRes = await fetch(`${API_BASE_URL}/api/reverseRelation`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ referenceNumbers: uniqueRefs }),
-        });
-        if (reverseRes.ok) {
+      void fetch(`${API_BASE_URL}/api/reverseRelation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referenceNumbers: uniqueRefs }),
+      })
+        .then(async (reverseRes) => {
+          if (!reverseRes.ok) {
+            console.error('Reverse relation request failed:', reverseRes.status);
+            return;
+          }
           const reverseData = await reverseRes.json();
           const incoming = buildCacheMap(Array.isArray(reverseData) ? reverseData : []);
           setBulkCache((prev) => ({ ...prev, ...incoming }));
-        } else {
-          console.error('Reverse relation request failed:', reverseRes.status);
-        }
-      } catch (error) {
-        console.error('Reverse relation request failed for operating entity:', error);
-      }
+        })
+        .catch((error) => {
+          console.error('Reverse relation request failed for operating entity:', error);
+        });
     }
 
     return applyAllOwnerPatches(match, ownerPatchesRef.current);

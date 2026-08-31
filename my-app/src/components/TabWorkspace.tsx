@@ -86,38 +86,39 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     }
 
     const tabId = ownershipTabId(ref);
-    const existing = tabs.find((t) => t.id === tabId);
-    let blockedByLimit = false;
+    const tabExists = tabs.some((t) => t.id === tabId);
 
-    setTabs((prev) => {
-      if (prev.some((t) => t.id === tabId)) return prev;
-      if (prev.length >= 13) {
-        blockedByLimit = true;
-        return prev;
-      }
-      return [
+    if (!tabExists && tabs.length >= 13) {
+      alert('Maximum limit of 13 tabs reached. Please close a tab to open a new one.');
+      return;
+    }
+
+    const placeholder = {
+      ...entity,
+      referenceNbr: ref,
+      referenceNumber: ref,
+      relatedContacts: [],
+    };
+
+    if (!tabExists) {
+      setTabs((prev) => [
         ...prev,
         {
           id: tabId,
           title: entity.ownerName || entity.firstName || 'Operating Entity',
           type: 'ownership',
-          entity: null,
+          entity: placeholder,
           viewMode: 'chart',
           loading: true,
           error: null,
           referenceNbr: ref,
         },
-      ];
-    });
-
-    if (blockedByLimit) {
-      alert('Maximum limit of 13 tabs reached. Please close a tab to open a new one.');
-      return;
+      ]);
     }
-
     setActiveTabId(tabId);
 
-    if (existing?.entity && !existing.loading && !existing.error) {
+    const existing = tabs.find((t) => t.id === tabId);
+    if (existing && !existing.loading && !existing.error) {
       return;
     }
     if (ownershipFetchInFlight.current.has(ref)) {
@@ -132,10 +133,11 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
           t.id === tabId
             ? {
                 ...t,
-                entity: record,
+                entity: record || t.entity || placeholder,
                 loading: false,
-                error: record ? null : 'No ownership structure found for this entity.',
+                error: record ? null : t.error,
                 title: record?.ownerName || t.title,
+                viewMode: 'chart',
               }
             : t
         )
@@ -148,7 +150,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
             ? {
                 ...t,
                 loading: false,
-                error: 'Could not load ownership structure for this operating entity.',
+                error: 'Could not load the full ownership structure. Showing this operating entity.',
+                viewMode: 'chart',
               }
             : t
         )
@@ -244,8 +247,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
       <div className="bg-white px-5 py-3 rounded-b-xl min-h-[450px]">
         <h2 className="sr-only">{activeTab.title} workspace</h2>
         
-        {/* Only show the toggle buttons if it is the main tab */}
-        {activeTabId === 'main' && (
+        {(activeTabId === 'main' || activeTab?.type === 'ownership') && (
           <div className="flex justify-end items-center mb-3" role="group" aria-label="View mode">
             <div className="flex border border-slate-200 rounded shadow-sm bg-white overflow-hidden">
               <button 
@@ -314,34 +316,61 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                   </>
                 ) : tab.type === 'ownership' ? (
                   <div className="block animate-in fade-in duration-200">
-                    {tab.loading ? (
-                      <div className="flex justify-center items-center py-20" role="status">
-                        <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
-                        <span className="sr-only">Loading ownership structure</span>
+                    {tab.loading && (
+                      <div className="flex items-center justify-center gap-2 pb-3 text-slate-600 text-xs" role="status">
+                        <Loader2 className="animate-spin text-[#2c3e76]" size={16} aria-hidden="true" />
+                        Loading ownership chart for this operating entity…
                       </div>
-                    ) : tab.error ? (
-                      <div className="text-center py-20 text-slate-600 italic">{tab.error}</div>
-                    ) : tab.entity ? (
-                      <div className="overflow-x-auto pb-10 flex justify-center">
-                        <OwnershipChart
-                          entity={tab.entity}
-                          onRefresh={() => refreshOwnershipTab(tab.id, tab.referenceNbr)}
-                          onOwnerUpdated={(refNbr, updates) => {
-                            onOwnerUpdated?.(refNbr, updates);
-                            setTabs((prev) =>
-                              prev.map((t) =>
-                                t.id === tab.id && t.entity
-                                  ? { ...t, entity: patchOwnerInTree(t.entity, refNbr, updates) }
-                                  : t
-                              )
-                            );
-                          }}
-                          onViewRelated={handleViewRelated}
-                          onViewOperatingEntity={handleViewOperatingEntity}
-                          isReverseRelation={false}
-                          reverseData={null}
-                        />
-                      </div>
+                    )}
+                    {tab.error && (
+                      <div className="text-center pb-3 text-amber-800 text-xs">{tab.error}</div>
+                    )}
+                    {tab.entity ? (
+                      <>
+                        <div className={`${viewMode === 'list' ? 'block animate-in fade-in duration-200' : 'hidden'}`}>
+                          <OwnershipList
+                            entity={tab.entity}
+                            onRefresh={() => refreshOwnershipTab(tab.id, tab.referenceNbr)}
+                            onOwnerUpdated={(refNbr, updates) => {
+                              onOwnerUpdated?.(refNbr, updates);
+                              setTabs((prev) =>
+                                prev.map((t) =>
+                                  t.id === tab.id && t.entity
+                                    ? { ...t, entity: patchOwnerInTree(t.entity, refNbr, updates) }
+                                    : t
+                                )
+                              );
+                            }}
+                            onViewRelated={handleViewRelated}
+                            isReverseRelation={false}
+                            reverseData={null}
+                            expandedNodes={expandedNodes}
+                            setExpandedNodes={setExpandedNodes}
+                          />
+                        </div>
+                        <div className={`${viewMode === 'chart' ? 'block animate-in fade-in duration-200' : 'hidden'}`}>
+                          <div className="overflow-x-auto pb-10 flex justify-center">
+                            <OwnershipChart
+                              entity={tab.entity}
+                              onRefresh={() => refreshOwnershipTab(tab.id, tab.referenceNbr)}
+                              onOwnerUpdated={(refNbr, updates) => {
+                                onOwnerUpdated?.(refNbr, updates);
+                                setTabs((prev) =>
+                                  prev.map((t) =>
+                                    t.id === tab.id && t.entity
+                                      ? { ...t, entity: patchOwnerInTree(t.entity, refNbr, updates) }
+                                      : t
+                                  )
+                                );
+                              }}
+                              onViewRelated={handleViewRelated}
+                              onViewOperatingEntity={handleViewOperatingEntity}
+                              isReverseRelation={false}
+                              reverseData={null}
+                            />
+                          </div>
+                        </div>
+                      </>
                     ) : null}
                   </div>
                 ) : (

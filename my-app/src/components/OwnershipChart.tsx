@@ -126,16 +126,19 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
               <div className="mt-2 space-y-1 normal-case" aria-label="License record details">
                 {current.licenseType ? (
                   <p className="text-[10px] leading-snug break-words" title={current.licenseType}>
+                    <span className="font-semibold opacity-80">License Type: </span>
                     {current.licenseType}
                   </p>
                 ) : null}
                 {current.businessName ? (
                   <p className="text-[10px] leading-snug break-words" title={current.businessName}>
+                    <span className="font-semibold opacity-80">Business Name: </span>
                     {current.businessName}
                   </p>
                 ) : null}
                 {current.locationAddress ? (
                   <p className="text-[10px] leading-snug break-words opacity-90" title={current.locationAddress}>
+                    <span className="font-semibold opacity-80">Location Address: </span>
                     {current.locationAddress}
                   </p>
                 ) : null}

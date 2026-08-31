@@ -183,7 +183,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   e.stopPropagation();
                   onViewOperatingEntity?.({ ...entity, ...current });
                 }}
-                className="oe-ownership-link text-[10px] font-semibold tracking-wide underline decoration-2 underline-offset-2 decoration-white hover:bg-white/20 rounded px-1 -mx-1 py-0.5"
+                className="oe-ownership-link text-[10px] font-semibold tracking-wide text-white/90 hover:text-white border-b border-white/40 hover:border-white pb-px transition-colors cursor-pointer"
                 aria-label={`Open ownership chart for ${current.ownerName || 'this operating entity'}`}
                 title="Open ownership chart in a new tab"
               >

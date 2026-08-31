@@ -39,6 +39,79 @@ export const useOwnershipSearch = () => {
   const [bulkCache, setBulkCache] = useState<Record<string, any[]>>({});
   const ownerPatchesRef = useRef<Record<string, Record<string, unknown>>>({});
   const entityByRefCache = useRef<Record<string, any>>({});
+  const reverseInFlight = useRef<Record<string, Promise<void>>>({});
+  const reverseCacheRef = useRef<Record<string, any[]>>({});
+
+  const loadReverseForRefs = useCallback(async (referenceNumbers: string[]) => {
+    const uniqueRefs = [...new Set(
+      (referenceNumbers || [])
+        .map((value) => String(value || '').trim())
+        .filter((ref) => ref && ref !== 'N/A')
+    )];
+    if (uniqueRefs.length === 0) return;
+
+    const pending: Promise<void>[] = [];
+    const toFetch: string[] = [];
+
+    uniqueRefs.forEach((ref) => {
+      if (Object.prototype.hasOwnProperty.call(reverseCacheRef.current, ref)) return;
+      const inflight = reverseInFlight.current[ref];
+      if (inflight) {
+        pending.push(inflight);
+        return;
+      }
+      toFetch.push(ref);
+    });
+
+    if (toFetch.length > 0) {
+      const fetchPromise = (async () => {
+        try {
+          const reverseRes = await fetch(`${API_BASE_URL}/api/reverseRelation`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ referenceNumbers: toFetch }),
+          });
+          if (!reverseRes.ok) {
+            throw new Error(`Reverse relation request failed (${reverseRes.status})`);
+          }
+          const reverseData = await reverseRes.json();
+          const mapped = buildCacheMap(Array.isArray(reverseData) ? reverseData : []);
+          const immediate = { ...reverseCacheRef.current, ...mapped };
+          toFetch.forEach((ref) => {
+            if (!Object.prototype.hasOwnProperty.call(immediate, ref)) {
+              immediate[ref] = [];
+            }
+          });
+          reverseCacheRef.current = immediate;
+          setBulkCache((prev) => {
+            const next = { ...prev, ...mapped };
+            toFetch.forEach((ref) => {
+              if (!Object.prototype.hasOwnProperty.call(next, ref)) {
+                next[ref] = [];
+              }
+            });
+            reverseCacheRef.current = next;
+            return next;
+          });
+        } finally {
+          toFetch.forEach((ref) => {
+            delete reverseInFlight.current[ref];
+          });
+        }
+      })();
+
+      toFetch.forEach((ref) => {
+        reverseInFlight.current[ref] = fetchPromise;
+      });
+      pending.push(fetchPromise);
+    }
+
+    await Promise.all(pending);
+  }, []);
+
+  const loadReverseForEntity = useCallback(async (entity: any) => {
+    await loadReverseForRefs(extractChildReferenceNumbers(entity));
+  }, [loadReverseForRefs]);
 
   const handleSearch = async () => {
     if (!searchName && !refNo && !nvBusId)
@@ -49,6 +122,8 @@ export const useOwnershipSearch = () => {
     setBulkCache({});
     ownerPatchesRef.current = {};
     entityByRefCache.current = {};
+    reverseInFlight.current = {};
+    reverseCacheRef.current = {};
     setIsLoading(true);
 
     try {
@@ -68,13 +143,7 @@ export const useOwnershipSearch = () => {
 
       if (uniqueRefs.length === 0) return;
 
-      const reverseRes = await fetch(`${API_BASE_URL}/api/reverseRelation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ referenceNumbers: uniqueRefs }),
-      });
-      const reverseData = await reverseRes.json();
-      setBulkCache(buildCacheMap(reverseData));
+      await loadReverseForRefs(uniqueRefs);
     } catch (error) {
       console.error('Error during search:', error);
     } finally {
@@ -169,6 +238,8 @@ export const useOwnershipSearch = () => {
     refreshSelectedRecord,
     patchOwnerInSelectedRecord,
     loadEntityByRef,
+    loadReverseForRefs,
+    loadReverseForEntity,
     bulkCache,
   };
 };

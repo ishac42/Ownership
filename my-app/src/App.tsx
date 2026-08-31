@@ -19,6 +19,8 @@ const App = () => {
   refreshSelectedRecord,
   patchOwnerInSelectedRecord,
   loadEntityByRef,
+  loadReverseForRefs,
+  loadReverseForEntity,
   bulkCache,
 } = useOwnershipSearch();
   
@@ -159,6 +161,8 @@ const App = () => {
                 onRefresh={refreshSelectedRecord}
                 onOwnerUpdated={patchOwnerInSelectedRecord}
                 loadEntityByRef={loadEntityByRef}
+                loadReverseForRefs={loadReverseForRefs}
+                loadReverseForEntity={loadReverseForEntity}
                 bulkCache={bulkCache}
               />
             )}

@@ -9,6 +9,8 @@ interface TabWorkspaceProps {
   onRefresh: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   loadEntityByRef: (referenceNo: string) => Promise<any | null>;
+  loadReverseForRefs: (referenceNumbers: string[]) => Promise<void>;
+  loadReverseForEntity: (entity: any) => Promise<void>;
   bulkCache: Record<string, any[]>;
 }
 
@@ -17,6 +19,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   onRefresh,
   onOwnerUpdated,
   loadEntityByRef,
+  loadReverseForRefs,
+  loadReverseForEntity,
   bulkCache,
 }) => {
   const [tabs, setTabs] = useState<any[]>([
@@ -62,6 +66,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
       return;
     }
 
+    const reverseReady = Object.prototype.hasOwnProperty.call(bulkCache, tabId);
+
     if (!tabExists) {
       setTabs(prev => [
         ...prev,
@@ -71,10 +77,39 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
           type: 'related',
           entity,
           viewMode: 'list',
+          loading: !reverseReady,
+          loadError: null,
         },
       ]);
+    } else if (!reverseReady) {
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, loading: true, loadError: null } : t))
+      );
     }
     setActiveTabId(tabId);
+
+    if (reverseReady) return;
+
+    void loadReverseForRefs([tabId])
+      .then(() => {
+        setTabs((prev) =>
+          prev.map((t) => (t.id === tabId ? { ...t, loading: false, loadError: null } : t))
+        );
+      })
+      .catch((error) => {
+        console.error('Failed to load reverse relations:', error);
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.id === tabId
+              ? {
+                  ...t,
+                  loading: false,
+                  loadError: 'Could not load related licenses. Try the Layers icon again.',
+                }
+              : t
+          )
+        );
+      });
   };
 
   const handleViewOperatingEntity = (entity: any) => {
@@ -153,6 +188,9 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
               : t
           )
         );
+        void loadReverseForEntity(forwardTree).catch((error) => {
+          console.error('Failed to prefetch reverse relations for operating entity:', error);
+        });
       })
       .catch((error) => {
         console.error('Failed to load operating entity chart:', error);
@@ -336,18 +374,29 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                   </div>
                 ) : (
                   /* --- RELATED (REVERSE) TABS --- */
-                  <div className="block animate-in fade-in duration-200">
-                    <div className="overflow-x-auto pb-10 flex justify-center">
-                      <OwnershipChart 
-                        entity={tab.entity} 
-                        onRefresh={onRefresh}
-                        onOwnerUpdated={onOwnerUpdated}
-                        onViewRelated={handleViewRelated}
-                        onViewOperatingEntity={handleViewOperatingEntity}
-                        isReverseRelation={true}
-                        reverseData={bulkCache[tab.id] ?? null}
-                      />
-                    </div>
+                  <div className="block animate-in fade-in duration-200" aria-busy={!Object.prototype.hasOwnProperty.call(bulkCache, tab.id) && !tab.loadError}>
+                    {Object.prototype.hasOwnProperty.call(bulkCache, tab.id) ? (
+                      <div className="overflow-x-auto pb-10 flex justify-center">
+                        <OwnershipChart 
+                          entity={tab.entity} 
+                          onRefresh={onRefresh}
+                          onOwnerUpdated={onOwnerUpdated}
+                          onViewRelated={handleViewRelated}
+                          onViewOperatingEntity={handleViewOperatingEntity}
+                          isReverseRelation={true}
+                          reverseData={bulkCache[tab.id] ?? []}
+                        />
+                      </div>
+                    ) : tab.loadError ? (
+                      <div className="flex items-center justify-center min-h-[360px] px-6" role="alert">
+                        <p className="text-sm text-slate-600 text-center">{tab.loadError}</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center min-h-[360px] gap-3" role="status" aria-live="polite">
+                        <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
+                        <p className="text-sm font-medium text-slate-600">Loading related licenses…</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

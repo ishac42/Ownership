@@ -23,7 +23,6 @@ import {
 import AddOwnerForm from "./AddOwnerForm"; 
 import OwnerDetailsCard from "./OwnerDetailsCard"; 
 import ZoomControls from "./ZoomControls";
-import { isOperatingEntityType } from '../utils/entityType';
 import { buildAddOwnerPayload } from '../utils/ownerPayload';
 import ShowTerminatedToggle from './ShowTerminatedToggle';
 
@@ -32,7 +31,6 @@ interface RecursiveTreeProps {
   entity: any;
   onViewDetails: (entity: any, parentRefNbr?: string, siblingTotal?: number, childrenSum?: number) => void;
   onViewRelated: (entity: any) => void; 
-  onViewOperatingEntity?: (entity: any) => void;
   onOpenAdd: (parentEntity: any, childrenTotal?: number) => void;
   onDelete?: (entity: any, parentRefNbr: string) => void; 
   parentRefNbr?: string;
@@ -44,8 +42,7 @@ interface RecursiveTreeProps {
 export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
   entity, 
   onViewDetails,
-  onViewRelated,
-  onViewOperatingEntity, 
+  onViewRelated, 
   onOpenAdd,
   onDelete, 
   parentRefNbr = "",
@@ -60,15 +57,6 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const isLicenseNode = !!entity?.isLicenseNode;
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
   const nodeTerminated = isOwnershipAsitRow(entity) && isEffectivelyTerminated(entity);
-  const licenseDetails = collectLicenseDetails(entity, (current as any)?.licenseAltId);
-  const hasLicenses = licenseDetails.size > 0;
-  const typeLabel = isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : (current.contactType || 'Organization');
-  const showOperatingEntityLink =
-    isReverseRelation &&
-    !isLicenseNode &&
-    !isIndividual &&
-    typeof onViewOperatingEntity === 'function' &&
-    (isOperatingEntityType(typeLabel) || hasLicenses);
 
   // Original theme colors (licenses vs individuals vs organizations)
   let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
@@ -87,11 +75,11 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     }
 
     // 2. Extract unique licenses on this node (alt ID + reverse-lookup details)
-    const licenseDetailsForChildren = collectLicenseDetails(entity, (current as any)?.licenseAltId);
+    const licenseDetails = collectLicenseDetails(entity, (current as any)?.licenseAltId);
 
     // 3. Inject separate visual child nodes for each license found
     if (!isLicenseNode) {
-      licenseDetailsForChildren.forEach((rec, licenseId) => {
+      licenseDetails.forEach((rec, licenseId) => {
         const alreadyExists = baseChildren.some(child => child.isLicenseNode && child.ownerName === licenseId);
         if (!alreadyExists) {
           baseChildren.push({
@@ -173,27 +161,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
         <div className="flex justify-between items-center pt-2 border-t border-white/10">
           <div className="flex items-center gap-1.5 opacity-90">
             {isLicenseNode ? <FileText size={12} aria-hidden="true" /> : isIndividual ? <User size={12} aria-hidden="true" /> : <Building2 size={12} aria-hidden="true" />}
-            {showOperatingEntityLink ? (
-              <button
-                type="button"
-                onPointerDown={(e) => e.stopPropagation()}
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  onViewOperatingEntity?.({ ...entity, ...current });
-                }}
-                className="oe-ownership-link text-[10px] font-semibold tracking-wide underline decoration-2 underline-offset-2 decoration-white hover:bg-white/20 rounded px-1 -mx-1 py-0.5"
-                aria-label={`Open ownership structure for ${current.ownerName || 'this operating entity'}`}
-                title="Open ownership structure in a new tab"
-              >
-                {isOperatingEntityType(typeLabel) ? typeLabel : 'Operating Entity'}
-              </button>
-            ) : (
-              <span className="text-[10px] font-semibold tracking-wide">
-                {typeLabel}
-              </span>
-            )}
+            <span className="text-[10px] font-semibold tracking-wide">
+              {isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType}
+            </span>
           </div>
 
           {!isLicenseNode && (
@@ -276,7 +246,6 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   entity={child}
                   onViewDetails={onViewDetails}
                   onViewRelated={onViewRelated}
-                  onViewOperatingEntity={onViewOperatingEntity}
                   onOpenAdd={onOpenAdd}
                   onDelete={onDelete}
                   parentRefNbr={current.referenceNbr}
@@ -299,7 +268,6 @@ interface OwnershipChartProps {
   onRefresh?: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   onViewRelated?: (entity: any) => void;
-  onViewOperatingEntity?: (entity: any) => void;
   isReverseRelation?: boolean; 
   reverseData?: any[] | null;   
 }
@@ -309,7 +277,6 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   onRefresh,
   onOwnerUpdated,
   onViewRelated,
-  onViewOperatingEntity,
   isReverseRelation = false,
   reverseData = null
 }) => {
@@ -613,9 +580,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         minScale={0.2}
         maxScale={3}
         centerOnInit={true}
-        limitToBounds={false}
-        panning={{ excluded: ['input', 'select', 'textarea', 'button', 'a', 'oe-ownership-link'] }}
-        doubleClick={{ excluded: ['button', 'a', 'oe-ownership-link'] }}
+        limitToBounds={false} 
         onTransformed={(e) => setCurrentZoomScale(e.state.scale)} 
       >
         {({ zoomIn, zoomOut, resetTransform }) => (
@@ -635,7 +600,6 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                             entity={operationalRootNode} 
                             onViewDetails={handleNodeSelect} 
                             onViewRelated={(e) => onViewRelated && onViewRelated(e)}
-                            onViewOperatingEntity={onViewOperatingEntity}
                             onOpenAdd={handleOpenAdd}
                             onDelete={handleDeleteClick} 
                             isReverseRelation={isReverseRelation}

@@ -122,51 +122,6 @@ export const useOwnershipSearch = () => {
     );
   }, []);
 
-  const loadEntityByRef = useCallback(async (referenceNo: string) => {
-    const ref = String(referenceNo || '').trim();
-    if (!ref || ref === 'N/A') return null;
-
-    const searchRes = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: '', referenceNo: ref, nvBusinessId: '' }),
-    });
-    const searchJson = await searchRes.json();
-
-    if (!searchRes.ok || searchJson.success === false) {
-      throw new Error(searchJson.error || `Search failed (${searchRes.status})`);
-    }
-
-    const rawOwners = searchJson.data?.result?.result?.owners;
-    const owners: any[] = Array.isArray(rawOwners) ? rawOwners : [];
-    const match =
-      owners.find((item) => String(item.referenceNbr || item.referenceNumber || '') === ref) ||
-      owners[0];
-    if (!match) return null;
-
-    const uniqueRefs = extractChildReferenceNumbers(match);
-    if (uniqueRefs.length > 0) {
-      try {
-        const reverseRes = await fetch(`${API_BASE_URL}/api/reverseRelation`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ referenceNumbers: uniqueRefs }),
-        });
-        if (reverseRes.ok) {
-          const reverseData = await reverseRes.json();
-          const incoming = buildCacheMap(Array.isArray(reverseData) ? reverseData : []);
-          setBulkCache((prev) => ({ ...prev, ...incoming }));
-        } else {
-          console.error('Reverse relation request failed:', reverseRes.status);
-        }
-      } catch (error) {
-        console.error('Reverse relation request failed for operating entity:', error);
-      }
-    }
-
-    return applyAllOwnerPatches(match, ownerPatchesRef.current);
-  }, []);
-
   return {
     searchName,
     setSearchName,
@@ -181,7 +136,6 @@ export const useOwnershipSearch = () => {
     handleSearch,
     refreshSelectedRecord,
     patchOwnerInSelectedRecord,
-    loadEntityByRef,
     bulkCache,
   };
 };

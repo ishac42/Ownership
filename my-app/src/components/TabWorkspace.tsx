@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { List, BarChart3, X, Building2 } from 'lucide-react';
+import { List, BarChart3, X, Building2, Loader2 } from 'lucide-react';
 import OwnershipList from './OwnershipList';
 import OwnershipChart from './OwnershipChart';
 import { getEntityRef, ownershipTabId } from '../utils/entityType';
@@ -109,6 +109,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
           type: 'ownership',
           entity: placeholder,
           viewMode: 'chart',
+          loading: true,
+          error: null,
           referenceNbr: ref,
         },
       ]);
@@ -116,7 +118,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     setActiveTabId(tabId);
 
     const existing = tabs.find((t) => t.id === tabId);
-    if (existing?.entity?.relatedContacts?.length > 0) {
+    if (existing && !existing.loading && !existing.error) {
       return;
     }
     if (ownershipFetchInFlight.current.has(ref)) {
@@ -126,14 +128,15 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     ownershipFetchInFlight.current.add(ref);
     try {
       const record = await loadEntityByRef(ref);
-      if (!record) return;
       setTabs((prev) =>
         prev.map((t) =>
           t.id === tabId
             ? {
                 ...t,
-                entity: record,
-                title: record.ownerName || t.title,
+                entity: record || t.entity || placeholder,
+                loading: false,
+                error: record ? null : t.error,
+                title: record?.ownerName || t.title,
                 viewMode: 'chart',
               }
             : t
@@ -141,6 +144,18 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
       );
     } catch (error) {
       console.error('Failed to load operating entity ownership structure:', error);
+      setTabs((prev) =>
+        prev.map((t) =>
+          t.id === tabId
+            ? {
+                ...t,
+                loading: false,
+                error: 'Could not load the full ownership structure. Showing this operating entity.',
+                viewMode: 'chart',
+              }
+            : t
+        )
+      );
     } finally {
       ownershipFetchInFlight.current.delete(ref);
     }
@@ -149,10 +164,15 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   const refreshOwnershipTab = async (tabId: string, ref: string) => {
     try {
       const record = await loadEntityByRef(ref);
-      if (!record) return;
       setTabs((prev) =>
         prev.map((t) =>
-          t.id === tabId ? { ...t, entity: record } : t
+          t.id === tabId
+            ? {
+                ...t,
+                entity: record,
+                error: record ? null : 'No ownership structure found for this entity.',
+              }
+            : t
         )
       );
     } catch (error) {
@@ -296,6 +316,15 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                   </>
                 ) : tab.type === 'ownership' ? (
                   <div className="block animate-in fade-in duration-200">
+                    {tab.loading && (
+                      <div className="flex items-center justify-center gap-2 pb-3 text-slate-600 text-xs" role="status">
+                        <Loader2 className="animate-spin text-[#2c3e76]" size={16} aria-hidden="true" />
+                        Loading ownership chart for this operating entity…
+                      </div>
+                    )}
+                    {tab.error && (
+                      <div className="text-center pb-3 text-amber-800 text-xs">{tab.error}</div>
+                    )}
                     {tab.entity ? (
                       <>
                         <div className={`${viewMode === 'list' ? 'block animate-in fade-in duration-200' : 'hidden'}`}>

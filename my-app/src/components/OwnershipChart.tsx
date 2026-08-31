@@ -40,6 +40,7 @@ interface RecursiveTreeProps {
   isReverseRelation?: boolean; 
   reverseData?: any[] | null;
   viewOnly?: boolean;
+  reverseLayer?: number;
 }
 
 export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
@@ -54,6 +55,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   isReverseRelation = false,
   reverseData = null,
   viewOnly = false,
+  reverseLayer = 0,
 }) => {
   const { showTerminated, isEffectivelyTerminated } = useOwnershipStatus();
   const [localChildren, setLocalChildren] = useState<any[]>([]);
@@ -118,9 +120,13 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     [localChildren, showTerminated, isEffectivelyTerminated]
   );
 
-  const percentageValue = parseFloat(current.percentage || '0');
+  const percentageValue = parseFloat(String(current.percentage || '0').replace('%', '')) || 0;
   const hasPercentage = percentageValue > 0;
   const isChild = parentRefNbr !== "";
+  const showPercentageChip =
+    hasPercentage &&
+    !isLicenseNode &&
+    (!isReverseRelation || reverseLayer === 1);
 
   // --- CALCULATE TOTAL % (EXCLUDING LICENSES AND INACTIVE FROM NUMERIC MATH) ---
   const childrenTotalPercentage = sumActiveChildPercentages(localChildren, isEffectivelyTerminated);
@@ -164,9 +170,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
             )}
           </div>
 
-          {hasPercentage && !isReverseRelation && !isLicenseNode && (
+          {showPercentageChip && (
             <div className="bg-black/20 rounded px-2 py-0.5 min-w-[3rem] flex justify-center">
-              <span className="text-xs font-bold">{current.percentage}%</span>
+              <span className="text-xs font-bold">{String(current.percentage).replace('%', '')}%</span>
             </div>
           )}
         </div>
@@ -284,6 +290,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   isReverseRelation={isReverseRelation}
                   reverseData={null}
                   viewOnly={viewOnly}
+                  reverseLayer={reverseLayer + 1}
                 />
               </div>
             ))}
@@ -505,6 +512,9 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       if (existing) {
         if (!Array.isArray(existing._licenses)) existing._licenses = [];
         upsertRelatedLicense(existing._licenses as RelatedLicense[], currentLic);
+        if (!existing.percentage && item.percentage) {
+          existing.percentage = item.percentage;
+        }
       } else {
         const newItem = { ...item };
         newItem._licenses = currentLic ? [currentLic] : [];

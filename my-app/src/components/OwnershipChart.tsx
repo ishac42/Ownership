@@ -24,6 +24,7 @@ import AddOwnerForm from "./AddOwnerForm";
 import OwnerDetailsCard from "./OwnerDetailsCard"; 
 import ZoomControls from "./ZoomControls";
 import { buildAddOwnerPayload } from '../utils/ownerPayload';
+import { isOperatingEntityType } from '../utils/entityType';
 import ShowTerminatedToggle from './ShowTerminatedToggle';
 
 // 1. Recursive Tree Component
@@ -31,24 +32,28 @@ interface RecursiveTreeProps {
   entity: any;
   onViewDetails: (entity: any, parentRefNbr?: string, siblingTotal?: number, childrenSum?: number) => void;
   onViewRelated: (entity: any) => void; 
+  onViewOperatingEntity?: (entity: any) => void;
   onOpenAdd: (parentEntity: any, childrenTotal?: number) => void;
   onDelete?: (entity: any, parentRefNbr: string) => void; 
   parentRefNbr?: string;
   siblingTotalPercentage?: number; 
   isReverseRelation?: boolean; 
-  reverseData?: any[] | null;  
+  reverseData?: any[] | null;
+  viewOnly?: boolean;
 }
 
 export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
   entity, 
   onViewDetails,
-  onViewRelated, 
+  onViewRelated,
+  onViewOperatingEntity, 
   onOpenAdd,
   onDelete, 
   parentRefNbr = "",
   siblingTotalPercentage,
   isReverseRelation = false,
-  reverseData = null
+  reverseData = null,
+  viewOnly = false,
 }) => {
   const { showTerminated, isEffectivelyTerminated } = useOwnershipStatus();
   const [localChildren, setLocalChildren] = useState<any[]>([]);
@@ -57,6 +62,14 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const isLicenseNode = !!entity?.isLicenseNode;
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
   const nodeTerminated = isOwnershipAsitRow(entity) && isEffectivelyTerminated(entity);
+  const hasLicenses = collectLicenseDetails(entity, (current as any)?.licenseAltId).size > 0;
+  const typeLabel = isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : (current.contactType || 'Organization');
+  const showOperatingEntityLink =
+    isReverseRelation &&
+    !isLicenseNode &&
+    !isIndividual &&
+    typeof onViewOperatingEntity === 'function' &&
+    (isOperatingEntityType(typeLabel) || hasLicenses);
 
   // Original theme colors (licenses vs individuals vs organizations)
   let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
@@ -161,14 +174,31 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
         <div className="flex justify-between items-center pt-2 border-t border-white/10">
           <div className="flex items-center gap-1.5 opacity-90">
             {isLicenseNode ? <FileText size={12} aria-hidden="true" /> : isIndividual ? <User size={12} aria-hidden="true" /> : <Building2 size={12} aria-hidden="true" />}
-            <span className="text-[10px] font-semibold tracking-wide">
-              {isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType}
-            </span>
+            {showOperatingEntityLink ? (
+              <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewOperatingEntity?.({ ...entity, ...current });
+                }}
+                className="oe-ownership-link text-[10px] font-semibold tracking-wide underline decoration-2 underline-offset-2 decoration-white hover:bg-white/20 rounded px-1 -mx-1 py-0.5"
+                aria-label={`Open ownership chart for ${current.ownerName || 'this operating entity'}`}
+                title="Open ownership chart in a new tab"
+              >
+                {isOperatingEntityType(typeLabel) ? typeLabel : 'Operating Entity'}
+              </button>
+            ) : (
+              <span className="text-[10px] font-semibold tracking-wide">
+                {isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType}
+              </span>
+            )}
           </div>
 
           {!isLicenseNode && (
             <div className="flex items-center gap-2" role="toolbar" aria-label={`Actions for ${current.ownerName || 'entity'}`}>
-              {!isReverseRelation && (
+              {!viewOnly && !isReverseRelation && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -194,7 +224,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                 <Eye size={14} className="opacity-80 group-hover:opacity-100" aria-hidden="true" />
               </button>
 
-              {isChild && !isReverseRelation && (
+              {!viewOnly && isChild && !isReverseRelation && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -208,7 +238,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                 </button>
               )}
 
-              {!isIndividual && !isReverseRelation && (
+              {!viewOnly && !isIndividual && !isReverseRelation && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -246,12 +276,14 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   entity={child}
                   onViewDetails={onViewDetails}
                   onViewRelated={onViewRelated}
+                  onViewOperatingEntity={onViewOperatingEntity}
                   onOpenAdd={onOpenAdd}
                   onDelete={onDelete}
                   parentRefNbr={current.referenceNbr}
                   siblingTotalPercentage={childrenTotalPercentage}
                   isReverseRelation={isReverseRelation}
                   reverseData={null}
+                  viewOnly={viewOnly}
                 />
               </div>
             ))}
@@ -268,8 +300,10 @@ interface OwnershipChartProps {
   onRefresh?: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   onViewRelated?: (entity: any) => void;
+  onViewOperatingEntity?: (entity: any) => void;
   isReverseRelation?: boolean; 
-  reverseData?: any[] | null;   
+  reverseData?: any[] | null;
+  viewOnly?: boolean;
 }
 
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
@@ -277,8 +311,10 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   onRefresh,
   onOwnerUpdated,
   onViewRelated,
+  onViewOperatingEntity,
   isReverseRelation = false,
-  reverseData = null
+  reverseData = null,
+  viewOnly = false,
 }) => {
   const { showTerminated, setShowTerminated, isEffectivelyTerminated } = useOwnershipStatus();
   const hiddenTerminatedCount = countTerminatedInSubtree(entity, isEffectivelyTerminated);
@@ -399,7 +435,11 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
 
   // --- MERGE MULTIPLE ROOT ENTITIES OR SIBLING LICENSE RECORDS SAFELY ---
   const getNormalizedTreeRoot = () => {
-    const rawList = Array.isArray(entity) ? entity : (entity.parents ? entity.parents : [entity]);
+    const rawList = Array.isArray(entity)
+      ? entity
+      : (isReverseRelation && entity.parents)
+        ? entity.parents
+        : [entity];
     
     if (rawList.length === 0) return null;
 
@@ -507,7 +547,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         </div>
       )}
 
-      {addingToParent && (
+      {!viewOnly && addingToParent && (
         <AddOwnerForm 
           onCancel={() => setAddingToParent(null)} 
           onSave={handleSaveOwner} 
@@ -520,17 +560,18 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
           key={getOwnerReferenceNbr(selectedOwner)}
           owner={selectedOwner}
           onClose={() => setSelectedOwner(null)}
-          onRefresh={handleEditRefresh}
-          onOwnerUpdated={(refNbr, updates) => {
+          onRefresh={viewOnly ? undefined : handleEditRefresh}
+          onOwnerUpdated={viewOnly ? undefined : (refNbr, updates) => {
             onOwnerUpdated?.(refNbr, updates);
             setSelectedOwner((prev: any) => (prev ? { ...prev, ...updates } : null));
           }}
           currentTotalPercentage={selectedOwner.isChildOfCurrent ? totalForEdit : selectedOwner.totalChildrenPercentage}
           isFromList={false}
+          readOnly={viewOnly}
         />
       )}
 
-      {deleteContext && (
+      {!viewOnly && deleteContext && (
         <div
           className="fixed inset-0 z-[12000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm"
           role="dialog"
@@ -581,6 +622,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         maxScale={3}
         centerOnInit={true}
         limitToBounds={false} 
+        panning={{ excluded: ['input', 'select', 'textarea', 'button', 'a', 'oe-ownership-link'] }}
+        doubleClick={{ excluded: ['button', 'a', 'oe-ownership-link'] }}
         onTransformed={(e) => setCurrentZoomScale(e.state.scale)} 
       >
         {({ zoomIn, zoomOut, resetTransform }) => (
@@ -600,10 +643,12 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                             entity={operationalRootNode} 
                             onViewDetails={handleNodeSelect} 
                             onViewRelated={(e) => onViewRelated && onViewRelated(e)}
+                            onViewOperatingEntity={onViewOperatingEntity}
                             onOpenAdd={handleOpenAdd}
                             onDelete={handleDeleteClick} 
                             isReverseRelation={isReverseRelation}
                             reverseData={processedReverseData}
+                            viewOnly={viewOnly}
                           />
                     </div>
                 </TransformComponent>

@@ -72,7 +72,13 @@ export const useOwnershipSearch = () => {
         body: JSON.stringify({ referenceNumbers: uniqueRefs }),
       });
       const reverseData = await reverseRes.json();
-      setBulkCache(buildCacheMap(reverseData));
+      const reverseList = Array.isArray(reverseData)
+        ? reverseData
+        : (Array.isArray(reverseData?.parents) ? reverseData.parents : []);
+      if (!reverseRes.ok) {
+        console.error('Reverse relation request failed:', reverseRes.status, reverseData);
+      }
+      setBulkCache(buildCacheMap(reverseList));
     } catch (error) {
       console.error('Error during search:', error);
     } finally {

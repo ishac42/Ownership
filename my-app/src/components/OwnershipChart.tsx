@@ -430,7 +430,12 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
 
   // --- MERGE MULTIPLE ROOT ENTITIES OR SIBLING LICENSE RECORDS SAFELY ---
   const getNormalizedTreeRoot = () => {
-    const rawList = Array.isArray(entity) ? entity : (entity.parents ? entity.parents : [entity]);
+    // Forward (normal) charts must never treat reverse `parents` as the tree root.
+    const rawList = Array.isArray(entity)
+      ? entity
+      : (isReverseRelation && entity.parents)
+        ? entity.parents
+        : [entity];
     
     if (rawList.length === 0) return null;
 

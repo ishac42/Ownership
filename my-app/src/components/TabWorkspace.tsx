@@ -99,7 +99,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
           id: tabId,
           title: entity.ownerName || entity.firstName || 'Operating Entity',
           type: 'ownership',
-          entity: { ...entity, referenceNbr: ref, referenceNumber: ref, relatedContacts: [] },
+          entity: null,
           viewMode: 'chart',
         },
       ]);
@@ -107,7 +107,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     setActiveTabId(tabId);
 
     const existing = tabs.find((t) => t.id === tabId);
-    if (existing?.entity?.relatedContacts?.length > 0 || ownershipFetchInFlight.current.has(ref)) {
+    if (existing?.entity?.relatedContacts || ownershipFetchInFlight.current.has(ref)) {
       return;
     }
 
@@ -115,10 +115,18 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     void loadEntityByRef(ref)
       .then((record) => {
         if (!record) return;
+        const forwardTree = {
+          ...record,
+          relatedContacts: Array.isArray(record.relatedContacts) ? record.relatedContacts : [],
+        };
+        delete (forwardTree as { parents?: unknown }).parents;
+        delete (forwardTree as { childReferenceId?: unknown }).childReferenceId;
+        delete (forwardTree as { hierarchyPath?: unknown }).hierarchyPath;
+        delete (forwardTree as { hierarchyLevel?: unknown }).hierarchyLevel;
         setTabs((prev) =>
           prev.map((t) =>
             t.id === tabId
-              ? { ...t, entity: record, title: record.ownerName || t.title }
+              ? { ...t, entity: forwardTree, title: forwardTree.ownerName || t.title }
               : t
           )
         );
@@ -268,17 +276,19 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                   </>
                 ) : tab.type === 'ownership' ? (
                   <div className="block animate-in fade-in duration-200">
-                    <div className="overflow-x-auto pb-10 flex justify-center">
-                      <OwnershipChart
-                        entity={tab.entity}
-                        onRefresh={onRefresh}
-                        onOwnerUpdated={onOwnerUpdated}
-                        onViewRelated={handleViewRelated}
-                        onViewOperatingEntity={handleViewOperatingEntity}
-                        isReverseRelation={false}
-                        reverseData={null}
-                      />
-                    </div>
+                    {tab.entity ? (
+                      <div className="overflow-x-auto pb-10 flex justify-center">
+                        <OwnershipChart
+                          entity={tab.entity}
+                          onRefresh={onRefresh}
+                          onOwnerUpdated={onOwnerUpdated}
+                          onViewRelated={handleViewRelated}
+                          onViewOperatingEntity={handleViewOperatingEntity}
+                          isReverseRelation={false}
+                          reverseData={null}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   /* --- RELATED (REVERSE) TABS --- */

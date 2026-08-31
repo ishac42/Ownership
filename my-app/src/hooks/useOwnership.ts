@@ -38,7 +38,6 @@ export const useOwnershipSearch = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [bulkCache, setBulkCache] = useState<Record<string, any[]>>({});
   const ownerPatchesRef = useRef<Record<string, Record<string, unknown>>>({});
-  const entityByRefCache = useRef<Record<string, any>>({});
 
   const handleSearch = async () => {
     if (!searchName && !refNo && !nvBusId)
@@ -48,7 +47,6 @@ export const useOwnershipSearch = () => {
     setSelectedRecord(null);
     setBulkCache({});
     ownerPatchesRef.current = {};
-    entityByRefCache.current = {};
     setIsLoading(true);
 
     try {
@@ -124,36 +122,6 @@ export const useOwnershipSearch = () => {
     );
   }, []);
 
-  const loadEntityByRef = useCallback(async (referenceNo: string) => {
-    const ref = String(referenceNo || '').trim();
-    if (!ref || ref === 'N/A') return null;
-
-    if (entityByRefCache.current[ref]) {
-      return applyAllOwnerPatches(entityByRefCache.current[ref], ownerPatchesRef.current);
-    }
-
-    const searchRes = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: '', referenceNo: ref, nvBusinessId: '' }),
-    });
-    const searchJson = await searchRes.json();
-
-    if (!searchRes.ok || searchJson.success === false) {
-      throw new Error(searchJson.error || `Search failed (${searchRes.status})`);
-    }
-
-    const rawOwners = searchJson.data?.result?.result?.owners;
-    const owners: any[] = Array.isArray(rawOwners) ? rawOwners : [];
-    const match =
-      owners.find((item) => String(item.referenceNbr || item.referenceNumber || '') === ref) ||
-      owners[0];
-    if (!match) return null;
-
-    entityByRefCache.current[ref] = match;
-    return applyAllOwnerPatches(match, ownerPatchesRef.current);
-  }, []);
-
   return {
     searchName,
     setSearchName,
@@ -168,7 +136,6 @@ export const useOwnershipSearch = () => {
     handleSearch,
     refreshSelectedRecord,
     patchOwnerInSelectedRecord,
-    loadEntityByRef,
     bulkCache,
   };
 };

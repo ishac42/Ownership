@@ -19,7 +19,9 @@ const App = () => {
   refreshSelectedRecord,
   patchOwnerInSelectedRecord,
   loadEntityByRef,
+  loadReverseRelations,
   bulkCache,
+  reverseLoadingRefs,
 } = useOwnershipSearch();
   
   const urlParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -159,7 +161,9 @@ const App = () => {
                 onRefresh={refreshSelectedRecord}
                 onOwnerUpdated={patchOwnerInSelectedRecord}
                 loadEntityByRef={loadEntityByRef}
+                loadReverseRelations={loadReverseRelations}
                 bulkCache={bulkCache}
+                reverseLoadingRefs={reverseLoadingRefs}
               />
             )}
           </div>

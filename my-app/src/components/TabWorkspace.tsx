@@ -4,12 +4,71 @@ import OwnershipList from './OwnershipList';
 import OwnershipChart from './OwnershipChart';
 import { getEntityRef, ownershipTabId } from '../utils/entityType';
 
+const RelatedLicensesPanel: React.FC<{
+  tab: any;
+  reverseData: any[] | undefined;
+  reverseLoading: boolean;
+  onRefresh: () => Promise<void> | void;
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onViewRelated: (entity: any) => void;
+  onViewOperatingEntity: (entity: any) => void;
+}> = ({
+  tab,
+  reverseData,
+  reverseLoading,
+  onRefresh,
+  onOwnerUpdated,
+  onViewRelated,
+  onViewOperatingEntity,
+}) => {
+  const hasReverseData = Array.isArray(reverseData);
+
+  if (tab.loadError && !reverseLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[360px] px-6" role="alert">
+        <p className="text-sm text-slate-600 text-center">{tab.loadError}</p>
+      </div>
+    );
+  }
+
+  if (reverseLoading && !hasReverseData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[360px] gap-3" role="status" aria-live="polite">
+        <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
+        <p className="text-sm font-medium text-slate-600">Loading related licenses…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative overflow-x-auto pb-10 flex justify-center" aria-busy={reverseLoading}>
+      {reverseLoading && (
+        <div className="absolute inset-0 z-20 bg-white/70 flex flex-col items-center justify-center gap-3 rounded-xl" role="status" aria-live="polite">
+          <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
+          <p className="text-sm font-medium text-slate-600">Refreshing related licenses…</p>
+        </div>
+      )}
+      <OwnershipChart
+        entity={tab.entity}
+        onRefresh={onRefresh}
+        onOwnerUpdated={onOwnerUpdated}
+        onViewRelated={onViewRelated}
+        onViewOperatingEntity={onViewOperatingEntity}
+        isReverseRelation={true}
+        reverseData={hasReverseData ? reverseData : null}
+      />
+    </div>
+  );
+};
+
 interface TabWorkspaceProps {
   selectedRecord: any;
   onRefresh: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   loadEntityByRef: (referenceNo: string) => Promise<any | null>;
+  loadReverseRelations: (referenceNumbers: string[]) => Promise<void>;
   bulkCache: Record<string, any[]>;
+  reverseLoadingRefs: Record<string, boolean>;
 }
 
 const TabWorkspace: React.FC<TabWorkspaceProps> = ({
@@ -17,7 +76,9 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   onRefresh,
   onOwnerUpdated,
   loadEntityByRef,
+  loadReverseRelations,
   bulkCache,
+  reverseLoadingRefs,
 }) => {
   const [tabs, setTabs] = useState<any[]>([
     { id: 'main', title: 'Entity Details', type: 'main', entity: null, viewMode: 'list' }
@@ -26,6 +87,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
   const ownershipFetchInFlight = useRef(new Set<string>());
+  const reverseFetchInFlight = useRef(new Set<string>());
 
   const mainRecordId = selectedRecord?.referenceNbr || selectedRecord?.referenceNumber || selectedRecord?.id;
 
@@ -54,7 +116,11 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   };
 
   const handleViewRelated = (entity: any) => {
-    const tabId = String(entity.referenceNbr || entity.referenceNumber || entity.id || `unknown-${Date.now()}`);
+    const tabId = String(entity.referenceNbr || entity.referenceNumber || entity.id || '').trim();
+    if (!tabId || tabId === 'N/A') {
+      alert('This entity has no reference number.');
+      return;
+    }
     const tabExists = tabs.some(t => t.id === tabId);
 
     if (!tabExists && tabs.length >= 13) {
@@ -71,10 +137,37 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
           type: 'related',
           entity,
           viewMode: 'list',
+          loadError: null,
         },
       ]);
+    } else {
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, loadError: null } : t))
+      );
     }
     setActiveTabId(tabId);
+
+    if (reverseFetchInFlight.current.has(tabId)) return;
+    reverseFetchInFlight.current.add(tabId);
+    void loadReverseRelations([tabId])
+      .then(() => {
+        setTabs((prev) =>
+          prev.map((t) => (t.id === tabId ? { ...t, loadError: null } : t))
+        );
+      })
+      .catch((error) => {
+        console.error('Failed to load related licenses:', error);
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.id === tabId
+              ? { ...t, loadError: 'Could not load related licenses. Try the icon again.' }
+              : t
+          )
+        );
+      })
+      .finally(() => {
+        reverseFetchInFlight.current.delete(tabId);
+      });
   };
 
   const handleViewOperatingEntity = (entity: any) => {
@@ -334,17 +427,15 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                 ) : (
                   /* --- RELATED (REVERSE) TABS --- */
                   <div className="block animate-in fade-in duration-200">
-                    <div className="overflow-x-auto pb-10 flex justify-center">
-                      <OwnershipChart 
-                        entity={tab.entity} 
-                        onRefresh={onRefresh}
-                        onOwnerUpdated={onOwnerUpdated}
-                        onViewRelated={handleViewRelated}
-                        onViewOperatingEntity={handleViewOperatingEntity}
-                        isReverseRelation={true}
-                        reverseData={bulkCache[tab.id] ?? null}
-                      />
-                    </div>
+                    <RelatedLicensesPanel
+                      tab={tab}
+                      reverseData={bulkCache[tab.id]}
+                      reverseLoading={Boolean(reverseLoadingRefs[tab.id])}
+                      onRefresh={onRefresh}
+                      onOwnerUpdated={onOwnerUpdated}
+                      onViewRelated={handleViewRelated}
+                      onViewOperatingEntity={handleViewOperatingEntity}
+                    />
                   </div>
                 )}
               </div>

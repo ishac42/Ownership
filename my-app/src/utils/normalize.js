@@ -62,7 +62,7 @@ export const normalizeEntity = (node) => ({
   comments: node.comments || "",
 
   // Ownership Math
-  percentage: node.percentage ?? node.PERCENTAGE ?? 0,
+  percentage: node.percentage ?? node.percentOwned ?? node.PERCENTOWNED ?? node.PERCENTAGE ?? 0,
 
   // Ownership ASIT status (CLARK-4145): Active | Terminated
   status: node.status || node.Status || 'Active',

@@ -29,6 +29,37 @@ const extractChildReferenceNumbers = (entity: any, refs: string[] = []): string[
   return [...new Set(refs)];
 };
 
+const normalizeRefList = (referenceNumbers: string[]): string[] =>
+  [...new Set(
+    referenceNumbers
+      .map((ref) => String(ref || '').trim())
+      .filter((ref) => ref !== '' && ref !== 'N/A')
+  )];
+
+const fetchReverseRelationMap = async (
+  referenceNumbers: string[]
+): Promise<Record<string, any[]>> => {
+  const uniqueRefs = normalizeRefList(referenceNumbers);
+  if (uniqueRefs.length === 0) return {};
+
+  const reverseRes = await fetch(`${API_BASE_URL}/api/reverseRelation`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ referenceNumbers: uniqueRefs }),
+  });
+  const reverseData = await reverseRes.json();
+  if (!reverseRes.ok) {
+    throw new Error(reverseData?.error || `Reverse relation failed (${reverseRes.status})`);
+  }
+
+  const incoming = buildCacheMap(Array.isArray(reverseData) ? reverseData : []);
+  const next: Record<string, any[]> = {};
+  uniqueRefs.forEach((ref) => {
+    next[ref] = incoming[ref] ?? [];
+  });
+  return next;
+};
+
 export const useOwnershipSearch = () => {
   const [searchName, setSearchName] = useState('');
   const [refNo, setRefNo] = useState('');
@@ -37,8 +68,35 @@ export const useOwnershipSearch = () => {
   const [selectedRecord, setSelectedRecord] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [bulkCache, setBulkCache] = useState<Record<string, any[]>>({});
+  const [reverseLoadingRefs, setReverseLoadingRefs] = useState<Record<string, boolean>>({});
   const ownerPatchesRef = useRef<Record<string, Record<string, unknown>>>({});
   const entityByRefCache = useRef<Record<string, any>>({});
+
+  const loadReverseRelations = useCallback(async (referenceNumbers: string[]) => {
+    const uniqueRefs = normalizeRefList(referenceNumbers);
+    if (uniqueRefs.length === 0) return;
+
+    setReverseLoadingRefs((prev) => {
+      const next = { ...prev };
+      uniqueRefs.forEach((ref) => {
+        next[ref] = true;
+      });
+      return next;
+    });
+
+    try {
+      const nextMap = await fetchReverseRelationMap(uniqueRefs);
+      setBulkCache((prev) => ({ ...prev, ...nextMap }));
+    } finally {
+      setReverseLoadingRefs((prev) => {
+        const next = { ...prev };
+        uniqueRefs.forEach((ref) => {
+          next[ref] = false;
+        });
+        return next;
+      });
+    }
+  }, []);
 
   const handleSearch = async () => {
     if (!searchName && !refNo && !nvBusId)
@@ -47,6 +105,7 @@ export const useOwnershipSearch = () => {
     setResults([]);
     setSelectedRecord(null);
     setBulkCache({});
+    setReverseLoadingRefs({});
     ownerPatchesRef.current = {};
     entityByRefCache.current = {};
     setIsLoading(true);
@@ -68,13 +127,7 @@ export const useOwnershipSearch = () => {
 
       if (uniqueRefs.length === 0) return;
 
-      const reverseRes = await fetch(`${API_BASE_URL}/api/reverseRelation`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ referenceNumbers: uniqueRefs }),
-      });
-      const reverseData = await reverseRes.json();
-      setBulkCache(buildCacheMap(reverseData));
+      setBulkCache(await fetchReverseRelationMap(uniqueRefs));
     } catch (error) {
       console.error('Error during search:', error);
     } finally {
@@ -102,11 +155,16 @@ export const useOwnershipSearch = () => {
             item.referenceNbr === rootRef ? patched : applyAllOwnerPatches(item, ownerPatchesRef.current)
           )
         );
+        try {
+          await loadReverseRelations(extractChildReferenceNumbers(patched));
+        } catch (reverseErr) {
+          console.error('Failed to refresh related licenses', reverseErr);
+        }
       }
     } catch (error) {
       console.error('Failed to refresh record', error);
     }
-  }, [selectedRecord?.referenceNbr]);
+  }, [selectedRecord?.referenceNbr, loadReverseRelations]);
 
   const patchOwnerInSelectedRecord = useCallback((refNbr: string, updates: Record<string, unknown>) => {
     if (!refNbr) return;
@@ -169,6 +227,8 @@ export const useOwnershipSearch = () => {
     refreshSelectedRecord,
     patchOwnerInSelectedRecord,
     loadEntityByRef,
+    loadReverseRelations,
     bulkCache,
+    reverseLoadingRefs,
   };
 };

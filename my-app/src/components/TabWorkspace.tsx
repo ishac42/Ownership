@@ -31,7 +31,7 @@ const RelatedLicensesPanel: React.FC<{
     );
   }
 
-  if (reverseLoading && !hasReverseData) {
+  if (reverseLoading || !hasReverseData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[360px] gap-3" role="status" aria-live="polite">
         <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
@@ -41,13 +41,7 @@ const RelatedLicensesPanel: React.FC<{
   }
 
   return (
-    <div className="relative overflow-x-auto pb-10 flex justify-center" aria-busy={reverseLoading}>
-      {reverseLoading && (
-        <div className="absolute inset-0 z-20 bg-white/70 flex flex-col items-center justify-center gap-3 rounded-xl" role="status" aria-live="polite">
-          <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
-          <p className="text-sm font-medium text-slate-600">Refreshing related licenses…</p>
-        </div>
-      )}
+    <div className="overflow-x-auto pb-10 flex justify-center">
       <OwnershipChart
         entity={tab.entity}
         onRefresh={onRefresh}
@@ -55,7 +49,7 @@ const RelatedLicensesPanel: React.FC<{
         onViewRelated={onViewRelated}
         onViewOperatingEntity={onViewOperatingEntity}
         isReverseRelation={true}
-        reverseData={hasReverseData ? reverseData : null}
+        reverseData={reverseData}
       />
     </div>
   );

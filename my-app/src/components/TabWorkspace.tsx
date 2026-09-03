@@ -1,22 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { List, BarChart3, X, Building2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { List, BarChart3, X, Building2, Loader2 } from 'lucide-react';
 import OwnershipList from './OwnershipList';
 import OwnershipChart from './OwnershipChart';
+import { getEntityRef, ownershipTabId } from '../utils/entityType';
+
+const RelatedLicensesPanel: React.FC<{
+  tab: any;
+  reverseData: any[] | undefined;
+  reverseLoading: boolean;
+  onRefresh: () => Promise<void> | void;
+  onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onViewRelated: (entity: any) => void;
+  onViewOperatingEntity: (entity: any) => void;
+}> = ({
+  tab,
+  reverseData,
+  reverseLoading,
+  onRefresh,
+  onOwnerUpdated,
+  onViewRelated,
+  onViewOperatingEntity,
+}) => {
+  const hasReverseData = Array.isArray(reverseData);
+
+  if (tab.loadError && !reverseLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[360px] px-6" role="alert">
+        <p className="text-sm text-slate-600 text-center">{tab.loadError}</p>
+      </div>
+    );
+  }
+
+  if (reverseLoading || !hasReverseData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[360px] gap-3" role="status" aria-live="polite">
+        <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
+        <p className="text-sm font-medium text-slate-600">Loading related licenses…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto pb-10 flex justify-center">
+      <OwnershipChart
+        entity={tab.entity}
+        onRefresh={onRefresh}
+        onOwnerUpdated={onOwnerUpdated}
+        onViewRelated={onViewRelated}
+        onViewOperatingEntity={onViewOperatingEntity}
+        isReverseRelation={true}
+        reverseData={reverseData}
+      />
+    </div>
+  );
+};
 
 interface TabWorkspaceProps {
   selectedRecord: any;
   onRefresh: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  loadEntityByRef: (referenceNo: string) => Promise<any | null>;
+  loadReverseRelations: (referenceNumbers: string[]) => Promise<void>;
   bulkCache: Record<string, any[]>;
+  reverseLoadingRefs: Record<string, boolean>;
 }
 
-const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, onOwnerUpdated, bulkCache }) => {
+const TabWorkspace: React.FC<TabWorkspaceProps> = ({
+  selectedRecord,
+  onRefresh,
+  onOwnerUpdated,
+  loadEntityByRef,
+  loadReverseRelations,
+  bulkCache,
+  reverseLoadingRefs,
+}) => {
   const [tabs, setTabs] = useState<any[]>([
     { id: 'main', title: 'Entity Details', type: 'main', entity: null, viewMode: 'list' }
   ]);
   const [activeTabId, setActiveTabId] = useState('main');
   
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+  const ownershipFetchInFlight = useRef(new Set<string>());
+  const reverseFetchInFlight = useRef(new Set<string>());
 
   const mainRecordId = selectedRecord?.referenceNbr || selectedRecord?.referenceNumber || selectedRecord?.id;
 
@@ -45,7 +110,11 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
   };
 
   const handleViewRelated = (entity: any) => {
-    const tabId = String(entity.referenceNbr || entity.referenceNumber || entity.id || `unknown-${Date.now()}`);
+    const tabId = String(entity.referenceNbr || entity.referenceNumber || entity.id || '').trim();
+    if (!tabId || tabId === 'N/A') {
+      alert('This entity has no reference number.');
+      return;
+    }
     const tabExists = tabs.some(t => t.id === tabId);
 
     if (!tabExists && tabs.length >= 13) {
@@ -62,10 +131,134 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
           type: 'related',
           entity,
           viewMode: 'list',
+          loadError: null,
+        },
+      ]);
+    } else {
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, loadError: null } : t))
+      );
+    }
+    setActiveTabId(tabId);
+
+    if (reverseFetchInFlight.current.has(tabId)) return;
+    reverseFetchInFlight.current.add(tabId);
+    void loadReverseRelations([tabId])
+      .then(() => {
+        setTabs((prev) =>
+          prev.map((t) => (t.id === tabId ? { ...t, loadError: null } : t))
+        );
+      })
+      .catch((error) => {
+        console.error('Failed to load related licenses:', error);
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.id === tabId
+              ? { ...t, loadError: 'Could not load related licenses. Try the icon again.' }
+              : t
+          )
+        );
+      })
+      .finally(() => {
+        reverseFetchInFlight.current.delete(tabId);
+      });
+  };
+
+  const handleViewOperatingEntity = (entity: any) => {
+    const ref = getEntityRef(entity);
+    if (!ref) {
+      alert('This operating entity has no reference number.');
+      return;
+    }
+
+    const tabId = ownershipTabId(ref);
+    const tabExists = tabs.some((t) => t.id === tabId);
+
+    if (!tabExists && tabs.length >= 13) {
+      alert('Maximum limit of 13 tabs reached. Please close a tab to open a new one.');
+      return;
+    }
+
+    if (!tabExists) {
+      setTabs((prev) => [
+        ...prev,
+        {
+          id: tabId,
+          title: entity.ownerName || entity.firstName || 'Operating Entity',
+          type: 'ownership',
+          entity: null,
+          loading: true,
+          loadError: null,
+          viewMode: 'chart',
         },
       ]);
     }
     setActiveTabId(tabId);
+
+    const existing = tabs.find((t) => t.id === tabId);
+    if (existing?.entity || ownershipFetchInFlight.current.has(ref)) {
+      return;
+    }
+
+    if (tabExists) {
+      setTabs((prev) =>
+        prev.map((t) => (t.id === tabId ? { ...t, loading: true, loadError: null } : t))
+      );
+    }
+
+    ownershipFetchInFlight.current.add(ref);
+    void loadEntityByRef(ref)
+      .then((record) => {
+        if (!record) {
+          setTabs((prev) =>
+            prev.map((t) =>
+              t.id === tabId
+                ? { ...t, entity: null, loading: false, loadError: 'No ownership record found for this operating entity.' }
+                : t
+            )
+          );
+          return;
+        }
+        const forwardTree = {
+          ...record,
+          relatedContacts: Array.isArray(record.relatedContacts) ? record.relatedContacts : [],
+        };
+        delete (forwardTree as { parents?: unknown }).parents;
+        delete (forwardTree as { childReferenceId?: unknown }).childReferenceId;
+        delete (forwardTree as { hierarchyPath?: unknown }).hierarchyPath;
+        delete (forwardTree as { hierarchyLevel?: unknown }).hierarchyLevel;
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.id === tabId
+              ? {
+                  ...t,
+                  entity: forwardTree,
+                  title: forwardTree.ownerName || t.title,
+                  loading: false,
+                  loadError: null,
+                }
+              : t
+          )
+        );
+      })
+      .catch((error) => {
+        console.error('Failed to load operating entity chart:', error);
+        setTabs((prev) =>
+          prev.map((t) =>
+            t.id === tabId
+              ? {
+                  ...t,
+                  entity: null,
+                  loading: false,
+                  loadError: 'Could not load this operating entity chart. Try the link again.',
+                }
+              : t
+          )
+        );
+      })
+      .finally(() => {
+        ownershipFetchInFlight.current.delete(ref);
+      });
   };
 
   const handleCloseTab = (tabId: string) => {
@@ -110,7 +303,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
                     : 'bg-[#dadce0] border-transparent text-slate-600 hover:bg-[#f1f3f4]'
                 }`}
               >
-                {tab.type === 'main'
+                {tab.type === 'main' || tab.type === 'ownership'
                   ? <Building2 size={12} className={isActive ? 'text-blue-600' : 'text-slate-500'} aria-hidden="true" />
                   : <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-blue-500' : 'bg-slate-400'}`} aria-hidden="true" />}
                 <span className="truncate flex-1 text-left uppercase">{tab.title}</span>
@@ -196,25 +389,47 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({ selectedRecord, onRefresh, 
                           onRefresh={onRefresh}
                           onOwnerUpdated={onOwnerUpdated}
                           onViewRelated={handleViewRelated}
+                          onViewOperatingEntity={handleViewOperatingEntity}
                           isReverseRelation={false}
                           reverseData={null}
                         />
                       </div>
                     </div>
                   </>
+                ) : tab.type === 'ownership' ? (
+                  <div className="block animate-in fade-in duration-200" aria-busy={Boolean(tab.loading && !tab.entity)}>
+                    {tab.entity ? (
+                      <div className="overflow-x-auto pb-10 flex justify-center">
+                        <OwnershipChart
+                          entity={tab.entity}
+                          isReverseRelation={false}
+                          reverseData={null}
+                          viewOnly
+                        />
+                      </div>
+                    ) : tab.loadError ? (
+                      <div className="flex items-center justify-center min-h-[360px] px-6" role="alert">
+                        <p className="text-sm text-slate-600 text-center">{tab.loadError}</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center min-h-[360px] gap-3" role="status" aria-live="polite">
+                        <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
+                        <p className="text-sm font-medium text-slate-600">Loading ownership chart…</p>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   /* --- RELATED (REVERSE) TABS --- */
                   <div className="block animate-in fade-in duration-200">
-                    <div className="overflow-x-auto pb-10 flex justify-center">
-                      <OwnershipChart 
-                        entity={tab.entity} 
-                        onRefresh={onRefresh}
-                        onOwnerUpdated={onOwnerUpdated}
-                        onViewRelated={handleViewRelated}
-                        isReverseRelation={true}
-                        reverseData={bulkCache[tab.id] ?? null}
-                      />
-                    </div>
+                    <RelatedLicensesPanel
+                      tab={tab}
+                      reverseData={bulkCache[tab.id]}
+                      reverseLoading={Boolean(reverseLoadingRefs[tab.id])}
+                      onRefresh={onRefresh}
+                      onOwnerUpdated={onOwnerUpdated}
+                      onViewRelated={handleViewRelated}
+                      onViewOperatingEntity={handleViewOperatingEntity}
+                    />
                   </div>
                 )}
               </div>

@@ -16,31 +16,45 @@ router.post('/api/reverseRelation', async (req, res) => {
     
     // Sanitize, deduplicate, and join into a comma-separated string for the SQL script
     const cleanRefs = [...new Set(referenceNumbers.map(String))].join(",");
-console.log("POST request received at /api/reverseRelation " + cleanRefs);
-    // 1. Get the Token (utilizing your existing auth module)
+    console.log("POST request received at /api/reverseRelation " + cleanRefs);
     const accessToken = await getAccessToken();
 
-    // 2. Execute the Accela Custom Script
-    // Note: Make sure the script name matches exactly what you named it in Accela
     const scriptResponse = await axios.post(
       'https://apis.accela.com/v4/scripts/API_GET_REVERSE_RELATIONS', 
       {
-        "referenceNumbers": cleanRefs // This passes into aa.env.getValue("referenceNumbers")
+        "referenceNumbers": cleanRefs
       }, 
       {
         headers: { 
             'Authorization': accessToken,
             'Content-Type': 'application/json'
-        }
+        },
+        timeout: 120000
       }
     );
-    console.log("RETURNED dATA " + scriptResponse)
-    // Extract the formatted data array from the Accela script's JSON wrapper
-    // The exact path depends slightly on your Accela Construct API version response wrapper, 
-    // but the script sets it to 'result.parents'
-    const accelaData = scriptResponse.data?.result?.result?.parents || [];
 
-    // Return the flat array directly to the frontend to populate the Split-Pane React component
+    let payload = scriptResponse.data?.result?.result ?? scriptResponse.data?.result ?? scriptResponse.data;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload);
+      } catch (parseErr) {
+        console.error("Reverse relation result was a non-JSON string");
+        payload = {};
+      }
+    }
+
+    const accelaData = Array.isArray(payload)
+      ? payload
+      : (Array.isArray(payload?.parents) ? payload.parents : []);
+
+    if (accelaData.length === 0) {
+      console.warn("Reverse relation returned no parents", {
+        returnValue: payload?.returnValue || scriptResponse.data?.result?.returnValue,
+        messages: payload?.messages,
+        payloadType: Array.isArray(payload) ? 'array' : typeof payload
+      });
+    }
+
     return res.status(200).json(accelaData);
 
   } catch (error) {

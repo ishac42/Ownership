@@ -62,7 +62,7 @@ export const normalizeEntity = (node) => ({
   comments: node.comments || "",
 
   // Ownership Math
-  percentage: node.percentage ?? 0,
+  percentage: node.percentage ?? node.percentOwned ?? node.PERCENTOWNED ?? node.PERCENTAGE ?? 0,
 
   // Ownership ASIT status (CLARK-4145): Active | Terminated
   status: node.status || node.Status || 'Active',
@@ -73,6 +73,9 @@ export const normalizeEntity = (node) => ({
   parentRefNbr: node.parentRefNbr || '',
   isChildOfCurrent: node.isChildOfCurrent || false,
   isLicenseNode: node.isLicenseNode || false,
+  licenseType: node.licenseType || '',
+  businessName: node.businessName || '',
+  locationAddress: node.locationAddress || '',
 
   // Recursive mapping for the nested tree structure
   relatedContacts: Array.isArray(node.relatedContacts)

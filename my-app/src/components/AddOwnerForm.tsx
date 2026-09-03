@@ -3,12 +3,10 @@ import { useRefData } from '../context/RefDataContext';
 import {
   SORTED_COUNTRY_LIST,
   STATE_LIST_USA,
-  ADDRESS_TYPES,
   UNIT_TYPES,
   NAME_SUFFIX_OPTIONS,
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
-  PROFESSIONAL_TYPE_OPTIONS,
 } from '../utils/contactOptions';
 import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
 import { usePortalParams } from '../context/PortalContext';
@@ -26,7 +24,12 @@ interface AddOwnerFormProps {
 }
 
 const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
-  const { entityTypes, isLoading: isRefDataLoading } = useRefData();
+  const {
+    entityTypes,
+    addressTypeOptions,
+    professionalTypeOptions,
+    isLoading: isRefDataLoading,
+  } = useRefData();
   const { recordID } = usePortalParams();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,7 +47,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
     resortHotel: false,
     type: '',
     // Address
-    addressType: 'Location Address',
+    addressType: '',
     locationName: '',
     attentionName: '',
     attentionLine1: '',
@@ -282,7 +285,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           {/* Address section */}
           <SectionTitle>Address</SectionTitle>
           <div className="grid grid-cols-2 gap-6">
-            <SelectField label="Address Type" name="addressType" value={formData.addressType} onChange={handleChange} options={ADDRESS_TYPES} />
+            <SelectField label="Address Type" name="addressType" value={formData.addressType} onChange={handleChange} options={addressTypeOptions} placeholder={isRefDataLoading ? 'Loading...' : 'Select'} />
             {isIndividual ? (
               <FormField label="Attention Line 1" name="attentionLine1" placeholder="Attention Line 1" value={formData.attentionLine1} onChange={handleChange} />
             ) : (
@@ -393,7 +396,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-6">
-                <SelectField label="Professional Type" name="professionalType" value={formData.professionalType} onChange={handleChange} options={PROFESSIONAL_TYPE_OPTIONS} placeholder="Select Professional Type" />
+                <SelectField label="Professional Type" name="professionalType" value={formData.professionalType} onChange={handleChange} options={professionalTypeOptions} placeholder={isRefDataLoading ? 'Loading...' : 'Select Professional Type'} />
                 <FormField label="Professional Lic. Number" name="professionalLicNumber" placeholder="Professional Lic. Number" value={formData.professionalLicNumber} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-2 gap-6">
@@ -409,7 +412,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
                 <FormField label="State Sales Tax Number" name="stateSalesTaxNumber" placeholder="State Sales Tax Number" value={formData.stateSalesTaxNumber} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-2 gap-6">
-                <SelectField label="Professional License Type" name="professionalLicenseType" value={formData.professionalLicenseType} onChange={handleChange} options={PROFESSIONAL_TYPE_OPTIONS} placeholder="--" />
+                <SelectField label="Professional License Type" name="professionalLicenseType" value={formData.professionalLicenseType} onChange={handleChange} options={professionalTypeOptions} placeholder={isRefDataLoading ? 'Loading...' : '--'} />
                 <FormField label="Prof License #" name="profLicenseNumber" placeholder="Prof License #" value={formData.profLicenseNumber} onChange={handleChange} />
               </div>
               <div className="grid grid-cols-2 gap-6">

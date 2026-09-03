@@ -16,7 +16,7 @@ export const STATE_LIST_USA: string[] = [
   'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA', 'WI', 'WV', 'WY'
 ];
 
-export const ADDRESS_TYPES: string[] = ['Location Address', 'Mailing Address', 'Billing Address'];
+export const ADDRESS_TYPES: string[] = ['Location Address', 'Mailing Address', 'Billing Address']; // fallback if Accela LIC_OWNERSHIP_ADDRESSES fails
 
 export const UNIT_TYPES: string[] = ['Apt', 'Bldg', 'Dept', 'Floor', 'Room', 'Space', 'Ste', 'Unit'];
 
@@ -28,8 +28,7 @@ export const GENDER_OPTIONS: string[] = ['Male', 'Female', 'Other', 'Prefer not 
 
 export const US_CITIZEN_OPTIONS: string[] = ['Yes', 'No'];
 
-// Professional license types (used by both Individual "Professional Type" and
-// Organization "Professional License Type" selects).
+// Fallback only — prefer Accela LIC_OWNERSHIP_PROFESSIONALS via RefDataContext.
 export const PROFESSIONAL_TYPE_OPTIONS: string[] = [
   'Short-Term Rental Unit Property Owner',
   'Real Estate Broker',

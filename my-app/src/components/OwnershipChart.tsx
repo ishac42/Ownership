@@ -15,6 +15,7 @@ import { prepareOwnershipChildren } from '../utils/ownershipTree';
 import {
   attachRootLicensesFromReverse,
   collectLicenseDetails,
+  dedupeReverseContactNodes,
   licenseRecordNode,
   relatedLicenseFromItem,
   upsertRelatedLicense,
@@ -84,11 +85,11 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   useEffect(() => {
     let baseChildren: any[] = [];
 
-    // 1. Populate initial structural children
+    // 1. Populate initial structural children (same contact ref → one node)
     if (isReverseRelation && parentRefNbr === "") {
-      baseChildren = Array.isArray(reverseData) ? [...reverseData] : [];
+      baseChildren = dedupeReverseContactNodes(Array.isArray(reverseData) ? reverseData : []);
     } else {
-      baseChildren = entity?.relatedContacts ? [...entity.relatedContacts] : [];
+      baseChildren = dedupeReverseContactNodes(entity?.relatedContacts || []);
     }
 
     // 2. Extract unique licenses on this node (alt ID + reverse-lookup details)
@@ -468,18 +469,15 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         const existingNode = uniqueRootMap.get(identityKey);
         if (!Array.isArray(existingNode._licenses)) existingNode._licenses = [];
         upsertRelatedLicense(existingNode._licenses as RelatedLicense[], activeLicense);
-        // Merge downstream related nested structures cleanly
-        if (Array.isArray(item.relatedContacts)) {
-          item.relatedContacts.forEach((child: any) => {
-            const childExists = existingNode.relatedContacts.some((c: any) => c.referenceNbr === child.referenceNbr);
-            if (!childExists) existingNode.relatedContacts.push(child);
-          });
-        }
+        existingNode.relatedContacts = dedupeReverseContactNodes([
+          ...(existingNode.relatedContacts || []),
+          ...(Array.isArray(item.relatedContacts) ? item.relatedContacts : []),
+        ]);
       } else {
         const structuralClone = { 
           ...item,
           _licenses: activeLicense ? [activeLicense] : ([] as RelatedLicense[]),
-          relatedContacts: Array.isArray(item.relatedContacts) ? [...item.relatedContacts] : []
+          relatedContacts: dedupeReverseContactNodes(item.relatedContacts),
         };
         uniqueRootMap.set(identityKey, structuralClone);
       }
@@ -509,27 +507,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   if (isReverseRelation && Array.isArray(reverseData)) {
     const rootRef = String(entity?.referenceNbr || entity?.referenceNumber || '');
     const { parentRows, rootLicenses } = attachRootLicensesFromReverse(reverseData, rootRef);
-    const parentMap = new Map<string, any>();
-
-    parentRows.forEach((item) => {
-      const key = `${item.ownerName || ''}_${item.referenceNbr || ''}`;
-      const existing = parentMap.get(key);
-      const currentLic = relatedLicenseFromItem(item);
-
-      if (existing) {
-        if (!Array.isArray(existing._licenses)) existing._licenses = [];
-        upsertRelatedLicense(existing._licenses as RelatedLicense[], currentLic);
-        if (!existing.percentage && item.percentage) {
-          existing.percentage = item.percentage;
-        }
-      } else {
-        const newItem = { ...item };
-        newItem._licenses = currentLic ? [currentLic] : [];
-        parentMap.set(key, newItem);
-      }
-    });
-
-    processedReverseData = Array.from(parentMap.values());
+    processedReverseData = dedupeReverseContactNodes(parentRows);
 
     if (operationalRootNode && rootLicenses.length > 0) {
       if (!Array.isArray(operationalRootNode._licenses)) operationalRootNode._licenses = [];

@@ -6,6 +6,7 @@ import {
   licenseRecordNode,
   relatedLicenseFromItem,
   upsertRelatedLicense,
+  dedupeReverseContactNodes,
 } from '../src/utils/relatedLicenses.ts';
 
 test('self reverse rows become root licenses when there is no hierarchy', () => {
@@ -121,4 +122,32 @@ test('self reverse rows keep nested gaming children', () => {
 
   assert.equal(rootLicenses.length, 1);
   assert.equal(rootLicenses[0].childLicenses?.[0].altId, 'CON301-0000241');
+});
+
+test('duplicate reverse contacts with the same ref collapse to one node', () => {
+  const merged = dedupeReverseContactNodes([
+    {
+      referenceNbr: '10',
+      ownerName: 'LV RESORTS',
+      relatedContacts: [
+        { referenceNbr: '99', ownerName: 'RL TEST' },
+        {
+          referenceNbr: '99',
+          ownerName: 'RL TEST',
+          licenseAltId: 'GAM301-0000241',
+          licenseType: 'Gaming - Resort Hotel',
+          childLicenses: [{ licenseAltId: 'CON301-0000241', licenseType: 'Concession' }],
+        },
+      ],
+    },
+  ]);
+
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].relatedContacts.length, 1);
+  assert.equal(merged[0].relatedContacts[0].ownerName, 'RL TEST');
+  assert.equal(merged[0].relatedContacts[0].licenseAltId, 'GAM301-0000241');
+
+  const details = collectLicenseDetails(merged[0].relatedContacts[0]);
+  assert.equal(details.size, 1);
+  assert.equal(details.get('GAM301-0000241')?.childLicenses?.[0].altId, 'CON301-0000241');
 });

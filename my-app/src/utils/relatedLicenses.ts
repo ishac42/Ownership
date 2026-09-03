@@ -137,6 +137,75 @@ export const attachRootLicensesFromReverse = (
   return { parentRows, rootLicenses };
 };
 
+const FILL_IF_EMPTY_KEYS = [
+  'percentage',
+  'percentOwned',
+  'licenseAltId',
+  'licenseType',
+  'businessName',
+  'locationAddress',
+  'contactType',
+  'ownershipType',
+  'email',
+  'phone',
+  'nvBusinessId',
+] as const;
+
+/**
+ * Collapse reverse-relation rows that are the same contact (same reference)
+ * into one node, combining licenses and nested relatedContacts.
+ */
+export const dedupeReverseContactNodes = (
+  rows: unknown[] | null | undefined
+): Record<string, unknown>[] => {
+  const map = new Map<string, Record<string, unknown>>();
+  let anon = 0;
+
+  (Array.isArray(rows) ? rows : []).forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const source = raw as Record<string, unknown>;
+    const incoming: Record<string, unknown> = {
+      ...source,
+      relatedContacts: dedupeReverseContactNodes(source.relatedContacts as unknown[]),
+    };
+
+    const licenses: RelatedLicense[] = [];
+    if (Array.isArray(incoming._licenses)) {
+      incoming._licenses.forEach((lic) => upsertRelatedLicense(licenses, asRelatedLicense(lic)));
+    }
+    upsertRelatedLicense(licenses, relatedLicenseFromItem(incoming));
+    incoming._licenses = licenses;
+
+    const key =
+      firstNonEmpty(incoming.referenceNbr, incoming.referenceNumber) || `anon-${anon++}`;
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, incoming);
+      return;
+    }
+
+    const mergedLicenses: RelatedLicense[] = [];
+    (Array.isArray(existing._licenses) ? existing._licenses : []).forEach((lic) =>
+      upsertRelatedLicense(mergedLicenses, asRelatedLicense(lic))
+    );
+    licenses.forEach((lic) => upsertRelatedLicense(mergedLicenses, lic));
+    existing._licenses = mergedLicenses;
+
+    FILL_IF_EMPTY_KEYS.forEach((field) => {
+      if (!firstNonEmpty(existing[field]) && firstNonEmpty(incoming[field])) {
+        existing[field] = incoming[field];
+      }
+    });
+
+    existing.relatedContacts = dedupeReverseContactNodes([
+      ...((existing.relatedContacts as unknown[]) || []),
+      ...((incoming.relatedContacts as unknown[]) || []),
+    ]);
+  });
+
+  return Array.from(map.values());
+};
+
 export const collectLicenseDetails = (
   entity: {
     _licenses?: unknown[];

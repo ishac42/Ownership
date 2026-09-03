@@ -13,6 +13,7 @@ import {
 } from '../utils/ownershipStatus';
 import { prepareOwnershipChildren } from '../utils/ownershipTree';
 import {
+  attachRootLicensesFromReverse,
   collectLicenseDetails,
   relatedLicenseFromItem,
   upsertRelatedLicense,
@@ -502,13 +503,15 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   // --- REVERSE RELATION LINK PROCESSING ---
   let processedReverseData = reverseData;
   if (isReverseRelation && Array.isArray(reverseData)) {
+    const rootRef = String(entity?.referenceNbr || entity?.referenceNumber || '');
+    const { parentRows, rootLicenses } = attachRootLicensesFromReverse(reverseData, rootRef);
     const parentMap = new Map<string, any>();
-    
-    reverseData.forEach(item => {
+
+    parentRows.forEach((item) => {
       const key = `${item.ownerName || ''}_${item.referenceNbr || ''}`;
       const existing = parentMap.get(key);
       const currentLic = relatedLicenseFromItem(item);
-      
+
       if (existing) {
         if (!Array.isArray(existing._licenses)) existing._licenses = [];
         upsertRelatedLicense(existing._licenses as RelatedLicense[], currentLic);
@@ -521,8 +524,15 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         parentMap.set(key, newItem);
       }
     });
-    
+
     processedReverseData = Array.from(parentMap.values());
+
+    if (operationalRootNode && rootLicenses.length > 0) {
+      if (!Array.isArray(operationalRootNode._licenses)) operationalRootNode._licenses = [];
+      rootLicenses.forEach((lic) => {
+        upsertRelatedLicense(operationalRootNode._licenses as RelatedLicense[], lic);
+      });
+    }
   }
 
   if (!operationalRootNode) return null;

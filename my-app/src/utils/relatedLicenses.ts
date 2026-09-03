@@ -71,6 +71,38 @@ export const upsertRelatedLicense = (
   return list;
 };
 
+/**
+ * Reverse rows whose contact ref is the entity being viewed are not parents.
+ * They are fallback license hits for that same contact (no ownership hierarchy).
+ */
+export const attachRootLicensesFromReverse = (
+  reverseData: unknown[] | null | undefined,
+  rootRef: string
+): { parentRows: Record<string, unknown>[]; rootLicenses: RelatedLicense[] } => {
+  const parentRows: Record<string, unknown>[] = [];
+  const rootLicenses: RelatedLicense[] = [];
+  const normalizedRoot = String(rootRef || '').trim();
+
+  if (!Array.isArray(reverseData)) {
+    return { parentRows, rootLicenses };
+  }
+
+  reverseData.forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const item = raw as Record<string, unknown>;
+    const itemRef = firstNonEmpty(item.referenceNbr, item.referenceNumber);
+    const isSelf = normalizedRoot !== '' && itemRef === normalizedRoot;
+
+    if (isSelf) {
+      upsertRelatedLicense(rootLicenses, relatedLicenseFromItem(item));
+      return;
+    }
+    parentRows.push(item);
+  });
+
+  return { parentRows, rootLicenses };
+};
+
 export const collectLicenseDetails = (
   entity: {
     _licenses?: unknown[];

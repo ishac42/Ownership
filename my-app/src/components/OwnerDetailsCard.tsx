@@ -287,6 +287,8 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
                   <ViewField label={isIndividualOwner ? "Ownership Title" : "Entity Type"} value={formData.type || formData.contactType} />
                 </div>
 
+                <ViewField label="Reference Contact ID" value={getOwnerReferenceNbr(formData)} />
+
                 {showStatusField && (
                   <ViewField label="Status" value={getEffectiveStatus(formData)} />
                 )}

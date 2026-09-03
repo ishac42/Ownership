@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { attachRootLicensesFromReverse } from '../src/utils/relatedLicenses.ts';
+import {
+  attachRootLicensesFromReverse,
+  collectLicenseDetails,
+  licenseRecordNode,
+  relatedLicenseFromItem,
+  upsertRelatedLicense,
+} from '../src/utils/relatedLicenses.ts';
 
 test('self reverse rows become root licenses when there is no hierarchy', () => {
   const { parentRows, rootLicenses } = attachRootLicensesFromReverse(
@@ -45,4 +51,74 @@ test('true reverse parents stay as parent rows', () => {
   assert.equal(parentRows.length, 1);
   assert.equal(parentRows[0].referenceNbr, '111');
   assert.equal(rootLicenses.length, 0);
+});
+
+test('gaming child licenses stay nested on the parent license', () => {
+  const rec = relatedLicenseFromItem({
+    licenseAltId: 'GAM301-0000241',
+    licenseType: 'Gaming - Resort Hotel',
+    businessName: 'RL TEST',
+    locationAddress: 'Strip',
+    childLicenses: [
+      {
+        licenseAltId: 'CON301-0000241',
+        licenseType: 'Concession',
+        businessName: 'RL TEST BAR',
+        locationAddress: 'Casino floor',
+      },
+    ],
+  });
+
+  assert.equal(rec?.altId, 'GAM301-0000241');
+  assert.equal(rec?.childLicenses?.length, 1);
+  assert.equal(rec?.childLicenses?.[0].altId, 'CON301-0000241');
+  assert.equal(rec?.childLicenses?.[0].licenseType, 'Concession');
+
+  const details = collectLicenseDetails({
+    licenseAltId: 'GAM301-0000241',
+    licenseType: 'Gaming - Resort Hotel',
+    childLicenses: [
+      { licenseAltId: 'CON301-0000241', licenseType: 'Concession' },
+    ],
+  });
+  assert.equal(details.size, 1);
+  assert.equal(details.has('CON301-0000241'), false);
+  assert.equal(details.get('GAM301-0000241')?.childLicenses?.[0].altId, 'CON301-0000241');
+
+  const merged = [];
+  upsertRelatedLicense(merged, rec);
+  upsertRelatedLicense(merged, {
+    altId: 'GAM301-0000241',
+    licenseType: '',
+    businessName: '',
+    locationAddress: '',
+    childLicenses: [
+      { altId: 'CON301-0000242', licenseType: 'Other', businessName: '', locationAddress: '' },
+    ],
+  });
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].childLicenses?.length, 2);
+
+  const node = licenseRecordNode(rec);
+  assert.equal(node.isLicenseNode, true);
+  assert.equal(node.ownerName, 'GAM301-0000241');
+  assert.equal(node.relatedContacts.length, 1);
+  assert.equal(node.relatedContacts[0].ownerName, 'CON301-0000241');
+  assert.equal(node.relatedContacts[0].isLicenseNode, true);
+});
+
+test('self reverse rows keep nested gaming children', () => {
+  const { rootLicenses } = attachRootLicensesFromReverse(
+    [
+      {
+        referenceNbr: '248594',
+        licenseAltId: 'GAM301-0000241',
+        childLicenses: [{ licenseAltId: 'CON301-0000241', licenseType: 'Concession' }],
+      },
+    ],
+    '248594'
+  );
+
+  assert.equal(rootLicenses.length, 1);
+  assert.equal(rootLicenses[0].childLicenses?.[0].altId, 'CON301-0000241');
 });

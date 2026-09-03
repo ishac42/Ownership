@@ -3,9 +3,10 @@ export type RelatedLicense = {
   licenseType: string;
   businessName: string;
   locationAddress: string;
+  childLicenses?: RelatedLicense[];
 };
 
-const blankDetails = (): Omit<RelatedLicense, 'altId'> => ({
+const blankDetails = (): Omit<RelatedLicense, 'altId' | 'childLicenses'> => ({
   licenseType: '',
   businessName: '',
   locationAddress: '',
@@ -19,6 +20,32 @@ const firstNonEmpty = (...values: unknown[]): string => {
   return '';
 };
 
+const parseChildLicenses = (value: unknown): RelatedLicense[] => {
+  if (!Array.isArray(value)) return [];
+  const list: RelatedLicense[] = [];
+  value.forEach((entry) => {
+    upsertRelatedLicense(list, asRelatedLicense(entry));
+  });
+  return list;
+};
+
+const mergeRelatedLicense = (
+  rec: RelatedLicense,
+  existing?: RelatedLicense
+): RelatedLicense => {
+  const childLicenses: RelatedLicense[] = [];
+  (existing?.childLicenses ?? []).forEach((child) => upsertRelatedLicense(childLicenses, child));
+  (rec.childLicenses ?? []).forEach((child) => upsertRelatedLicense(childLicenses, child));
+
+  return {
+    altId: rec.altId,
+    licenseType: rec.licenseType || existing?.licenseType || '',
+    businessName: rec.businessName || existing?.businessName || '',
+    locationAddress: rec.locationAddress || existing?.locationAddress || '',
+    ...(childLicenses.length > 0 ? { childLicenses } : {}),
+  };
+};
+
 export const relatedLicenseFromItem = (
   item: Record<string, unknown> | null | undefined
 ): RelatedLicense | null => {
@@ -30,12 +57,13 @@ export const relatedLicenseFromItem = (
     item.altId
   );
   if (!altId) return null;
-  return {
+  return mergeRelatedLicense({
     altId,
     licenseType: firstNonEmpty(item.licenseType, item.LICENSETYPE),
     businessName: firstNonEmpty(item.businessName, item.BUSINESSNAME),
     locationAddress: firstNonEmpty(item.locationAddress, item.LOCATIONADDRESS),
-  };
+    childLicenses: parseChildLicenses(item.childLicenses),
+  });
 };
 
 export const asRelatedLicense = (lic: unknown): RelatedLicense | null => {
@@ -58,18 +86,24 @@ export const upsertRelatedLicense = (
   if (!rec?.altId) return list;
   const existingIndex = list.findIndex((entry) => entry.altId === rec.altId);
   if (existingIndex === -1) {
-    list.push(rec);
+    list.push(mergeRelatedLicense(rec));
     return list;
   }
-  const existing = list[existingIndex];
-  list[existingIndex] = {
-    altId: rec.altId,
-    licenseType: rec.licenseType || existing.licenseType,
-    businessName: rec.businessName || existing.businessName,
-    locationAddress: rec.locationAddress || existing.locationAddress,
-  };
+  list[existingIndex] = mergeRelatedLicense(rec, list[existingIndex]);
   return list;
 };
+
+export const licenseRecordNode = (rec: RelatedLicense): Record<string, unknown> => ({
+  ownerName: rec.altId,
+  contactType: 'License Record',
+  ownershipType: 'License',
+  isLicenseNode: true,
+  referenceNbr: `lic-${rec.altId}`,
+  licenseType: rec.licenseType,
+  businessName: rec.businessName,
+  locationAddress: rec.locationAddress,
+  relatedContacts: (rec.childLicenses ?? []).map(licenseRecordNode),
+});
 
 /**
  * Reverse rows whose contact ref is the entity being viewed are not parents.
@@ -109,6 +143,7 @@ export const collectLicenseDetails = (
     licenseAltId?: string;
     LICENSESALTID?: string;
     licensesAltId?: string;
+    childLicenses?: unknown[];
   } | null,
   normalizedLicenseAltId?: string
 ): Map<string, RelatedLicense> => {
@@ -117,16 +152,7 @@ export const collectLicenseDetails = (
   const add = (rec: RelatedLicense | null) => {
     if (!rec) return;
     const existing = map.get(rec.altId);
-    if (!existing) {
-      map.set(rec.altId, rec);
-      return;
-    }
-    map.set(rec.altId, {
-      altId: rec.altId,
-      licenseType: rec.licenseType || existing.licenseType,
-      businessName: rec.businessName || existing.businessName,
-      locationAddress: rec.locationAddress || existing.locationAddress,
-    });
+    map.set(rec.altId, mergeRelatedLicense(rec, existing));
   };
 
   add(relatedLicenseFromItem(entity as Record<string, unknown>));

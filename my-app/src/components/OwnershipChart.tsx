@@ -15,6 +15,7 @@ import { prepareOwnershipChildren } from '../utils/ownershipTree';
 import {
   attachRootLicensesFromReverse,
   collectLicenseDetails,
+  licenseRecordNode,
   relatedLicenseFromItem,
   upsertRelatedLicense,
   type RelatedLicense,
@@ -93,23 +94,26 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     // 2. Extract unique licenses on this node (alt ID + reverse-lookup details)
     const licenseDetails = collectLicenseDetails(entity, (current as any)?.licenseAltId);
 
-    // 3. Inject separate visual child nodes for each license found
+    // 3. Inject separate visual child nodes for each license found.
+    // Gaming licenses may carry nested child licenses (relatedContacts).
     if (!isLicenseNode) {
       licenseDetails.forEach((rec, licenseId) => {
-        const alreadyExists = baseChildren.some(child => child.isLicenseNode && child.ownerName === licenseId);
-        if (!alreadyExists) {
-          baseChildren.push({
-            ownerName: licenseId,
-            contactType: 'License Record',
-            ownershipType: 'License',
-            isLicenseNode: true,
-            referenceNbr: `lic-${licenseId}`,
-            licenseType: rec.licenseType,
-            businessName: rec.businessName,
-            locationAddress: rec.locationAddress,
-            relatedContacts: []
-          });
+        const existingLic = baseChildren.find((child) => child.isLicenseNode && child.ownerName === licenseId);
+        const nextNode = licenseRecordNode(rec);
+        if (!existingLic) {
+          baseChildren.push(nextNode);
+          return;
         }
+        const existingKids = Array.isArray(existingLic.relatedContacts) ? existingLic.relatedContacts : [];
+        (nextNode.relatedContacts as Record<string, unknown>[]).forEach((child) => {
+          if (!existingKids.some((kid: { ownerName?: string }) => kid.ownerName === child.ownerName)) {
+            existingKids.push(child);
+          }
+        });
+        existingLic.relatedContacts = existingKids;
+        if (!existingLic.licenseType && rec.licenseType) existingLic.licenseType = rec.licenseType;
+        if (!existingLic.businessName && rec.businessName) existingLic.businessName = rec.businessName;
+        if (!existingLic.locationAddress && rec.locationAddress) existingLic.locationAddress = rec.locationAddress;
       });
     }
 

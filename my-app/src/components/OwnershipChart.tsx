@@ -162,7 +162,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                 ) : null}
                 {current.licenseType ? (
                   <p className="text-[10px] leading-snug break-words" title={current.licenseType}>
-                    <span className="font-semibold opacity-80">{isPendingApplication ? 'Application Type: ' : 'License Type: '}</span>
+                    <span className="font-semibold opacity-80">License Type: </span>
                     {current.licenseType}
                   </p>
                 ) : null}

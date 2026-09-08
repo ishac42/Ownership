@@ -159,10 +159,9 @@ export const attachRootLicensesFromReverse = (
     if (!raw || typeof raw !== 'object') return;
     const item = raw as Record<string, unknown>;
     const itemRef = firstNonEmpty(item.referenceNbr, item.referenceNumber);
-    const childRef = firstNonEmpty(item.childReferenceId, item.ChildReferenceID);
-    const isSelf =
-      normalizedRoot !== '' &&
-      (itemRef === normalizedRoot || childRef === normalizedRoot);
+    // childReferenceId is the contact that was searched, not the row itself.
+    // Matching it here hid every reverse parent of that contact.
+    const isSelf = normalizedRoot !== '' && itemRef === normalizedRoot;
 
     if (isSelf) {
       upsertRelatedLicense(rootLicenses, relatedLicenseFromItem(item));
@@ -195,9 +194,7 @@ export const mergeSelfPendingApplicationsOntoRoot = (
     if (!raw || typeof raw !== 'object') return;
     const item = raw as Record<string, unknown>;
     const itemRef = firstNonEmpty(item.referenceNbr, item.referenceNumber);
-    const childRef = firstNonEmpty(item.childReferenceId, item.ChildReferenceID);
-    const isSelf = itemRef === normalizedRoot || childRef === normalizedRoot;
-    if (!isSelf) return;
+    if (itemRef !== normalizedRoot) return;
 
     collectPendingApplications(item, (rec) => upsertRelatedLicense(licenses, rec));
   });

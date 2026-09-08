@@ -159,7 +159,10 @@ export const attachRootLicensesFromReverse = (
     if (!raw || typeof raw !== 'object') return;
     const item = raw as Record<string, unknown>;
     const itemRef = firstNonEmpty(item.referenceNbr, item.referenceNumber);
-    const isSelf = normalizedRoot !== '' && itemRef === normalizedRoot;
+    const childRef = firstNonEmpty(item.childReferenceId, item.ChildReferenceID);
+    const isSelf =
+      normalizedRoot !== '' &&
+      (itemRef === normalizedRoot || childRef === normalizedRoot);
 
     if (isSelf) {
       upsertRelatedLicense(rootLicenses, relatedLicenseFromItem(item));
@@ -173,6 +176,31 @@ export const attachRootLicensesFromReverse = (
   });
 
   return { parentRows, rootLicenses };
+};
+
+/** Merge pending applications from reverse self-rows onto the chart root entity. */
+export const mergeSelfPendingApplicationsOntoRoot = (
+  rootNode: Record<string, unknown> | null | undefined,
+  reverseData: unknown[] | null | undefined,
+  rootRef: string
+): void => {
+  if (!rootNode || !Array.isArray(reverseData)) return;
+  const normalizedRoot = String(rootRef || '').trim();
+  if (!normalizedRoot) return;
+
+  if (!Array.isArray(rootNode._licenses)) rootNode._licenses = [];
+  const licenses = rootNode._licenses as RelatedLicense[];
+
+  reverseData.forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const item = raw as Record<string, unknown>;
+    const itemRef = firstNonEmpty(item.referenceNbr, item.referenceNumber);
+    const childRef = firstNonEmpty(item.childReferenceId, item.ChildReferenceID);
+    const isSelf = itemRef === normalizedRoot || childRef === normalizedRoot;
+    if (!isSelf) return;
+
+    collectPendingApplications(item, (rec) => upsertRelatedLicense(licenses, rec));
+  });
 };
 
 const FILL_IF_EMPTY_KEYS = [

@@ -17,6 +17,7 @@ import {
   collectLicenseDetails,
   dedupeReverseContactNodes,
   licenseRecordNode,
+  mergeSelfPendingApplicationsOntoRoot,
   relatedLicenseFromItem,
   upsertRelatedLicense,
   asRelatedLicense,
@@ -532,6 +533,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         upsertRelatedLicense(operationalRootNode._licenses as RelatedLicense[], lic);
       });
     }
+    mergeSelfPendingApplicationsOntoRoot(operationalRootNode, reverseData, rootRef);
   }
 
   if (!operationalRootNode) return null;

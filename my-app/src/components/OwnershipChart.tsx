@@ -19,6 +19,7 @@ import {
   licenseRecordNode,
   relatedLicenseFromItem,
   upsertRelatedLicense,
+  asRelatedLicense,
   type RelatedLicense,
 } from '../utils/relatedLicenses';
 
@@ -65,10 +66,13 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const current = normalizeEntity(entity);
   
   const isLicenseNode = !!entity?.isLicenseNode;
+  const isPendingApplication = Boolean(entity?.isPendingApplication);
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
   const nodeTerminated = isOwnershipAsitRow(entity) && isEffectivelyTerminated(entity);
   const hasLicenses = collectLicenseDetails(entity, (current as any)?.licenseAltId).size > 0;
-  const typeLabel = isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : (current.contactType || 'Organization');
+  const typeLabel = isLicenseNode
+    ? (isPendingApplication ? 'Application Record' : 'License Record')
+    : isIndividual ? 'Individual' : (current.contactType || 'Organization');
   const showOperatingEntityLink =
     isReverseRelation &&
     !isLicenseNode &&
@@ -79,7 +83,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   // Original theme colors (licenses vs individuals vs organizations)
   let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
   if (isLicenseNode) {
-    nodeBgColor = 'bg-[#1e40af] border-[#1e3a8a]';
+    nodeBgColor = isPendingApplication ? 'bg-amber-600 border-amber-700' : 'bg-[#1e40af] border-[#1e3a8a]';
   }
 
   useEffect(() => {
@@ -148,10 +152,16 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
             </p>
             {isLicenseNode && isReverseRelation && (
-              <div className="mt-2 space-y-1 normal-case" aria-label="License record details">
+              <div className="mt-2 space-y-1 normal-case" aria-label={isPendingApplication ? 'Application record details' : 'License record details'}>
+                {isPendingApplication ? (
+                  <p className="text-[10px] leading-snug break-words">
+                    <span className="font-semibold opacity-80">Status: </span>
+                    {String((current as { applicationStatus?: string }).applicationStatus || entity?.applicationStatus || 'Pending')}
+                  </p>
+                ) : null}
                 {current.licenseType ? (
                   <p className="text-[10px] leading-snug break-words" title={current.licenseType}>
-                    <span className="font-semibold opacity-80">License Type: </span>
+                    <span className="font-semibold opacity-80">{isPendingApplication ? 'Application Type: ' : 'License Type: '}</span>
                     {current.licenseType}
                   </p>
                 ) : null}
@@ -203,7 +213,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
               </button>
             ) : (
               <span className="text-[10px] font-semibold tracking-wide">
-                {isLicenseNode ? 'License Record' : isIndividual ? 'Individual' : current.contactType}
+                {isLicenseNode
+                  ? (isPendingApplication ? 'Pending Application' : 'License Record')
+                  : isIndividual ? 'Individual' : current.contactType}
               </span>
             )}
           </div>
@@ -474,9 +486,14 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
           ...(Array.isArray(item.relatedContacts) ? item.relatedContacts : []),
         ]);
       } else {
-        const structuralClone = { 
+        const mergedLicenses: RelatedLicense[] = [];
+        if (Array.isArray(item._licenses)) {
+          item._licenses.forEach((lic: unknown) => upsertRelatedLicense(mergedLicenses, asRelatedLicense(lic)));
+        }
+        upsertRelatedLicense(mergedLicenses, activeLicense);
+        const structuralClone = {
           ...item,
-          _licenses: activeLicense ? [activeLicense] : ([] as RelatedLicense[]),
+          _licenses: mergedLicenses,
           relatedContacts: dedupeReverseContactNodes(item.relatedContacts),
         };
         uniqueRootMap.set(identityKey, structuralClone);

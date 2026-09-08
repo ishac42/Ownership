@@ -3,6 +3,8 @@ export type RelatedLicense = {
   licenseType: string;
   businessName: string;
   locationAddress: string;
+  isPendingApplication?: boolean;
+  applicationStatus?: string;
   childLicenses?: RelatedLicense[];
 };
 
@@ -42,8 +44,36 @@ const mergeRelatedLicense = (
     licenseType: rec.licenseType || existing?.licenseType || '',
     businessName: rec.businessName || existing?.businessName || '',
     locationAddress: rec.locationAddress || existing?.locationAddress || '',
+    isPendingApplication: rec.isPendingApplication || existing?.isPendingApplication || false,
+    applicationStatus: rec.applicationStatus || existing?.applicationStatus || '',
     ...(childLicenses.length > 0 ? { childLicenses } : {}),
   };
+};
+
+export const pendingApplicationToRelatedLicense = (
+  app: Record<string, unknown> | null | undefined
+): RelatedLicense | null => {
+  if (!app) return null;
+  const altId = firstNonEmpty(app.applicationAltId, app.APPLICATIONALTID);
+  if (!altId) return null;
+  return {
+    altId,
+    licenseType: firstNonEmpty(app.applicationType, app.APPLICATIONTYPE),
+    businessName: firstNonEmpty(app.businessName, app.BUSINESSNAME),
+    locationAddress: firstNonEmpty(app.locationAddress, app.LOCATIONADDRESS),
+    isPendingApplication: true,
+    applicationStatus: firstNonEmpty(app.applicationStatus, app.APPLICATIONSTATUS),
+  };
+};
+
+const collectPendingApplications = (
+  entity: Record<string, unknown> | null | undefined,
+  add: (rec: RelatedLicense | null) => void
+) => {
+  if (!Array.isArray(entity?.pendingApplications)) return;
+  entity.pendingApplications.forEach((app) =>
+    add(pendingApplicationToRelatedLicense(app as Record<string, unknown>))
+  );
 };
 
 export const relatedLicenseFromItem = (
@@ -62,6 +92,8 @@ export const relatedLicenseFromItem = (
     licenseType: firstNonEmpty(item.licenseType, item.LICENSETYPE),
     businessName: firstNonEmpty(item.businessName, item.BUSINESSNAME),
     locationAddress: firstNonEmpty(item.locationAddress, item.LOCATIONADDRESS),
+    isPendingApplication: item.isPendingApplication === true || item.isPendingApplication === 'true',
+    applicationStatus: firstNonEmpty(item.applicationStatus, item.APPLSTATUS),
     childLicenses: parseChildLicenses(item.childLicenses),
   });
 };
@@ -95,9 +127,11 @@ export const upsertRelatedLicense = (
 
 export const licenseRecordNode = (rec: RelatedLicense): Record<string, unknown> => ({
   ownerName: rec.altId,
-  contactType: 'License Record',
-  ownershipType: 'License',
+  contactType: rec.isPendingApplication ? 'Application Record' : 'License Record',
+  ownershipType: rec.isPendingApplication ? 'Application' : 'License',
   isLicenseNode: true,
+  isPendingApplication: Boolean(rec.isPendingApplication),
+  applicationStatus: rec.applicationStatus || '',
   referenceNbr: `lic-${rec.altId}`,
   licenseType: rec.licenseType,
   businessName: rec.businessName,
@@ -129,6 +163,10 @@ export const attachRootLicensesFromReverse = (
 
     if (isSelf) {
       upsertRelatedLicense(rootLicenses, relatedLicenseFromItem(item));
+      if (Array.isArray(item._licenses)) {
+        item._licenses.forEach((lic) => upsertRelatedLicense(rootLicenses, asRelatedLicense(lic)));
+      }
+      collectPendingApplications(item, (rec) => upsertRelatedLicense(rootLicenses, rec));
       return;
     }
     parentRows.push(item);
@@ -174,6 +212,7 @@ export const dedupeReverseContactNodes = (
       incoming._licenses.forEach((lic) => upsertRelatedLicense(licenses, asRelatedLicense(lic)));
     }
     upsertRelatedLicense(licenses, relatedLicenseFromItem(incoming));
+    collectPendingApplications(incoming, (rec) => upsertRelatedLicense(licenses, rec));
     incoming._licenses = licenses;
 
     const key =
@@ -229,6 +268,8 @@ export const collectLicenseDetails = (
   if (Array.isArray(entity?._licenses)) {
     entity._licenses.forEach((lic) => add(asRelatedLicense(lic)));
   }
+
+  collectPendingApplications(entity as Record<string, unknown>, add);
 
   [entity?.licenseAltId, entity?.LICENSESALTID, entity?.licensesAltId, normalizedLicenseAltId].forEach(
     (field) => {

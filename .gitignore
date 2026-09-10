@@ -2,6 +2,7 @@ node_modules/
 certs/
 *.pem
 dist/
+ownership-ui-test/
 .env
 .history
 .cursor/

@@ -1,0 +1,39 @@
+# Render Blueprint — Ownership Portal (TEST)
+# https://render.com/docs/blueprint-spec
+#
+# Dashboard services use repo root (no Root Directory override).
+# Backend: build npm install | start node server.js
+# Static UI: build npm install && npm run build | publish ownership-ui-test
+
+services:
+  - type: web
+    name: Ownership-Test
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: ACCELA_CLIENT_ID
+        sync: false
+      - key: ACCELA_CLIENT_SECRET
+        sync: false
+      - key: ACCELA_USERNAME
+        sync: false
+      - key: ACCELA_PASSWORD
+        sync: false
+      - key: ACCELA_AGENCY
+        sync: false
+      - key: ACCELA_ENVIRONMENT
+        sync: false
+      - key: ACCELA_SCOPE
+        value: run_emse_script
+
+  - type: web
+    name: Ownership-UI-TEST
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ownership-ui-test
+    envVars:
+      - key: VITE_API_URL
+        value: https://ownership-test.onrender.com

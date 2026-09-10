@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
+require('dotenv').config();
 const { getAccessToken } = require('./authentication');
 const addRoute = require('./add'); 
 const editRoute = require('./edit'); 

@@ -54,6 +54,25 @@ test('true reverse parents stay as parent rows', () => {
   assert.equal(rootLicenses.length, 0);
 });
 
+test('childReferenceId matching the viewed contact does not hide reverse parents', () => {
+  const { parentRows, rootLicenses } = attachRootLicensesFromReverse(
+    [
+      {
+        childReferenceId: '246272',
+        referenceNbr: '999001',
+        ownerName: 'Parent Org',
+        licenseAltId: 'LIC-PARENT',
+        pendingApplications: [{ applicationAltId: 'APP-1', applicationType: 'Tavern' }],
+      },
+    ],
+    '246272'
+  );
+
+  assert.equal(parentRows.length, 1);
+  assert.equal(parentRows[0].referenceNbr, '999001');
+  assert.equal(rootLicenses.length, 0);
+});
+
 test('gaming child licenses stay nested on the parent license', () => {
   const rec = relatedLicenseFromItem({
     licenseAltId: 'GAM301-0000241',

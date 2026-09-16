@@ -19,7 +19,22 @@ test('indexes a reverse parent under every searched child it belongs to', () => 
   assert.equal(grouped['248593'].length, 1);
   assert.equal(grouped['999001'].length, 1);
   assert.equal(grouped['248593'][0].referenceNbr, '111');
-  assert.deepEqual(childReferenceIdsOf(parent).sort(), ['248593', '999001']);
+  assert.deepEqual(childReferenceIdsOf(parent).sort(), ['111', '248593', '999001']);
+});
+
+test('indexes TEST OWN reverse row under its own ref so related licenses are not dropped', () => {
+  const row = {
+    childReferenceId: '248622',
+    referenceNbr: '248614',
+    ownerName: 'Test Own',
+    contactType: 'Operating Entity',
+    licenseAltId: 'ENT105-0000421',
+    nvBusinessId: 'N0921010',
+  };
+
+  const grouped = groupReverseParentsByChildRef([row]);
+  assert.equal(grouped['248622'][0].licenseAltId, 'ENT105-0000421');
+  assert.equal(grouped['248614'][0].licenseAltId, 'ENT105-0000421');
 });
 
 test('does not replace visible related entities with an empty refetch', () => {

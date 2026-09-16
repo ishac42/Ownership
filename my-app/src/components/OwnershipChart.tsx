@@ -124,7 +124,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     }
 
     setLocalChildren(prepareOwnershipChildren(baseChildren, parentRefNbr || entity?.referenceNbr || entity?.referenceNumber));
-  }, [entity, reverseData, isReverseRelation, parentRefNbr, current]);
+  }, [entity, reverseData, isReverseRelation, parentRefNbr]);
 
   const visibleChildren = useMemo(
     () => filterContactsForDisplay(localChildren, showTerminated, isEffectivelyTerminated) as any[],

@@ -4,6 +4,7 @@ export type RelatedLicense = {
   businessName: string;
   locationAddress: string;
   isPendingApplication?: boolean;
+  isPermit?: boolean;
   applicationStatus?: string;
   childLicenses?: RelatedLicense[];
 };
@@ -45,6 +46,7 @@ const mergeRelatedLicense = (
     businessName: rec.businessName || existing?.businessName || '',
     locationAddress: rec.locationAddress || existing?.locationAddress || '',
     isPendingApplication: rec.isPendingApplication || existing?.isPendingApplication || false,
+    isPermit: rec.isPermit || existing?.isPermit || false,
     applicationStatus: rec.applicationStatus || existing?.applicationStatus || '',
     ...(childLicenses.length > 0 ? { childLicenses } : {}),
   };
@@ -56,13 +58,18 @@ export const pendingApplicationToRelatedLicense = (
   if (!app) return null;
   const altId = firstNonEmpty(app.applicationAltId, app.APPLICATIONALTID);
   if (!altId) return null;
+  const isPermit =
+    app.isPermit === true ||
+    app.isPermit === 'true' ||
+    firstNonEmpty(app.recordCategory, app.RECORDCATEGORY) === 'Permit';
   return {
     altId,
-    licenseType: firstNonEmpty(app.applicationType, app.APPLICATIONTYPE),
+    licenseType: firstNonEmpty(app.applicationType, app.APPLICATIONTYPE, app.permitType),
     businessName: firstNonEmpty(app.businessName, app.BUSINESSNAME),
     locationAddress: firstNonEmpty(app.locationAddress, app.LOCATIONADDRESS),
-    isPendingApplication: true,
-    applicationStatus: firstNonEmpty(app.applicationStatus, app.APPLICATIONSTATUS),
+    isPendingApplication: !isPermit,
+    isPermit,
+    applicationStatus: firstNonEmpty(app.applicationStatus, app.APPLICATIONSTATUS, app.permitStatus),
   };
 };
 
@@ -93,7 +100,8 @@ export const relatedLicenseFromItem = (
     businessName: firstNonEmpty(item.businessName, item.BUSINESSNAME),
     locationAddress: firstNonEmpty(item.locationAddress, item.LOCATIONADDRESS),
     isPendingApplication: item.isPendingApplication === true || item.isPendingApplication === 'true',
-    applicationStatus: firstNonEmpty(item.applicationStatus, item.APPLSTATUS),
+    isPermit: item.isPermit === true || item.isPermit === 'true',
+    applicationStatus: firstNonEmpty(item.applicationStatus, item.APPLSTATUS, item.permitStatus),
     childLicenses: parseChildLicenses(item.childLicenses),
   });
 };
@@ -127,10 +135,15 @@ export const upsertRelatedLicense = (
 
 export const licenseRecordNode = (rec: RelatedLicense): Record<string, unknown> => ({
   ownerName: rec.altId,
-  contactType: rec.isPendingApplication ? 'Application Record' : 'License Record',
-  ownershipType: rec.isPendingApplication ? 'Application' : 'License',
+  contactType: rec.isPermit
+    ? 'Permit Record'
+    : rec.isPendingApplication
+      ? 'Application Record'
+      : 'License Record',
+  ownershipType: rec.isPermit ? 'Permit' : rec.isPendingApplication ? 'Application' : 'License',
   isLicenseNode: true,
   isPendingApplication: Boolean(rec.isPendingApplication),
+  isPermit: Boolean(rec.isPermit),
   applicationStatus: rec.applicationStatus || '',
   referenceNbr: `lic-${rec.altId}`,
   licenseType: rec.licenseType,

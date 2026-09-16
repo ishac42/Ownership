@@ -18,9 +18,7 @@ import {
   dedupeReverseContactNodes,
   licenseRecordNode,
   mergeSelfPendingApplicationsOntoRoot,
-  relatedLicenseFromItem,
   upsertRelatedLicense,
-  asRelatedLicense,
   type RelatedLicense,
 } from '../utils/relatedLicenses';
 
@@ -68,11 +66,12 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   
   const isLicenseNode = !!entity?.isLicenseNode;
   const isPendingApplication = Boolean(entity?.isPendingApplication);
+  const isPermit = Boolean(entity?.isPermit);
   const isIndividual = (current.ownershipType || "").toLowerCase().includes('individual');
   const nodeTerminated = isOwnershipAsitRow(entity) && isEffectivelyTerminated(entity);
   const hasLicenses = collectLicenseDetails(entity, (current as any)?.licenseAltId).size > 0;
   const typeLabel = isLicenseNode
-    ? (isPendingApplication ? 'Application Record' : 'License Record')
+    ? (isPermit ? 'Permit Record' : isPendingApplication ? 'Application Record' : 'License Record')
     : isIndividual ? 'Individual' : (current.contactType || 'Organization');
   const showOperatingEntityLink =
     isReverseRelation &&
@@ -84,7 +83,11 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   // Original theme colors (licenses vs individuals vs organizations)
   let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
   if (isLicenseNode) {
-    nodeBgColor = isPendingApplication ? 'bg-amber-600 border-amber-700' : 'bg-[#1e40af] border-[#1e3a8a]';
+    nodeBgColor = isPermit
+      ? 'bg-teal-700 border-teal-800'
+      : isPendingApplication
+        ? 'bg-amber-600 border-amber-700'
+        : 'bg-[#1e40af] border-[#1e3a8a]';
   }
 
   useEffect(() => {
@@ -120,6 +123,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
         if (!existingLic.licenseType && rec.licenseType) existingLic.licenseType = rec.licenseType;
         if (!existingLic.businessName && rec.businessName) existingLic.businessName = rec.businessName;
         if (!existingLic.locationAddress && rec.locationAddress) existingLic.locationAddress = rec.locationAddress;
+        if (rec.isPermit) existingLic.isPermit = true;
+        if (rec.isPendingApplication) existingLic.isPendingApplication = true;
+        if (rec.applicationStatus && !existingLic.applicationStatus) existingLic.applicationStatus = rec.applicationStatus;
       });
     }
 
@@ -163,16 +169,16 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
               </p>
             )}
             {isLicenseNode && isReverseRelation && (
-              <div className="mt-2 space-y-1 normal-case" aria-label={isPendingApplication ? 'Application record details' : 'License record details'}>
-                {isPendingApplication ? (
+              <div className="mt-2 space-y-1 normal-case" aria-label={isPermit ? 'Permit record details' : isPendingApplication ? 'Application record details' : 'License record details'}>
+                {(isPendingApplication || isPermit) ? (
                   <p className="text-[10px] leading-snug break-words">
                     <span className="font-semibold opacity-80">Status: </span>
-                    {String((current as { applicationStatus?: string }).applicationStatus || entity?.applicationStatus || 'Pending')}
+                    {String((current as { applicationStatus?: string }).applicationStatus || entity?.applicationStatus || (isPermit ? 'Active' : 'Pending'))}
                   </p>
                 ) : null}
                 {current.licenseType ? (
                   <p className="text-[10px] leading-snug break-words" title={current.licenseType}>
-                    <span className="font-semibold opacity-80">License Type: </span>
+                    <span className="font-semibold opacity-80">{isPermit ? 'Permit Type: ' : 'License Type: '}</span>
                     {current.licenseType}
                   </p>
                 ) : null}
@@ -225,7 +231,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
             ) : (
               <span className="text-[10px] font-semibold tracking-wide">
                 {isLicenseNode
-                  ? (isPendingApplication ? 'Pending Application' : 'License Record')
+                  ? (isPermit ? 'Permit Record' : isPendingApplication ? 'Pending Application' : 'License Record')
                   : isIndividual ? 'Individual' : current.contactType}
               </span>
             )}
@@ -486,22 +492,22 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
       if (!item) return;
       // Combine business name and account reference ID to create unique mapping keys
       const identityKey = `${item.ownerName || ''}_${item.referenceNbr || ''}`;
-      const activeLicense = relatedLicenseFromItem(item);
 
       if (uniqueRootMap.has(identityKey)) {
         const existingNode = uniqueRootMap.get(identityKey);
         if (!Array.isArray(existingNode._licenses)) existingNode._licenses = [];
-        upsertRelatedLicense(existingNode._licenses as RelatedLicense[], activeLicense);
+        collectLicenseDetails(item).forEach((rec) => {
+          upsertRelatedLicense(existingNode._licenses as RelatedLicense[], rec);
+        });
         existingNode.relatedContacts = dedupeReverseContactNodes([
           ...(existingNode.relatedContacts || []),
           ...(Array.isArray(item.relatedContacts) ? item.relatedContacts : []),
         ]);
       } else {
         const mergedLicenses: RelatedLicense[] = [];
-        if (Array.isArray(item._licenses)) {
-          item._licenses.forEach((lic: unknown) => upsertRelatedLicense(mergedLicenses, asRelatedLicense(lic)));
-        }
-        upsertRelatedLicense(mergedLicenses, activeLicense);
+        collectLicenseDetails(item).forEach((rec) => {
+          upsertRelatedLicense(mergedLicenses, rec);
+        });
         const structuralClone = {
           ...item,
           _licenses: mergedLicenses,

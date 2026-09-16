@@ -170,3 +170,13 @@ test('duplicate reverse contacts with the same ref collapse to one node', () => 
   assert.equal(details.size, 1);
   assert.equal(details.get('GAM301-0000241')?.childLicenses?.[0].altId, 'CON301-0000241');
 });
+
+test('dedupe fills NV Business ID onto the reverse contact node', () => {
+  const merged = dedupeReverseContactNodes([
+    { referenceNbr: '10', ownerName: 'JESSICA BECERRA' },
+    { referenceNbr: '10', ownerName: 'JESSICA BECERRA', nvBusinessId: 'NV20261013' },
+  ]);
+
+  assert.equal(merged.length, 1);
+  assert.equal(merged[0].nvBusinessId, 'NV20261013');
+});

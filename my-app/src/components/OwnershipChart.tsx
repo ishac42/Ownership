@@ -134,6 +134,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const percentageValue = parseFloat(String(current.percentage || '0').replace('%', '')) || 0;
   const hasPercentage = percentageValue > 0;
   const isChild = parentRefNbr !== "";
+  const nvBusinessId = String(current.nvBusinessId || '').trim();
+  const showNvBusinessId = !isLicenseNode && !isChild && nvBusinessId !== '';
   const showPercentageChip =
     hasPercentage &&
     !isLicenseNode &&
@@ -152,6 +154,14 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
             <p className="text-xs font-bold uppercase truncate" title={current.ownerName}>
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
             </p>
+            {showNvBusinessId && (
+              <p
+                className="text-[10px] font-semibold tracking-wide mt-1 normal-case opacity-90 truncate"
+                title={`NV Business ID: ${nvBusinessId}`}
+              >
+                NV Business ID: {nvBusinessId}
+              </p>
+            )}
             {isLicenseNode && isReverseRelation && (
               <div className="mt-2 space-y-1 normal-case" aria-label={isPendingApplication ? 'Application record details' : 'License record details'}>
                 {isPendingApplication ? (

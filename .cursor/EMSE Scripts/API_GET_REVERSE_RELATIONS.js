@@ -557,7 +557,7 @@ try {
 
             // Licenses/Privileged/Gaming/License is the only type with license children.
             expandGamingLicenseChildren(result.parents);
-            // Pending applications linked to the same DBA as the license (B1_APPL_STATUS LIKE '%Pending%').
+            // Pending applications and active Temporary Permits linked to the same DBA.
             expandPendingApplications(result.parents);
         }
     } else {
@@ -827,6 +827,7 @@ function expandPendingApplications(parents) {
         APP.B1_ALT_ID AS APPLICATIONALTID, \
         APP.B1_SPECIAL_TEXT AS BUSINESSNAME, \
         APP.B1_APPL_STATUS AS APPLICATIONSTATUS, \
+        APP.B1_PER_CATEGORY AS RECORDCATEGORY, \
         ASILIC.B1_CHECKLIST_COMMENT AS APPLICATIONTYPE \
     FROM B1PERMIT DBA \
     INNER JOIN XAPP2REF X \
@@ -839,9 +840,11 @@ function expandPendingApplications(parents) {
         AND APP.B1_PER_ID1     = X.B1_PER_ID1 \
         AND APP.B1_PER_ID2     = X.B1_PER_ID2 \
         AND APP.B1_PER_ID3     = X.B1_PER_ID3 \
-        AND APP.B1_PER_CATEGORY = 'Application' \
-        AND APP.B1_APPL_STATUS LIKE '%Pending%' \
         AND APP.REC_STATUS      = 'A' \
+        AND ( \
+              (APP.B1_PER_CATEGORY = 'Application' AND APP.B1_APPL_STATUS LIKE '%Pending%') \
+           OR (APP.B1_PER_GROUP = 'Licenses' AND APP.B1_PER_CATEGORY = 'Permit') \
+        ) \
         AND (APP.B1_PER_ID1 <> DBA.B1_PER_ID1 \
           OR APP.B1_PER_ID2 <> DBA.B1_PER_ID2 \
           OR APP.B1_PER_ID3 <> DBA.B1_PER_ID3) \
@@ -879,12 +882,14 @@ function expandPendingApplications(parents) {
         }
         if (alreadyListed) continue;
 
+        var isPermit = String(row.get("RECORDCATEGORY") || "") === "Permit";
         appsByDba[dbaAlt].push({
             applicationAltId: appAlt,
             applicationType: String(row.get("APPLICATIONTYPE") || ""),
             businessName: String(row.get("BUSINESSNAME") || ""),
             applicationStatus: String(row.get("APPLICATIONSTATUS") || ""),
-            locationAddress: String(getLicenseLocationAddress(appAlt))
+            locationAddress: String(getLicenseLocationAddress(appAlt)),
+            isPermit: isPermit
         });
     }
 

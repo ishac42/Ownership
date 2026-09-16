@@ -180,3 +180,70 @@ test('dedupe fills NV Business ID onto the reverse contact node', () => {
   assert.equal(merged.length, 1);
   assert.equal(merged[0].nvBusinessId, 'NV20261013');
 });
+
+test('temporary permits become separate Permit Record nodes', () => {
+  const details = collectLicenseDetails({
+    licenseAltId: 'LIC-1001',
+    licenseType: 'Tavern',
+    pendingApplications: [
+      {
+        applicationAltId: 'TEM120-0000146P',
+        applicationType: 'Temporary Permit',
+        businessName: 'NV TEST',
+        applicationStatus: 'Issued',
+        locationAddress: 'NELLIS',
+        isPermit: true,
+      },
+    ],
+  });
+
+  assert.equal(details.size, 2);
+  assert.equal(details.get('LIC-1001')?.isPermit, false);
+  assert.equal(details.get('TEM120-0000146P')?.isPermit, true);
+  assert.equal(details.get('TEM120-0000146P')?.isPendingApplication, false);
+  assert.equal(details.get('TEM120-0000146P')?.licenseType, 'Temporary Permit');
+  assert.equal(details.get('TEM120-0000146P')?.applicationStatus, 'Issued');
+
+  const permitRec = details.get('TEM120-0000146P');
+  assert.ok(permitRec);
+  const permitNode = licenseRecordNode(permitRec);
+  assert.equal(permitNode.isLicenseNode, true);
+  assert.equal(permitNode.isPermit, true);
+  assert.equal(permitNode.contactType, 'Permit Record');
+  assert.equal(permitNode.ownershipType, 'Permit');
+  assert.equal(permitNode.ownerName, 'TEM120-0000146P');
+});
+
+test('self reverse rows keep temporary permits on the root', () => {
+  const { rootLicenses, parentRows } = attachRootLicensesFromReverse(
+    [
+      {
+        referenceNbr: '248593',
+        ownerName: 'RL TEST',
+        licenseAltId: 'LIC-1001',
+        pendingApplications: [{ applicationAltId: 'TEM120-0000146P', applicationType: 'Temporary Permit', isPermit: true }],
+      },
+    ],
+    '248593'
+  );
+
+  assert.equal(parentRows.length, 0);
+  assert.equal(rootLicenses.length, 2);
+  assert.equal(rootLicenses.some((lic) => lic.altId === 'TEM120-0000146P' && lic.isPermit), true);
+});
+
+test('dedupe merges temporary permits onto the reverse contact node', () => {
+  const merged = dedupeReverseContactNodes([
+    { referenceNbr: '10', ownerName: 'NV TEST' },
+    {
+      referenceNbr: '10',
+      ownerName: 'NV TEST',
+      pendingApplications: [{ applicationAltId: 'TEM120-0000146P', applicationType: 'Temporary Permit', isPermit: true }],
+    },
+  ]);
+
+  assert.equal(merged.length, 1);
+  const details = collectLicenseDetails(merged[0]);
+  assert.equal(details.get('TEM120-0000146P')?.isPermit, true);
+  assert.equal(details.get('TEM120-0000146P')?.licenseType, 'Temporary Permit');
+});

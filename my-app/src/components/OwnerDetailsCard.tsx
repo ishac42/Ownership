@@ -7,6 +7,7 @@ import ValidationBlockDialog from './ValidationBlockDialog';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import { getOwnerReferenceNbr, hasInvalidOwnershipTotal, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
 import { buildSavedOwnerUpdates } from '../utils/ownershipTree';
+import { capitalizeFirstLetter, equalsIgnoreCase } from '../utils/displayText';
 
 interface OwnerDetailsCardProps {
   owner: any;
@@ -129,6 +130,11 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
 
       if (key === 'type') {
         currentValue = currentValue || "Owner";
+      }
+
+      // Accela stores Type in lowercase; ignore casing-only diffs so we don't rewrite it.
+      if (key === 'ownershipType' && equalsIgnoreCase(currentValue, originalValue)) {
+        return;
       }
 
       if (fieldMap[key] && currentValue != originalValue) {
@@ -275,7 +281,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
             ) : (
               <div className="p-10 bg-[#f0f4f8] space-y-8">
                 <div className="grid grid-cols-3 gap-8">
-                  <ViewField label="Ownership Type" value={formData.ownershipType} />
+                  <ViewField label="Ownership Type" value={capitalizeFirstLetter(formData.ownershipType)} />
                   <ViewField
                     label={isIndividualOwner ? "Name" : "Business Name"}
                     value={

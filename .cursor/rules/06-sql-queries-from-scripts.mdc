@@ -1,0 +1,99 @@
+---
+description: SQL queries in scripts
+globs: 
+alwaysApply: false
+---
+SQL queries in Accela scripts have specific rules.
+
+// REQUIRED: Include SERV_PROV_CODE in all JOINs and WHERE clauses
+sql += " INNER JOIN TABLE2 T2 ON T1.SERV_PROV_CODE = T2.SERV_PROV_CODE ";
+sql += " WHERE T1.SERV_PROV_CODE = '$$ServProvCode$$' ";
+
+// Build queries incrementally with proper formatting
+var sql = "SELECT T1.FIELD1, T1.FIELD2 ";
+sql += " FROM TABLE1 T1 ";
+sql += " WHERE T1.SERV_PROV_CODE = '$$ServProvCode$$' ";
+
+// Use $$paramName$$ format for parameters
+var sql = "SELECT * FROM TABLE WHERE FIELD = '$$param$$' ";
+sql = sql.replace("$$param$$", value);
+
+// Standard execution pattern with logging and error handling
+logMessage("Executing query: ", "DEBUG");
+logMessage(formatSQL(sql), "DEBUG", "code");
+var result = aa.db.select(sql, new Array());
+
+if (!result.getSuccess()) {
+    throw "Error executing SQL: " + result.getErrorMessage();
+}
+
+var output = result.getOutput();
+if (output && output.size() > 0) {
+    logMessage("Records Found: " + output.size(), "INFO");
+}
+
+Use this list for reference as needed for table definitions and joins:
+
+B1PERMIT - Main record table
+- Primary Keys: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: B1_ALT_ID, B1_PER_GROUP, B1_PER_TYPE, B1_PER_SUB_TYPE, B1_PER_CATEGORY, B1_APPL_STATUS, REC_STATUS
+
+XAPP2REF - Parent-child relationships
+- Links child to parent via: 
+  Child: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+  Parent: SERV_PROV_CODE, B1_MASTER_ID1, B1_MASTER_ID2, B1_MASTER_ID3
+
+BCHCKBOX - Custom fields (ASI) table
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: B1_CHECKBOX_DESC (field name), B1_CHECKLIST_COMMENT (field value)
+
+BAPPSPECTABLE_VALUE - ASI Table values
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: GROUP_NAME, TABLE_NAME, COLUMN_NAME, ROW_INDEX, ATTRIBUTE_VALUE
+
+BCHCKBOX - Custom fields (ASI) table
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: B1_CHECKBOX_DESC (field name), B1_CHECKLIST_COMMENT (field value)
+
+BAPPSPECTABLE_VALUE - ASI Table values
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: GROUP_NAME, TABLE_NAME, COLUMN_NAME, ROW_INDEX, ATTRIBUTE_VALUE
+
+F4FEEITEM - Fee items
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: FEEITEM_SEQ_NBR, GF_COD, GF_DES, GF_FEE, GF_ITEM_STATUS_FLAG
+
+F4INVOICE - Invoices
+- Key Fields: INVOICE_NBR, INVOICE_DATE, BALANCE_DUE
+
+X4FEEITEM_INVOICE - Fee-Invoice relationship
+- Links F4FEEITEM to F4INVOICE
+- Key Fields: FEEITEM_SEQ_NBR, INVOICE_NBR
+
+F4PAYMENT - Payments
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: PAYMENT_SEQ_NBR, PAYMENT_AMOUNT, AMOUNT_NOTALLOCATED
+
+X4PAYMENT_FEEITEM - Payment-Fee relationship
+- Links F4PAYMENT to F4FEEITEM
+- Key Fields: PAYMENT_SEQ_NBR, FEEITEM_SEQ_NBR, FEE_ALLOCATION
+
+T1_TIME_LOG - Time entries
+- Key Fields: TIME_LOG_SEQ, USER_NAME, LOG_DATE, TOTAL_MINUTES, BILLABLE_FLAG
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+
+R1_TIME_GROUP - Time groups
+- Links to T1_TIME_LOG via: TIME_GROUP_SEQ
+- Key Fields: TIME_GROUP_NAME
+
+R1_TIME_TYPES - Time types
+- Links to T1_TIME_LOG via: TIME_TYPE_SEQ
+- Key Fields: TIME_TYPE_NAME
+
+B6CONDIT - Record conditions
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: B1_CON_NBR, B1_CON_DES, B1_CON_TYP, B1_CON_STATUS
+
+B1_EXPIRATION - Record expiration details
+- Links to B1PERMIT via: SERV_PROV_CODE, B1_PER_ID1, B1_PER_ID2, B1_PER_ID3
+- Key Fields: EXPIRATION_CODE, EXPIRATION_DATE

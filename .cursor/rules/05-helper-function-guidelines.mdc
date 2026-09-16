@@ -1,0 +1,13 @@
+---
+description: EH Helper Function guidelines
+globs: 
+---
+# EH Helper Function guidelines
+
+The Scripts/EH Helper Functions folder contains all the helper function scripts. 
+- All helper function scripts should be prefixed by EH_FN_. This will clearly identify batch scripts created by the Decade program.
+
+Helper functions are used by other scripts an can be evaled in using the following methods:
+- eval(getScriptText([script_name], null, true));
+- aa.include([script_name])
+- include([script_name])

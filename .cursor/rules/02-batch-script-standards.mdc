@@ -1,0 +1,380 @@
+---
+alwaysApply: false
+---
+# Batch script standards
+
+The Scripts/Batch folder contains all the batch scripts. 
+- All batch scripts should be prefixed by BATCH_EH_.
+- This will clearly identify batch scripts created by the Decade program.
+- All batch scripts must follow the same standards using the below template:
+-- The template supports getting records in two ways: via SQL query or via a Set
+--- A set is an object in accela that contains a list of records in it
+
+```
+/*
+Title: BATCH_TEMPLATE
+Version: 1.0
+Description: Batch script template with advanced logging and error handling
+Dependencies: 
+	- Helper function script: EH_FN_BATCH_UTILS
+Last Updated By: Aaron Williams
+Last updated Date: 05/15/2024
+Tip: Collapse all regions to better navigate the script: CTRL+K+0 / CMD+K+0
+*/
+
+//#region CHANGE LOG
+/*  REVISIONS:
+	05/14/2024 - Aaron Williams - Initial version created
+*/
+//#endregion
+//#region SCRIPT INITIALIZERS FOR TEST SCRIPT 
+
+aa.env.setValue("CurrentUserID", "developer"); // used only for testing, batch job will set this value when executed from the UI
+aa.env.setValue("LoggingLevel", "DEBUG");
+aa.env.setValue("EmailLogsTo", "developer@accela.com");
+aa.env.setValue("TestRecords", "PR0002409-BILLING-2024-07-07-1,PR0002410-BILLING-2024-07-07-1");
+
+//#endregion
+
+//#region Load Dependencies
+aa.includeScript("EH_FN_BATCH_UTILS");
+//#endregion
+
+//#region Load Environment
+var SCRIPT_VERSION = "1.0";
+var batchJobName = aa.env.getValue("batchJobName");
+if (batchJobName == null || batchJobName == "")
+	batchJobName = "BATCH_TEMPLATE";
+eval(getScriptText("INCLUDES_ACCELA_FUNCTIONS", null, true));
+eval(getScriptText("INCLUDES_ACCELA_GLOBALS", null, true));
+eval(getScriptText("INCLUDES_CUSTOM", null, true));
+var currentUserID = "ADMIN";
+var enableHTMLLog = true; // change to false to disable HTML logging
+//#endregion
+
+//#region Setup Logging
+var showDebug = false; //default debug is off
+var loggingLevel = "INFO"; //default logging level
+logMessage = function (logDesc) {
+	var msg = "";
+	var level = "INFO"
+	var style = "";
+
+	// Handle logging level
+	if (arguments.length > 1) {
+		level = arguments[1] || "INFO";
+	}
+	// Handle style
+	if (arguments.length > 2)
+		style = arguments[2];
+
+	if (enableHTMLLog) {
+		var css = "";
+		switch (style) {
+			case "h1":
+				css = "color: blue;";
+				msg = "<h1 style='" + css + "'>" + logDesc + "</h1>";
+				break;
+			case "h2":
+				css = "color: blue;";
+				msg = "<h2 style='" + css + "'>" + logDesc + "</h2>";
+				break;
+			case "h3":
+				css = "color: blue;";
+				msg = "<h3 style='" + css + "'>" + logDesc + "</h3>";
+				break;
+			case "code":
+				css = "background: #ebe4d5; color: #172B4D; font-size: 0.875rem; line-height: 1.5rem; padding:8px; display:block;";
+				msg = "<pre><code style='" + css + "'>" + logDesc + "</code></pre>";
+				break;
+			case "xml":
+				css = "background: #ebe4d5; color: #172B4D; font-size: 0.875rem; line-height: 1.5rem; padding:8px; display:block;";
+				msg = "<textarea style='" + css + "'>" + logDesc + "</textarea>";
+				break;
+			case "bold":
+				css = "color:black; font-weight:bold;";
+				msg = "<span style='" + css + "'>" + logDesc + "</span><br>";
+				break;
+			case "error":
+				css = "color:red; font-weight:bold;";
+				msg = "<span style='" + css + "'>" + logDesc + "</span><br>";
+				break;
+			default:
+				msg = logDesc + "<BR>";
+		}
+	} else {
+		msg = logDesc + "<BR>";
+	}
+
+	// always print INFO level and VERBOSE loggingLeval
+	if (level == "INFO" || loggingLevel == "VERBOSE") {
+		//aa.print(msg);
+		message += msg;
+	}
+	// print DEBUG level if loggingLevel is DEBUG
+	if (loggingLevel == "DEBUG" && level == "DEBUG") {
+		//aa.print(msg);
+		message += msg;
+	}
+}
+logDebug = function (edesc) {
+	if (showDebug) {
+		var msg = "";
+		var color = "";
+		if (arguments.length > 1)
+			color = arguments[1];
+		if (!isBlank(color)) {
+			msg = "<font color='" + color + "' size=4>" + edesc + "</font><BR>";
+		} else {
+			msg = edesc + "<BR>";
+		}
+		logMessage(msg);
+	}
+}
+//#endregion
+
+//#region Initilize Batch Parameters
+var loggingLevel = aa.env.getValue("LoggingLevel");
+var testRecords = aa.env.getValue("TestRecords");
+var emailLogsTo = aa.env.getValue("EmailLogsTo");
+//#endregion
+
+//#region Batch Globals
+if (loggingLevel == "VERBOSE") {
+	// If logging level is VERBOSE, show debug
+	showDebug = true;
+}
+var maxSeconds = 5 * 60; // number of seconds allowed for batch processing, usually < 5*60
+var startDate = new Date();
+var timeExpired = false;
+var startTime = new Date().getTime();
+var sysDate = aa.date.getCurrentDate();
+var batchJobID = aa.batchJob.getJobID().getOutput();
+var systemUserObj = aa.person.getUser("ADMIN").getOutput();
+var servProvCode = aa.getServiceProviderCode();
+var capId = null;
+var altId = "";
+var cntTotalRecords = 0;
+var cntProcessed = 0;
+var cntSuccess = 0;
+var cntFailed = 0;
+var exceptionLogs = new Array();
+
+//#endregion
+
+//#region Start Logging
+logMessage("Executing Batch Job: " + batchJobName + " - v" + SCRIPT_VERSION, "INFO", "h1");
+logMessage("Start Time: " + startDate);
+
+// log batch parameters
+logMessage("Batch Parameters", "INFO", "h2");
+logMessage("Logging Level: " + loggingLevel, "INFO");
+logMessage("Email Logs To: " + emailLogsTo, "INFO");
+logMessage("Test Records: " + testRecords, "INFO");
+if (!isBlank(testRecords))
+	logMessage("The batch will only process test records: " + testRecords, "INFO", "error");
+//#endregion
+
+//#region Main Process
+// execute the main process
+
+try {
+	if (!timeExpired) mainProcess();
+} catch (err) {
+	logMessage("Error: " + err, "INFO", "error");
+}
+
+logMessage("End of Job: Elapsed Time : " + elapsed() + " Seconds");
+
+// Script result for script test
+var scriptResult = message;
+aa.env.setValue("ScriptReturnCode", "0");
+aa.env.setValue("ScriptReturnMessage", scriptResult);
+
+function mainProcess() {
+
+	// Main Process Logic
+	logMessage("Executing Main Process", "INFO", "h2");
+
+	//#region Get Records By SQL
+	var records = _getRecords();
+	cntTotalRecords = records.size();
+
+	// Process records
+	for (var i = 0; i < records.size(); i++) {
+		try {
+			var record = records.get(i);
+			var thisRecordId = record.get("B1_ALT_ID");
+			logMessage("Processing Record: " + thisRecordId, "INFO", "bold");
+
+			// Call primary function here
+
+		} catch (e) {
+			logMessage("Error processing record: " + e, "INFO", "error");
+			exceptionLogs.push("Error processing record: " + thisRecordId + " - " + e);
+			cntFailed++;
+		}
+	}
+	//#endregion
+
+	//#region Get Records from Set
+	var setId = "BILLING-2024-07-07-1-BILLING";
+	var set = new batchCapSet(setId);
+	if(!set.exists){
+		set.create();
+	}
+	var searchMemberStatus = ["New","Processing"];
+	var setMembers = set.getMembersByStatus(searchMemberStatus);
+
+	cntTotalRecords = setMembers.length;
+
+	logMessage("Total Set Members with status " + searchMemberStatus + ": " + cntTotalRecords, "INFO", "bold");
+
+	// Process records
+	for (m in setMembers) {
+		try {
+			var member = setMembers[m];
+			var memberStatus = member.setMemberStatus;
+			var recordCap = aa.cap.getCap(member.ID1, member.ID2, member.ID3).getOutput();
+			var recordCapId = recordCap.getCapID();
+			var recordCapIdString = recordCapId.getCustomID();
+
+			// only process test records
+			if (!isBlank(testRecords) && testRecords.indexOf(recordCapIdString) == -1) {
+				//logMessage("Skipping record: " + recordCapIdString, "INFO", "error");
+				continue;
+			}
+
+			logMessage("Processing Record: " + recordCapId + " with set member status: " + memberStatus, "INFO", "bold");
+
+			// upon success, update set member status
+			// set.updateMemberStatus(recordCapId, "Invoiced");
+
+		} catch (e) {
+			logMessage("Error processing record: " + recordCapIdString + " - " + e, "INFO", "error");
+			exceptionLogs.push("Error processing record: " + recordCapIdString + " - " + e);
+			cntFailed++;
+		}
+	}
+	//#endregion
+
+	//#region Finalize Batch
+	// Summarize results
+	var logSummary = _generateLogSummary();
+	message = logSummary + message; // add the log summary to the top of the message
+
+	// email logs to admin
+	emailLogs(emailLogsTo, logSummary, exceptionLogs);
+
+	/* Examples of additional helper function usage
+
+	// email logs to admin as a notification template on a parameter record
+	emailLogsAsCapNotification(billingParamId, "EH_BATCH_LOG", emailLogsTo, "auto_sender@accela.com", logSummary, exceptionLogs);
+
+	// update a set comment with batch results
+	updateBatchSetComment(permitSet, logSummary);
+
+	// update billing parameter record workflow
+	updateParamRecWorkflow(billingParamId, "Billable Permits Set Processing", batchJobName, logSummary, exceptionLogs);
+
+	*/
+
+	//#endregion
+
+}
+//#endregion
+
+//#region Main Process Functions
+function _generateLogSummary() {
+
+	var logSummary = "";
+	logSummary += "<h1 style='color: blue;'>" + batchJobName + " Result Summary</h1>";
+	logSummary += "Date: " + startDate + "<BR>";
+	logSummary += "User: " + aa.env.getValue("CurrentUserID") + "<BR>";
+
+	// Add elapsed time
+	var totalElapsed = elapsed();
+	var minutes = Math.floor(totalElapsed / 60);
+	var seconds = Math.round(totalElapsed % 60);
+	var elapsedTime = minutes + " m " + (seconds < 10 ? "0" : "") + seconds + " s";
+	logSummary += "Elapsed Time: " + elapsedTime + "<BR><BR>";
+
+	logSummary += "# Total Records: " + cntTotalRecords + "<BR>";
+	logSummary += "# Processed: " + cntProcessed + "<BR>";
+	logSummary += "# Succeeded: " + cntSuccess + "<BR>";
+	logSummary += "# Failed: " + cntFailed + "<BR><BR>";
+
+	if (exceptionLogs.length > 0 && emailLogsTo != null && emailLogsTo != "") {
+		logSummary += "*The exceptions log is attached to the email sent to: " + emailLogsTo + "<BR>";
+	}
+
+	return logSummary;
+}
+
+function _getRecords() {
+	// Get records to process
+	var output;
+	try {
+
+		var sql = "SELECT TOP 1 B1_ALT_ID";
+		sql += " FROM B1PERMIT WHERE SERV_PROV_CODE = '$$ServProvCode$$'";
+		// add test records
+		if (!isBlank(testRecords)) {
+			sql += " AND B1_ALT_ID IN (" + testRecords.split(",").map(function(r) { return "'" + r.trim() + "'"; }).join(",") + ") ";
+		}
+
+		// replace parameters in sql
+		sql = sql.replace("$$ServProvCode$$", aa.getServiceProviderCode());
+
+		// execute sql
+		logMessage("Getting Records by SQL Query: ", "DEBUG");
+		logMessage(formatSQL(sql), "DEBUG", "code");
+		var result = aa.db.select(sql, []);
+
+		if (!result.getSuccess()) {
+			throw "Error executing SQL: " + result.getErrorMessage();
+		}
+
+		output = result.getOutput();
+
+		if (output && output.size() > 0) {
+			logMessage("Records Found: " + output.size(), "INFO");
+		} else {
+			logMessage("No records found.", "INFO", "error");
+		}
+
+	} catch (e) {
+		throw new Error("Error executing SQL Query: " + e);
+	}
+
+	return output;
+
+}
+
+function _getRecordsFromSet(vSetId) {
+	// Get records to process
+	logMessage("Getting Records from Set: " + vSetId, "DEBUG");
+	var output = new Array();
+	try {
+
+		var thisSet = aa.set.getSetByPK(vSetId).getOutput();
+		if (thisSet == null) {
+			logMessage("Set " + vSetId + " not found", "INFO", "error");
+			return output;
+		}
+		var output = aa.set.getCAPSetMembersByPK(vSetId).getOutput().toArray();
+		if (output && output.length > 0) {
+			logMessage("Records Found: " + output.length, "INFO");
+		} else {
+			logMessage("No records found.", "INFO", "error");
+		}
+
+	} catch (e) {
+		throw new Error("Error getting Set: " + vSetId + ": " + e);
+	}
+
+	return output;
+}
+
+//#endregion
+```

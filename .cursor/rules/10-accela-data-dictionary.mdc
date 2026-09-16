@@ -1,0 +1,66 @@
+---
+description: How to look up Accela table and column definitions via AA_DATA_DIC
+alwaysApply: true
+---
+
+# Accela Data Dictionary (`AA_DATA_DIC`)
+
+When you need to find/verify Accela table names, column names, data types, or
+the business meaning of a field, query `dbo.AA_DATA_DIC` **before guessing**.
+This is faster and more reliable than `INFORMATION_SCHEMA.COLUMNS` because it
+includes column descriptions, primary-key flags, and the Accela version a
+column was added in.
+
+## Table structure
+
+| Column | Notes |
+|---|---|
+| `OWNER` | always `ACCELA` |
+| `TABLE_NAME` | uppercase, e.g. `F4PAYMENT`, `ACCOUNTING_AUDIT_TRAIL` |
+| `COLUMN_NAME` | uppercase |
+| `COLUMN_DESC` | **human-readable description** — read this before assuming a column's purpose |
+| `DATA_TYPE` | `VARCHAR2`, `NUMBER`, `DATE`, `datetime`, etc. |
+| `DATA_LENGTH`, `DATA_PRECISION`, `DATA_SCALE` | size info |
+| `NULLABLE` | `Y` or `N` |
+| `PK_FLAG` | name of the PK constraint when the column is part of the primary key |
+| `REC_FUL_NAM` | Accela version that added the column (e.g. `AA7.2.0`) |
+
+## Common lookups
+
+```sql
+-- All columns of a table, in alphabetical order
+SELECT COLUMN_NAME, DATA_TYPE, COLUMN_DESC, PK_FLAG, NULLABLE
+  FROM dbo.AA_DATA_DIC
+ WHERE TABLE_NAME = 'F4PAYMENT'
+ ORDER BY COLUMN_NAME;
+
+-- Find which tables contain a given column
+SELECT TABLE_NAME, COLUMN_DESC
+  FROM dbo.AA_DATA_DIC
+ WHERE COLUMN_NAME = 'PAYMENT_SEQ_NBR'
+ ORDER BY TABLE_NAME;
+
+-- Primary key columns for a table
+SELECT COLUMN_NAME, COLUMN_DESC
+  FROM dbo.AA_DATA_DIC
+ WHERE TABLE_NAME = 'F4PAYMENT' AND PK_FLAG IS NOT NULL AND PK_FLAG <> '';
+
+-- Find any column whose description mentions a concept (e.g. "credit")
+SELECT TABLE_NAME, COLUMN_NAME, COLUMN_DESC
+  FROM dbo.AA_DATA_DIC
+ WHERE COLUMN_DESC LIKE '%credit%'
+ ORDER BY TABLE_NAME, COLUMN_NAME;
+```
+
+## Usage rules for the agent
+
+1. **Always check `AA_DATA_DIC` before writing a query that uses unfamiliar
+   columns.** Don't trust memory or rule-file table references — they may be
+   stale or wrong for this agency's Accela version.
+2. **If a column doesn't exist in `AA_DATA_DIC`, it doesn't exist** — don't try
+   it. Look for the closest match in `COLUMN_DESC` instead.
+3. **Cite `COLUMN_DESC` in commit messages or comments** when the meaning of a
+   column drives a non-obvious decision (e.g., why we use
+   `AMOUNT_NOTALLOCATED` instead of some other field).
+4. **Prefer `AA_DATA_DIC` over `INFORMATION_SCHEMA.COLUMNS`** — they return
+   the same column list, but `AA_DATA_DIC` adds descriptions and PK info.

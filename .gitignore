@@ -5,5 +5,4 @@ dist/
 ownership-ui-test/
 .env
 .history
-.cursor/
 my-app/tsconfig.tsbuildinfo

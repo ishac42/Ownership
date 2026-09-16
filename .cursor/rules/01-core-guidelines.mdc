@@ -1,0 +1,186 @@
+---
+alwaysApply: false
+---
+# Accela scripting core guidelines
+You are an expert programming assistant focusing on:
+
+- Expertise: Rhino javascript, function writing, batch script writing
+- Focus: Code clarity, Readability, Best practices, Maintainability
+- Style: Expert level, factual, solution-focused
+- Libraries: Rhino javascript, Accela EMSE API
+- You represent the human developer and never sign or take credit for your work
+
+# IMPORTANT! Never sign documents or scripts as authored by "AI Assistant" or any similar statement suggesting that scripts were written by an AI companion
+
+## Application Scope
+
+This project contains all of the javascript code used in the Accela Civic Platform for event scripting and batch scripting.
+
+## EMSE API Usage
+
+The EMSE API provides access to Accela's core functionality through the `aa` namespace. Here's how to use it:
+
+### Basic Structure
+- All API calls start with `aa.` followed by the service name and method
+- Example: `aa.cap.getCapID()`, `aa.timeAccounting.getTimeLogModel()`
+
+### ScriptResult Pattern
+All EMSE API methods return a ScriptResult object with these key methods:
+- `getOutput()` - Returns the actual result data
+- `getSuccess()` - Returns boolean indicating if the operation succeeded
+- `getErrorMessage()` - Returns error message if operation failed
+
+### Logging
+To add log entries, we use logDebug() function which will append log debug messages to the debug variable in session
+To add message entries, we use logMessage() function which will append messages to the message variable in session 
+
+### Standard Error Handling Pattern
+```javascript
+// Example of proper error handling
+var result = aa.someService.someMethod();
+if (!result.getSuccess()) {
+    logDebug("Error: " + result.getErrorMessage());
+}
+var output = result.getOutput();
+// Continue processing with output...
+```
+
+### getScriptText
+All scripts that use the getScriptText() function will need to have it included within the script to eval the initial includes. This is particularly necessary when writing batch scripts as they have no "master script" that has already included the getScriptText() function.
+
+Here is the function code: 
+```
+function getScriptText(vScriptName, servProvCode, useProductScripts) {
+	if (!servProvCode)
+		servProvCode = aa.getServiceProviderCode();
+	vScriptName = vScriptName.toUpperCase();
+	var emseBiz = aa.proxyInvoker.newInstance("com.accela.aa.emse.emse.EMSEBusiness").getOutput();
+	try {
+		if (useProductScripts) {
+			var emseScript = emseBiz.getMasterScript(aa.getServiceProviderCode(), vScriptName);
+		} else {
+			var emseScript = emseBiz.getScriptByPK(aa.getServiceProviderCode(), vScriptName, "ADMIN");
+		}
+		return emseScript.getScriptText() + "";
+	} catch (err) {
+		return "";
+	}
+}
+```
+
+### exploreObject
+Explore object is used to get a list of functions and methods that are available in an object. This is particularly useful to understand what object is returned in a script result, and what functions and methods are available in that object. It is useful to always include this function in a batch script.
+
+Here is the function code:
+```
+function exploreObject(objExplore) {
+
+	logMessage("Methods:")
+	for (x in objExplore) {
+		if (typeof (objExplore[x]) == "function") {
+			logMessage("<font color=blue><u><b>" + x + "</b></u></font> ");
+			logMessage("   " + objExplore[x] + "<br>");
+		}
+	}
+
+	logMessage("");
+	logMessage("Properties:")
+	for (x in objExplore) {
+		if (typeof (objExplore[x]) != "function") logMessage("  <b> " + x + ": </b> " + objExplore[x]);
+	}
+
+}
+```
+
+### Best Practices
+1. Always check `getSuccess()` before using the output
+2. Handle errors gracefully with meaningful messages
+3. Use `logDebug` for logging errors and debug information
+4. Store ScriptResult outputs in descriptively named variables
+
+## Project Structure
+```
+- Scripts
+-- Batch                   # batch script code
+-- EH Helper Functions     # standalone helper functions evaled and used in batch and solution scripts
+-- Event                   # event script code that executes solution scripts
+-- Expressions             # expressions are form level automations
+-- INCLUDES                # libraries of scripts and functions evaled and used in batch and solution scripts
+-- JSON_Configuration      # JSON files used by other scripts for defining rules
+-- SQL                     # a library of SQL queries used in batch scripts, we save them separatly for dev and debug
+-- Utils                   # a library of utility scripts used for various purposes. each subfolder is a separate utility
+---ScriptTests             # a library of script tests, unit tests, that can simulate events or other proof of concept code
+```
+
+# Accela scripting core guidelines
+You are an expert programming assistant focusing on:
+
+- Expertise: Rhino javascript, function writing, batch script writing
+- Focus: Code clarity, Readability, Best practices, Maintainability
+- Style: Expert level, factual, solution-focused
+- Libraries: Rhino javascript, Accela EMSE API
+
+## Application Scope
+
+This project contains all of the javascript code used in the Accela Civic Platform for event scripting and batch scripting.
+
+## Terminology
+
+### Core Concepts
+- **CAP (Record)**: A "CAP" is Accela's term for a Record. It represents any type of case, application, permit, or project in the system
+  - `capID`: The internal unique identifier for a record
+  - `customID`: The user-friendly record ID displayed to end users (often called "record ID" in messages)
+  - `capModel`: The full data model containing all record information
+  - `capClass`: Classification of the record (e.g., Complete, Incomplete)
+  - `capStatus`: Current status of the record
+  - `fileDate`: Date the record was created
+
+### Record Types
+- **CapType (Record Type)**: Defines the type/category of a record. Has 4 components:
+  - `group`: High level grouping (e.g., Licenses, Permits)
+  - `type`: Main type within the group
+  - `subtype`: Further classification
+  - `category`: Final level of classification
+  - `capTypeString`: Human-readable name for the record type
+
+### Time Accounting
+- **TimeLog**: Tracks time spent on activities
+  - `timeLogModel`: Contains details about time entries
+  - `timeGroupSeq`: Groups related time entries
+  - `timeTypeSeq`: Identifies the type of time being logged
+  - `billable`: Indicates if time can be billed
+  - `totalMinutes`: Duration of the time entry
+  - `materials`: Materials used during the activity
+  - `mileage`: Distance traveled (start, end, total)
+
+### Record Relationships
+- **Project**: A parent record that can have child records
+  - Child records can be linked through various relationships
+  - Common relationships: Amendment, Renewal, Associated Forms
+- **Partial Records**: Incomplete/temporary records often used in online applications
+  - Can be converted to regular records later
+
+### Common Terms
+- **ServiceProviderCode**: Agency code that identifies which agency/tenant the operation applies to
+- **AuditID**: Identifier for who performed an action (usually a user ID)
+- **ScriptResult**: Standard return type for EMSE API calls containing:
+  - Success/failure status
+  - Output data
+  - Error messages if applicable
+- **ACA**: Accela Citizen Access (public web portal)
+- **EMSE**: Event Manager Script Engine
+
+### Record Components
+- **ASI (Application Specific Info)**: Custom fields on a record
+  - Can be grouped into ASI Groups
+  - Supports various field types including checkboxes
+- **APO (Address/Parcel/Owner)**: Core components of a record
+  - Address information
+  - Parcel data
+  - Owner details
+- **Comments**: Notes attached to records
+  - Can be attached to specific items (e.g., guide items)
+  - Include creation and update tracking
+- **Documents**: Files attached to records
+- **Contacts**: People or organizations associated with records
+- **WorkDesc**: Work description text for the record

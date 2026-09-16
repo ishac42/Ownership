@@ -8,6 +8,7 @@ import {
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
 } from '../utils/contactOptions';
+import { applySameCasing } from '../utils/displayText';
 
 interface EntityTypeOption {
   value: string;
@@ -91,7 +92,7 @@ const EditOwnerForm = ({
               disabled={isLoading}
               className="w-5 h-5 accent-[#2c3e76] border-gray-300"
               checked={isIndividual}
-              onChange={() => handleChange('ownershipType', 'Individual')}
+              onChange={() => handleChange('ownershipType', applySameCasing(formData.ownershipType, 'Individual'))}
             /> Individual
           </label>
           <label className={`flex items-center gap-3 font-semibold text-gray-800 ${isLoading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
@@ -101,7 +102,7 @@ const EditOwnerForm = ({
               disabled={isLoading}
               className="w-5 h-5 accent-[#2c3e76] border-gray-300"
               checked={isTypeSelected('Organization')}
-              onChange={() => handleChange('ownershipType', 'Organization')}
+              onChange={() => handleChange('ownershipType', applySameCasing(formData.ownershipType, 'Organization'))}
             /> Organization
           </label>
         </div>

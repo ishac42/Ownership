@@ -22,8 +22,9 @@ const RelatedLicensesPanel: React.FC<{
   onViewOperatingEntity,
 }) => {
   const hasReverseData = Array.isArray(reverseData);
+  const hasRelatedEntities = hasReverseData && reverseData.length > 0;
 
-  if (tab.loadError && !reverseLoading) {
+  if (tab.loadError && !reverseLoading && !hasRelatedEntities) {
     return (
       <div className="flex items-center justify-center min-h-[360px] px-6" role="alert">
         <p className="text-sm text-slate-600 text-center">{tab.loadError}</p>
@@ -31,7 +32,10 @@ const RelatedLicensesPanel: React.FC<{
     );
   }
 
-  if (reverseLoading || !hasReverseData) {
+  // Keep related entities on screen while Accela refreshes. A loading overlay
+  // previously unmounted the chart, so parents vanished until the refetch finished
+  // (or forever if a bulk fetch then overwrote the cache with []).
+  if (!hasReverseData || (reverseLoading && !hasRelatedEntities)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[360px] gap-3" role="status" aria-live="polite">
         <Loader2 className="animate-spin text-[#2c3e76]" size={32} aria-hidden="true" />
@@ -140,6 +144,9 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
       );
     }
     setActiveTabId(tabId);
+
+    const cached = bulkCache[tabId];
+    if (Array.isArray(cached) && cached.length > 0) return;
 
     if (reverseFetchInFlight.current.has(tabId)) return;
     reverseFetchInFlight.current.add(tabId);

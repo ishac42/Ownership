@@ -1,21 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 import { applyAllOwnerPatches } from '../utils/ownershipTree';
-
-// Shared utility — move to utils/buildCacheMap.ts if you prefer
-const buildCacheMap = (data: any[]): Record<string, any[]> => {
-  const cacheMap: Record<string, any[]> = {};
-  if (!Array.isArray(data)) return cacheMap;
-  data.forEach((item) => {
-    const childRef = item.childReferenceId || item.ChildReferenceID || item.childRefNo;
-    if (childRef) {
-      const key = String(childRef).trim();
-      if (!cacheMap[key]) cacheMap[key] = [];
-      cacheMap[key].push(item);
-    }
-  });
-  return cacheMap;
-};
+import { groupReverseParentsByChildRef, mergeReverseRelationCache } from '../utils/reverseCache';
 
 // Recursively collect all reference numbers from a record and its children
 const extractChildReferenceNumbers = (entity: any, refs: string[] = []): string[] => {
@@ -52,7 +38,7 @@ const fetchReverseRelationMap = async (
     throw new Error(reverseData?.error || `Reverse relation failed (${reverseRes.status})`);
   }
 
-  const incoming = buildCacheMap(Array.isArray(reverseData) ? reverseData : []);
+  const incoming = groupReverseParentsByChildRef(Array.isArray(reverseData) ? reverseData : []);
   const next: Record<string, any[]> = {};
   uniqueRefs.forEach((ref) => {
     next[ref] = incoming[ref] ?? [];
@@ -86,7 +72,7 @@ export const useOwnershipSearch = () => {
 
     try {
       const nextMap = await fetchReverseRelationMap(uniqueRefs);
-      setBulkCache((prev) => ({ ...prev, ...nextMap }));
+      setBulkCache((prev) => mergeReverseRelationCache(prev, nextMap));
     } finally {
       setReverseLoadingRefs((prev) => {
         const next = { ...prev };

@@ -3,18 +3,6 @@ import { API_BASE_URL } from '../config';
 import { applyAllOwnerPatches } from '../utils/ownershipTree';
 import { groupReverseParentsByChildRef, mergeReverseRelationCache } from '../utils/reverseCache';
 
-// Recursively collect all reference numbers from a record and its children
-const extractChildReferenceNumbers = (entity: any, refs: string[] = []): string[] => {
-  if (!entity) return refs;
-  const ref = entity.referenceNbr || entity.referenceNumber || entity.id;
-  if (ref) refs.push(String(ref));
-  const children = entity.relatedContacts || entity.children || [];
-  if (Array.isArray(children)) {
-    children.forEach((child: any) => extractChildReferenceNumbers(child, refs));
-  }
-  return [...new Set(refs)];
-};
-
 const normalizeRefList = (referenceNumbers: string[]): string[] =>
   [...new Set(
     referenceNumbers
@@ -39,9 +27,9 @@ const fetchReverseRelationMap = async (
   }
 
   const incoming = groupReverseParentsByChildRef(Array.isArray(reverseData) ? reverseData : []);
-  const next: Record<string, any[]> = {};
+  const next: Record<string, any[]> = { ...incoming };
   uniqueRefs.forEach((ref) => {
-    next[ref] = incoming[ref] ?? [];
+    if (!Array.isArray(next[ref])) next[ref] = [];
   });
   return next;
 };
@@ -105,15 +93,6 @@ export const useOwnershipSearch = () => {
       const searchJson = await searchRes.json();
       const owners: any[] = searchJson.data?.result?.result?.owners ?? [];
       setResults(owners);
-
-      if (owners.length === 0) return;
-
-      const allRefs = owners.flatMap((record: any) => extractChildReferenceNumbers(record));
-      const uniqueRefs = [...new Set(allRefs)];
-
-      if (uniqueRefs.length === 0) return;
-
-      setBulkCache(await fetchReverseRelationMap(uniqueRefs));
     } catch (error) {
       console.error('Error during search:', error);
     } finally {
@@ -141,16 +120,11 @@ export const useOwnershipSearch = () => {
             item.referenceNbr === rootRef ? patched : applyAllOwnerPatches(item, ownerPatchesRef.current)
           )
         );
-        try {
-          await loadReverseRelations(extractChildReferenceNumbers(patched));
-        } catch (reverseErr) {
-          console.error('Failed to refresh related licenses', reverseErr);
-        }
       }
     } catch (error) {
       console.error('Failed to refresh record', error);
     }
-  }, [selectedRecord?.referenceNbr, loadReverseRelations]);
+  }, [selectedRecord?.referenceNbr]);
 
   const patchOwnerInSelectedRecord = useCallback((refNbr: string, updates: Record<string, unknown>) => {
     if (!refNbr) return;

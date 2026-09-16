@@ -27,6 +27,13 @@ export const childReferenceIdsOf = (item) => {
   const path = String(item.hierarchyPath ?? '');
   if (path.includes('>')) add(path.split('>')[0]);
 
+  // Accela tags childReferenceId as the owner that was searched, while
+  // referenceNbr is the contact on the row (often the operating entity).
+  // Related-licenses for that entity must still see this row so its
+  // licenses are not dropped (N0921010 / TEST OWN).
+  add(item.referenceNbr);
+  add(item.referenceNumber);
+
   return ids;
 };
 

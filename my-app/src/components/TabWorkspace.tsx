@@ -145,9 +145,6 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     }
     setActiveTabId(tabId);
 
-    const cached = bulkCache[tabId];
-    if (Array.isArray(cached) && cached.length > 0) return;
-
     if (reverseFetchInFlight.current.has(tabId)) return;
     reverseFetchInFlight.current.add(tabId);
     void loadReverseRelations([tabId])

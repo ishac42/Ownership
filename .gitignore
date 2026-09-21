@@ -6,3 +6,4 @@ ownership-ui-test/
 .env
 .history
 my-app/tsconfig.tsbuildinfo
+.cursor/

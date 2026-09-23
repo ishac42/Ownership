@@ -143,6 +143,125 @@ test('self reverse rows keep nested gaming children', () => {
   assert.equal(rootLicenses[0].childLicenses?.[0].altId, 'CON301-0000241');
 });
 
+test('a contact with owners still keeps every license on its own row', () => {
+  const { parentRows, rootLicenses } = attachRootLicensesFromReverse(
+    [
+      {
+        childReferenceId: '248596',
+        referenceNbr: '111',
+        ownerName: 'Holding Co',
+        licenseAltId: 'LIC-PARENT',
+      },
+      {
+        childReferenceId: '248596',
+        referenceNbr: '248596',
+        ownerName: "Steve's Best Supper Club Ever",
+        licenseAltId: 'SUP301-0000100',
+        licenseType: 'Supper Club',
+        _licenses: [
+          { licenseAltId: 'SUP301-0000100', licenseType: 'Supper Club' },
+          { licenseAltId: 'LIQ303-0000612', licenseType: 'Liquor' },
+        ],
+      },
+    ],
+    '248596'
+  );
+
+  assert.equal(parentRows.length, 1);
+  assert.equal(parentRows[0].referenceNbr, '111');
+  assert.equal(rootLicenses.length, 2);
+  assert.equal(rootLicenses.some((lic) => lic.altId === 'LIQ303-0000612'), true);
+  assert.equal(rootLicenses.some((lic) => lic.altId === 'SUP301-0000100'), true);
+});
+
+test('portal reads the licenses list Accela keeps, not only licenseAltId', () => {
+  const contact = {
+    referenceNbr: '248596',
+    ownerName: 'NVOneTime',
+    licenseAltId: 'ACC101-0000543',
+    licenseType: 'Food Caterer',
+    licenses: [
+      { licenseAltId: 'ACC101-0000543', licenseType: 'Food Caterer' },
+      { licenseAltId: 'ENT105-0000419', licenseType: 'Bowling Alley' },
+      { licenseAltId: 'RTL205-0000319', licenseType: 'Secondhand Dealer Class IV (Used Motor Vehicles)' },
+      { licenseAltId: 'TRN116-0000389', licenseType: 'Taxicab Company' },
+    ],
+  };
+
+  const { parentRows, rootLicenses } = attachRootLicensesFromReverse([contact], '248596');
+  assert.deepEqual(parentRows, []);
+  assert.equal(rootLicenses.length, 4);
+  assert.equal(rootLicenses.some((lic) => lic.altId === 'ENT105-0000419'), true);
+  assert.equal(rootLicenses.some((lic) => lic.altId === 'TRN116-0000389'), true);
+
+  const details = collectLicenseDetails(contact);
+  assert.equal(details.size, 4);
+});
+
+test('one contact keeps every license the script sends in _licenses', () => {
+  const contact = {
+    referenceNbr: '248593',
+    ownerName: "Steve's Best Supper Club Ever",
+    licenseAltId: 'SUP301-0000100',
+    licenseType: 'Supper Club',
+    businessName: "Steve's Best Supper Club Ever",
+    _licenses: [
+      {
+        licenseAltId: 'SUP301-0000100',
+        licenseType: 'Supper Club',
+        businessName: "Steve's Best Supper Club Ever",
+      },
+      {
+        licenseAltId: 'LIQ303-0000612',
+        licenseType: 'Liquor',
+        businessName: "Steve's Best Supper Club Ever",
+      },
+    ],
+  };
+
+  const details = collectLicenseDetails(contact);
+  assert.equal(details.size, 2);
+  assert.equal(details.get('SUP301-0000100')?.licenseType, 'Supper Club');
+  assert.equal(details.get('LIQ303-0000612')?.licenseType, 'Liquor');
+
+  const { parentRows, rootLicenses } = attachRootLicensesFromReverse([contact], '248593');
+  assert.deepEqual(parentRows, []);
+  assert.equal(rootLicenses.length, 2);
+  assert.equal(rootLicenses.some((lic) => lic.altId === 'LIQ303-0000612'), true);
+
+  const merged = dedupeReverseContactNodes([
+    {
+      referenceNbr: '10',
+      ownerName: 'Holding Co',
+      relatedContacts: [contact],
+    },
+  ]);
+  const nested = collectLicenseDetails(merged[0].relatedContacts[0]);
+  assert.equal(nested.size, 2);
+  assert.equal(nested.has('LIQ303-0000612'), true);
+});
+
+test('gaming children stay on the license they belong to when a contact has several', () => {
+  const contact = {
+    referenceNbr: '248593',
+    licenseAltId: 'SUP301-0000100',
+    licenseType: 'Supper Club',
+    _licenses: [
+      { licenseAltId: 'SUP301-0000100', licenseType: 'Supper Club' },
+      {
+        licenseAltId: 'GAM301-0000241',
+        licenseType: 'Gaming - Resort Hotel',
+        childLicenses: [{ licenseAltId: 'CON301-0000241', licenseType: 'Concession' }],
+      },
+    ],
+  };
+
+  const details = collectLicenseDetails(contact);
+  assert.equal(details.size, 2);
+  assert.equal(details.get('SUP301-0000100')?.childLicenses, undefined);
+  assert.equal(details.get('GAM301-0000241')?.childLicenses?.[0].altId, 'CON301-0000241');
+});
+
 test('duplicate reverse contacts with the same ref collapse to one node', () => {
   const merged = dedupeReverseContactNodes([
     {

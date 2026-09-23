@@ -322,3 +322,25 @@ export const collectLicenseDetails = (
 
   return map;
 };
+
+/** Licenses to draw under a contact, including every row the reverse script returned for that same ref. */
+export const displayedLicenses = (
+  entity: Record<string, unknown> | null | undefined,
+  reverseRows?: unknown[] | null
+): Map<string, RelatedLicense> => {
+  const map = collectLicenseDetails(entity);
+  const rootRef = firstNonEmpty(entity?.referenceNbr, entity?.referenceNumber);
+
+  (Array.isArray(reverseRows) ? reverseRows : []).forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const row = raw as Record<string, unknown>;
+    const rowRef = firstNonEmpty(row.referenceNbr, row.referenceNumber);
+    if (rootRef && rowRef && rowRef !== rootRef) return;
+    collectLicenseDetails(row).forEach((rec, id) => {
+      const existing = map.get(id);
+      map.set(id, existing ? mergeRelatedLicense(rec, existing) : rec);
+    });
+  });
+
+  return map;
+};

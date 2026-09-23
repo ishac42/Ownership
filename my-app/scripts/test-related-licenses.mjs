@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   attachRootLicensesFromReverse,
   collectLicenseDetails,
+  displayedLicenses,
   licenseRecordNode,
   relatedLicenseFromItem,
   upsertRelatedLicense,
@@ -172,6 +173,28 @@ test('a contact with owners still keeps every license on its own row', () => {
   assert.equal(rootLicenses.length, 2);
   assert.equal(rootLicenses.some((lic) => lic.altId === 'LIQ303-0000612'), true);
   assert.equal(rootLicenses.some((lic) => lic.altId === 'SUP301-0000100'), true);
+});
+
+test('admin support licenses in the script payload are drawn with the rest', () => {
+  const row = {
+    referenceNbr: '248596',
+    ownerName: 'NVOneTime',
+    licenseAltId: 'ACC101-0000543',
+    licenseType: 'Food Caterer',
+    _licenses: [
+      { licenseAltId: 'ACC101-0000543', licenseType: 'Food Caterer' },
+      { licenseAltId: 'ENT105-0000419', licenseType: 'Bowling Alley' },
+      { licenseAltId: 'ADM101-0000354', licenseType: 'Administrative Office Space' },
+      { licenseAltId: 'ADM101-0000356', licenseType: 'Administrative Office Space' },
+      { licenseAltId: 'ADM101-0000358', licenseType: 'Administrative Office Space' },
+    ],
+  };
+
+  const shown = displayedLicenses({ referenceNbr: '248596', ownerName: 'NVOneTime' }, [row]);
+  assert.equal(shown.has('ADM101-0000354'), true);
+  assert.equal(shown.has('ADM101-0000356'), true);
+  assert.equal(shown.has('ADM101-0000358'), true);
+  assert.equal(shown.get('ADM101-0000354')?.licenseType, 'Administrative Office Space');
 });
 
 test('portal reads the licenses list Accela keeps, not only licenseAltId', () => {

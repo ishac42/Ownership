@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { TransformWrapper, TransformComponent, type ReactZoomPanPinchContentRef } from "react-zoom-pan-pinch";
 import { normalizeEntity } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
@@ -16,6 +16,7 @@ import {
   attachRootLicensesFromReverse,
   collectLicenseDetails,
   dedupeReverseContactNodes,
+  displayedLicenses,
   licenseRecordNode,
   mergeSelfPendingApplicationsOntoRoot,
   upsertRelatedLicense,
@@ -42,6 +43,7 @@ interface RecursiveTreeProps {
   siblingTotalPercentage?: number; 
   isReverseRelation?: boolean; 
   reverseData?: any[] | null;
+  licenseRows?: unknown[] | null;
   viewOnly?: boolean;
   reverseLayer?: number;
 }
@@ -57,6 +59,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   siblingTotalPercentage,
   isReverseRelation = false,
   reverseData = null,
+  licenseRows = null,
   viewOnly = false,
   reverseLayer = 0,
 }) => {
@@ -100,8 +103,10 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       baseChildren = dedupeReverseContactNodes(entity?.relatedContacts || []);
     }
 
-    // 2. Extract unique licenses on this node (alt ID + reverse-lookup details)
-    const licenseDetails = collectLicenseDetails(entity, (current as any)?.licenseAltId);
+    // 2. Every license the script returned for this contact, including Admin Support.
+    const licenseDetails = isReverseRelation && parentRefNbr === ""
+      ? displayedLicenses(entity, licenseRows)
+      : collectLicenseDetails(entity, (current as any)?.licenseAltId);
 
     // 3. Inject separate visual child nodes for each license found.
     // Gaming licenses may carry nested child licenses (relatedContacts).
@@ -130,7 +135,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     }
 
     setLocalChildren(prepareOwnershipChildren(baseChildren, parentRefNbr || entity?.referenceNbr || entity?.referenceNumber));
-  }, [entity, reverseData, isReverseRelation, parentRefNbr]);
+  }, [entity, reverseData, licenseRows, isReverseRelation, parentRefNbr]);
 
   const visibleChildren = useMemo(
     () => filterContactsForDisplay(localChildren, showTerminated, isEffectivelyTerminated) as any[],
@@ -364,6 +369,25 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   const [currentZoomScale, setCurrentZoomScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const transformRef = useRef<ReactZoomPanPinchContentRef | null>(null);
+
+  const fitChart = () => {
+    const ref = transformRef.current;
+    const wrapper = ref?.instance.wrapperComponent;
+    const content = ref?.instance.contentComponent;
+    if (!ref || !wrapper || !content) return;
+    const scale = Math.min(
+      wrapper.clientWidth / Math.max(content.scrollWidth, 1),
+      wrapper.clientHeight / Math.max(content.scrollHeight, 1),
+      1
+    );
+    ref.centerView(Math.max(scale, 0.05), 0);
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(fitChart, 50);
+    return () => window.clearTimeout(timer);
+  }, [reverseData, entity, isFullscreen]);
 
   const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
   const [totalForEdit, setTotalForEdit] = useState<number | undefined>(undefined); 
@@ -655,8 +679,9 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         </div>
       )}
       <TransformWrapper
+        ref={transformRef}
         initialScale={1}
-        minScale={0.2}
+        minScale={0.05}
         maxScale={3}
         centerOnInit={true}
         limitToBounds={false}
@@ -675,7 +700,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                 toggleFullscreen={toggleFullscreen} 
             />
             <div className="flex-1 w-full h-full cursor-grab active:cursor-grabbing bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]">
-                <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%" }}>
+                <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "max-content", height: "max-content" }}>
                     <div className="min-w-max min-h-max p-40">
                           <RecursiveTree 
                             entity={operationalRootNode} 
@@ -686,6 +711,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                             onDelete={handleDeleteClick} 
                             isReverseRelation={isReverseRelation}
                             reverseData={processedReverseData}
+                            licenseRows={isReverseRelation ? reverseData : null}
                             viewOnly={viewOnly}
                           />
                     </div>

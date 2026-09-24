@@ -1,16 +1,7 @@
-const firstPresent = (...values) => {
-  for (const value of values) {
-    const text = String(value ?? "").trim();
-    if (text && text.toLowerCase() !== "null") return text;
-  }
-  return "";
-};
-
 export const normalizeEntity = (node) => ({
   // Identity & Basics
   ownerName: node.ownerName || [node.firstName, node.lastName].filter(Boolean).join(" "),
   referenceNbr: node.referenceNbr || node.referenceNumber || "N/A",
-  nvBusinessId: firstPresent(node.nvBusinessId, node.nvBusinessID, node.NVBUSINESSID),
   nameTitle: node.nameTitle || "",
   firstName: node.firstName || "",
   middleInitial: node.middleInitial || node.middleName || "",

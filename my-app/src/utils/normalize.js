@@ -1,7 +1,23 @@
+const firstPresent = (...values) => {
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (text && text.toLowerCase() !== "null") return text;
+  }
+  return "";
+};
+
+export const nvBusinessIdOf = (node) =>
+  firstPresent(node?.nvBusinessId, node?.nvBusinessID, node?.NVBUSINESSID);
+
+/** Entity cards show NV Business ID whenever the node has one. License records do not. */
+export const shouldShowNvBusinessId = (isLicenseNode, nvBusinessId) =>
+  !isLicenseNode && firstPresent(nvBusinessId) !== "";
+
 export const normalizeEntity = (node) => ({
   // Identity & Basics
   ownerName: node.ownerName || [node.firstName, node.lastName].filter(Boolean).join(" "),
   referenceNbr: node.referenceNbr || node.referenceNumber || "N/A",
+  nvBusinessId: nvBusinessIdOf(node),
   nameTitle: node.nameTitle || "",
   firstName: node.firstName || "",
   middleInitial: node.middleInitial || node.middleName || "",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchContentRef } from "react-zoom-pan-pinch";
-import { normalizeEntity } from '../utils/normalize';
+import { normalizeEntity, shouldShowNvBusinessId } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import {
@@ -145,6 +145,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const percentageValue = parseFloat(String(current.percentage || '0').replace('%', '')) || 0;
   const hasPercentage = percentageValue > 0;
   const isChild = parentRefNbr !== "";
+  const nvBusinessId = String(current.nvBusinessId || "").trim();
+  const showNvBusinessId = shouldShowNvBusinessId(isLicenseNode, nvBusinessId);
   const showPercentageChip =
     hasPercentage &&
     !isLicenseNode &&
@@ -159,10 +161,18 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'ring-2 ring-slate-300 ring-offset-2' : ''}`}>
 
         <div className="flex justify-between items-start mb-4">
-          <div className="flex flex-col overflow-hidden mr-2">
+          <div className="flex min-w-0 flex-1 flex-col mr-2">
             <p className="text-xs font-bold uppercase truncate" title={current.ownerName}>
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
             </p>
+            {showNvBusinessId && (
+              <p
+                className="text-[10px] font-semibold tracking-wide mt-1 normal-case opacity-90 break-words"
+                title={`NV Business ID: ${nvBusinessId}`}
+              >
+                NV Business ID: {nvBusinessId}
+              </p>
+            )}
             {isLicenseNode && isReverseRelation && (
               <div className="mt-2 space-y-1 normal-case" aria-label={isPermit ? 'Permit record details' : isPendingApplication ? 'Application record details' : 'License record details'}>
                 {(isPendingApplication || isPermit) ? (

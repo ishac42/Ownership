@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { List, BarChart3, X, Building2, Loader2 } from 'lucide-react';
 import OwnershipList from './OwnershipList';
 import OwnershipChart from './OwnershipChart';
 import { getEntityRef, ownershipTabId } from '../utils/entityType';
+import { collectNvBusinessIds } from '../utils/normalize';
 
 const RelatedLicensesPanel: React.FC<{
   tab: any;
@@ -12,6 +13,7 @@ const RelatedLicensesPanel: React.FC<{
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
   onViewRelated: (entity: any) => void;
   onViewOperatingEntity: (entity: any) => void;
+  knownNvBusinessIds?: Record<string, string>;
 }> = ({
   tab,
   reverseData,
@@ -20,6 +22,7 @@ const RelatedLicensesPanel: React.FC<{
   onOwnerUpdated,
   onViewRelated,
   onViewOperatingEntity,
+  knownNvBusinessIds,
 }) => {
   const hasReverseData = Array.isArray(reverseData);
   const hasRelatedEntities = hasReverseData && reverseData.length > 0;
@@ -54,6 +57,7 @@ const RelatedLicensesPanel: React.FC<{
         onViewOperatingEntity={onViewOperatingEntity}
         isReverseRelation={true}
         reverseData={reverseData}
+        knownNvBusinessIds={knownNvBusinessIds}
       />
     </div>
   );
@@ -88,6 +92,10 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   const reverseFetchInFlight = useRef(new Set<string>());
 
   const mainRecordId = selectedRecord?.referenceNbr || selectedRecord?.referenceNumber || selectedRecord?.id;
+  const knownNvBusinessIds = useMemo(
+    () => collectNvBusinessIds(selectedRecord),
+    [selectedRecord]
+  );
 
   useEffect(() => {
     if (selectedRecord) {
@@ -396,6 +404,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                           onViewOperatingEntity={handleViewOperatingEntity}
                           isReverseRelation={false}
                           reverseData={null}
+                          knownNvBusinessIds={knownNvBusinessIds}
                         />
                       </div>
                     </div>
@@ -409,6 +418,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                           isReverseRelation={false}
                           reverseData={null}
                           viewOnly
+                          knownNvBusinessIds={knownNvBusinessIds}
                         />
                       </div>
                     ) : tab.loadError ? (
@@ -433,6 +443,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                       onOwnerUpdated={onOwnerUpdated}
                       onViewRelated={handleViewRelated}
                       onViewOperatingEntity={handleViewOperatingEntity}
+                      knownNvBusinessIds={knownNvBusinessIds}
                     />
                   </div>
                 )}

@@ -10,6 +10,40 @@ const firstPresent = (...values) => {
 export const shouldShowChartNvBusinessId = (isLicenseNode, nvBusinessId) =>
   !isLicenseNode && firstPresent(nvBusinessId) !== "";
 
+const entityRef = (node) => {
+  const ref = firstPresent(node?.referenceNbr, node?.referenceNumber);
+  return ref && ref !== "N/A" ? ref : "";
+};
+
+/** Remember NV Business ID by contact reference so the same entity can show it on every card. */
+export const collectNvBusinessIds = (node, into = {}) => {
+  if (!node || typeof node !== "object") return into;
+  if (Array.isArray(node)) {
+    node.forEach((item) => collectNvBusinessIds(item, into));
+    return into;
+  }
+
+  const id = firstPresent(node.nvBusinessId, node.nvBusinessID, node.NVBUSINESSID, node.nvNum);
+  const ref = entityRef(node);
+  if (id && ref && !into[ref]) into[ref] = id;
+
+  if (Array.isArray(node.relatedContacts)) {
+    node.relatedContacts.forEach((child) => collectNvBusinessIds(child, into));
+  }
+  if (Array.isArray(node.parents)) {
+    node.parents.forEach((child) => collectNvBusinessIds(child, into));
+  }
+  return into;
+};
+
+export const lookupNvBusinessId = (node, byRef) => {
+  const own = firstPresent(node?.nvBusinessId, node?.nvBusinessID, node?.NVBUSINESSID, node?.nvNum);
+  if (own) return own;
+  const ref = entityRef(node);
+  if (!ref || !byRef) return "";
+  return firstPresent(byRef[ref]);
+};
+
 export const normalizeEntity = (node) => ({
   // Identity & Basics
   ownerName: node.ownerName || [node.firstName, node.lastName].filter(Boolean).join(" "),

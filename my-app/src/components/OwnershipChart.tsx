@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchContentRef } from "react-zoom-pan-pinch";
-import { normalizeEntity, shouldShowChartNvBusinessId } from '../utils/normalize';
+import { collectNvBusinessIds, lookupNvBusinessId, normalizeEntity, shouldShowChartNvBusinessId } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import {
@@ -46,6 +46,7 @@ interface RecursiveTreeProps {
   licenseRows?: unknown[] | null;
   viewOnly?: boolean;
   reverseLayer?: number;
+  nvBusinessIds?: Record<string, string>;
 }
 
 export const RecursiveTree: React.FC<RecursiveTreeProps> = ({ 
@@ -62,6 +63,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   licenseRows = null,
   viewOnly = false,
   reverseLayer = 0,
+  nvBusinessIds = {},
 }) => {
   const { showTerminated, isEffectivelyTerminated } = useOwnershipStatus();
   const [localChildren, setLocalChildren] = useState<any[]>([]);
@@ -145,7 +147,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const percentageValue = parseFloat(String(current.percentage || '0').replace('%', '')) || 0;
   const hasPercentage = percentageValue > 0;
   const isChild = parentRefNbr !== "";
-  const nvBusinessId = String(current.nvBusinessId || '').trim();
+  const nvBusinessId = lookupNvBusinessId(current, nvBusinessIds);
   const showNvBusinessId = shouldShowChartNvBusinessId(isLicenseNode, nvBusinessId);
   const showPercentageChip =
     hasPercentage &&
@@ -331,6 +333,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   reverseData={null}
                   viewOnly={viewOnly}
                   reverseLayer={reverseLayer + 1}
+                  nvBusinessIds={nvBusinessIds}
                 />
               </div>
             ))}
@@ -351,6 +354,7 @@ interface OwnershipChartProps {
   isReverseRelation?: boolean; 
   reverseData?: any[] | null;
   viewOnly?: boolean;
+  knownNvBusinessIds?: Record<string, string>;
 }
 
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
@@ -362,9 +366,16 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   isReverseRelation = false,
   reverseData = null,
   viewOnly = false,
+  knownNvBusinessIds,
 }) => {
   const { showTerminated, setShowTerminated, isEffectivelyTerminated } = useOwnershipStatus();
   const hiddenTerminatedCount = countTerminatedInSubtree(entity, isEffectivelyTerminated);
+  const nvBusinessIds = useMemo(() => {
+    const map: Record<string, string> = { ...(knownNvBusinessIds || {}) };
+    collectNvBusinessIds(entity, map);
+    collectNvBusinessIds(reverseData, map);
+    return map;
+  }, [entity, reverseData, knownNvBusinessIds]);
 
   const [currentZoomScale, setCurrentZoomScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -713,6 +724,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                             reverseData={processedReverseData}
                             licenseRows={isReverseRelation ? reverseData : null}
                             viewOnly={viewOnly}
+                            nvBusinessIds={nvBusinessIds}
                           />
                     </div>
                 </TransformComponent>

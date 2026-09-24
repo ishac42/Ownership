@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeEntity, shouldShowChartNvBusinessId } from '../src/utils/normalize.js';
+import { collectNvBusinessIds, lookupNvBusinessId, normalizeEntity, shouldShowChartNvBusinessId } from '../src/utils/normalize.js';
 
 test('keeps NV Business ID from search and reverse-lookup payloads', () => {
   const fromSearch = normalizeEntity({ ownerName: 'JESSICA BECERRA', nvBusinessId: 'NV20261013' });
@@ -20,6 +20,26 @@ test('shows NV Business ID on every entity chart node that has one', () => {
   assert.equal(shouldShowChartNvBusinessId(false, ''), false);
   assert.equal(shouldShowChartNvBusinessId(false, 'null'), false);
   assert.equal(shouldShowChartNvBusinessId(false, '   '), false);
+});
+
+test('reuses a known NV Business ID when the same entity is shown again', () => {
+  const known = collectNvBusinessIds({
+    referenceNbr: '272148',
+    ownerName: "BROWN'S & BROTHERS LLC",
+    nvBusinessId: 'NV20260218',
+    relatedContacts: [
+      { referenceNumber: '111', ownerName: 'JOE BROWN' },
+    ],
+  });
+
+  assert.equal(known['272148'], 'NV20260218');
+  assert.equal(
+    lookupNvBusinessId({ referenceNbr: '272148', ownerName: "BROWN'S & BROTHERS LLC" }, known),
+    'NV20260218'
+  );
+  assert.equal(lookupNvBusinessId({ referenceNbr: '111' }, known), '');
+  assert.equal(shouldShowChartNvBusinessId(false, lookupNvBusinessId({ referenceNbr: '272148' }, known)), true);
+  assert.equal(shouldShowChartNvBusinessId(true, lookupNvBusinessId({ referenceNbr: '272148' }, known)), false);
 });
 
 test('drops empty or Accela null NV Business ID values', () => {

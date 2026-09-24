@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeEntity } from '../src/utils/normalize.js';
+import { normalizeEntity, shouldShowChartNvBusinessId } from '../src/utils/normalize.js';
 
 test('keeps NV Business ID from search and reverse-lookup payloads', () => {
   const fromSearch = normalizeEntity({ ownerName: 'JESSICA BECERRA', nvBusinessId: 'NV20261013' });
@@ -11,6 +11,15 @@ test('keeps NV Business ID from search and reverse-lookup payloads', () => {
 
   const fromSqlAlias = normalizeEntity({ ownerName: 'Org', NVBUSINESSID: 'NV111' });
   assert.equal(fromSqlAlias.nvBusinessId, 'NV111');
+});
+
+test('shows NV Business ID on every entity chart node that has one', () => {
+  assert.equal(shouldShowChartNvBusinessId(false, 'NV20260218'), true);
+  assert.equal(shouldShowChartNvBusinessId(false, '  NV20260218  '), true);
+  assert.equal(shouldShowChartNvBusinessId(true, 'NV20260218'), false);
+  assert.equal(shouldShowChartNvBusinessId(false, ''), false);
+  assert.equal(shouldShowChartNvBusinessId(false, 'null'), false);
+  assert.equal(shouldShowChartNvBusinessId(false, '   '), false);
 });
 
 test('drops empty or Accela null NV Business ID values', () => {

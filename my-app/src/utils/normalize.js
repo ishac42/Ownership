@@ -6,6 +6,10 @@ const firstPresent = (...values) => {
   return "";
 };
 
+/** Every entity chart node shows NV Business ID when it has one. License records do not. */
+export const shouldShowChartNvBusinessId = (isLicenseNode, nvBusinessId) =>
+  !isLicenseNode && firstPresent(nvBusinessId) !== "";
+
 export const normalizeEntity = (node) => ({
   // Identity & Basics
   ownerName: node.ownerName || [node.firstName, node.lastName].filter(Boolean).join(" "),

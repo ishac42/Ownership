@@ -328,7 +328,7 @@ export const displayedLicenses = (
   entity: Record<string, unknown> | null | undefined,
   reverseRows?: unknown[] | null
 ): Map<string, RelatedLicense> => {
-  const map = collectLicenseDetails(entity);
+  const map = collectLicenseDetails(entity ?? null);
   const rootRef = firstNonEmpty(entity?.referenceNbr, entity?.referenceNumber);
 
   (Array.isArray(reverseRows) ? reverseRows : []).forEach((raw) => {

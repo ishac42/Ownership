@@ -37,6 +37,10 @@ test('reuses a known NV Business ID when the same entity is shown again', () => 
     lookupNvBusinessId({ referenceNbr: '272148', ownerName: "BROWN'S & BROTHERS LLC" }, known),
     'NV20260218'
   );
+  assert.equal(
+    lookupNvBusinessId({ referenceNbr: '999', ownerName: "brown's   & brothers llc" }, known),
+    'NV20260218'
+  );
   assert.equal(lookupNvBusinessId({ referenceNbr: '111' }, known), '');
   assert.equal(shouldShowChartNvBusinessId(false, lookupNvBusinessId({ referenceNbr: '272148' }, known)), true);
   assert.equal(shouldShowChartNvBusinessId(true, lookupNvBusinessId({ referenceNbr: '272148' }, known)), false);

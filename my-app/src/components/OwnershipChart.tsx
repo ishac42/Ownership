@@ -163,13 +163,13 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'ring-2 ring-slate-300 ring-offset-2' : ''}`}>
 
         <div className="flex justify-between items-start mb-4">
-          <div className="flex flex-col overflow-hidden mr-2">
+          <div className="flex min-w-0 flex-1 flex-col mr-2">
             <p className="text-xs font-bold uppercase truncate" title={current.ownerName}>
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
             </p>
             {showNvBusinessId && (
               <p
-                className="text-[10px] font-semibold tracking-wide mt-1 normal-case opacity-90 truncate"
+                className="text-[10px] font-semibold tracking-wide mt-1 normal-case opacity-90 break-words"
                 title={`NV Business ID: ${nvBusinessId}`}
               >
                 NV Business ID: {nvBusinessId}

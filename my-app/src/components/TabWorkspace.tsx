@@ -153,28 +153,6 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     }
     setActiveTabId(tabId);
 
-    void loadEntityByRef(tabId).then((record) => {
-      const id = String(record?.nvBusinessId || '').trim();
-      if (!id || id.toLowerCase() === 'null') return;
-      setTabs((prev) =>
-        prev.map((t) => {
-          if (t.id !== tabId) return t;
-          const existing = String(t.entity?.nvBusinessId || '').trim();
-          if (existing && existing.toLowerCase() !== 'null') return t;
-          return {
-            ...t,
-            entity: {
-              ...t.entity,
-              nvBusinessId: id,
-              referenceNbr: t.entity?.referenceNbr || record.referenceNbr || tabId,
-            },
-          };
-        })
-      );
-    }).catch((error) => {
-      console.error('Failed to load NV Business ID for related entity:', error);
-    });
-
     if (reverseFetchInFlight.current.has(tabId)) return;
     reverseFetchInFlight.current.add(tabId);
     void loadReverseRelations([tabId])

@@ -11,13 +11,8 @@ export const shouldShowChartNvBusinessId = (isLicenseNode, nvBusinessId) =>
   !isLicenseNode && firstPresent(nvBusinessId) !== "";
 
 const entityRef = (node) => {
-  const ref = firstPresent(node?.referenceNbr, node?.referenceNumber).replace(/\.0+$/, "");
+  const ref = firstPresent(node?.referenceNbr, node?.referenceNumber);
   return ref && ref !== "N/A" ? ref : "";
-};
-
-const entityNameKey = (node) => {
-  const name = firstPresent(node?.ownerName).toUpperCase().replace(/\s+/g, " ");
-  return name ? `name:${name}` : "";
 };
 
 /** Remember NV Business ID by contact reference so the same entity can show it on every card. */
@@ -31,8 +26,6 @@ export const collectNvBusinessIds = (node, into = {}) => {
   const id = firstPresent(node.nvBusinessId, node.nvBusinessID, node.NVBUSINESSID, node.nvNum);
   const ref = entityRef(node);
   if (id && ref && !into[ref]) into[ref] = id;
-  const nameKey = entityNameKey(node);
-  if (id && nameKey && !into[nameKey]) into[nameKey] = id;
 
   if (Array.isArray(node.relatedContacts)) {
     node.relatedContacts.forEach((child) => collectNvBusinessIds(child, into));
@@ -46,12 +39,9 @@ export const collectNvBusinessIds = (node, into = {}) => {
 export const lookupNvBusinessId = (node, byRef) => {
   const own = firstPresent(node?.nvBusinessId, node?.nvBusinessID, node?.NVBUSINESSID, node?.nvNum);
   if (own) return own;
-  if (!byRef) return "";
   const ref = entityRef(node);
-  if (ref && firstPresent(byRef[ref])) return firstPresent(byRef[ref]);
-  const nameKey = entityNameKey(node);
-  if (nameKey && firstPresent(byRef[nameKey])) return firstPresent(byRef[nameKey]);
-  return "";
+  if (!ref || !byRef) return "";
+  return firstPresent(byRef[ref]);
 };
 
 export const normalizeEntity = (node) => ({

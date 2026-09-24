@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent, type ReactZoomPanPinchContentRef } from "react-zoom-pan-pinch";
-import { normalizeEntity, shouldShowChartNvBusinessId } from '../utils/normalize';
+import { normalizeEntity } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import {
@@ -146,7 +146,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const hasPercentage = percentageValue > 0;
   const isChild = parentRefNbr !== "";
   const nvBusinessId = String(current.nvBusinessId || '').trim();
-  const showNvBusinessId = shouldShowChartNvBusinessId(isLicenseNode, nvBusinessId);
+  const showNvBusinessId = !isLicenseNode && !isChild && nvBusinessId !== '';
   const showPercentageChip =
     hasPercentage &&
     !isLicenseNode &&

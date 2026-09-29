@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
-import { TransformWrapper, TransformComponent, type ReactZoomPanPinchContentRef } from "react-zoom-pan-pinch";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { normalizeEntity, shouldShowNvBusinessId } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
@@ -310,13 +310,13 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
       {visibleChildren.length > 0 && (
         <>
-          <div className="w-px h-8 bg-slate-300" aria-hidden="true" />
+          <div className="w-0.5 h-8 bg-slate-600" aria-hidden="true" />
           <div className="flex justify-center items-start pt-4 relative">
             {visibleChildren.map((child, idx) => (
               <div key={idx} className="flex flex-col items-center px-4 relative">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-px h-4 bg-slate-300" aria-hidden="true" />
-                {idx !== 0 && <div className="absolute -top-4 left-0 w-1/2 h-px bg-slate-300" aria-hidden="true" />}
-                {idx !== visibleChildren.length - 1 && <div className="absolute -top-4 right-0 w-1/2 h-px bg-slate-300" aria-hidden="true" />}
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-slate-600" aria-hidden="true" />
+                {idx !== 0 && <div className="absolute -top-4 left-0 w-1/2 h-0.5 -translate-y-1/2 bg-slate-600" aria-hidden="true" />}
+                {idx !== visibleChildren.length - 1 && <div className="absolute -top-4 right-0 w-1/2 h-0.5 -translate-y-1/2 bg-slate-600" aria-hidden="true" />}
 
                 <RecursiveTree
                   entity={child}
@@ -369,25 +369,6 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
   const [currentZoomScale, setCurrentZoomScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const transformRef = useRef<ReactZoomPanPinchContentRef | null>(null);
-
-  const fitChart = () => {
-    const ref = transformRef.current;
-    const wrapper = ref?.instance.wrapperComponent;
-    const content = ref?.instance.contentComponent;
-    if (!ref || !wrapper || !content) return;
-    const scale = Math.min(
-      wrapper.clientWidth / Math.max(content.scrollWidth, 1),
-      wrapper.clientHeight / Math.max(content.scrollHeight, 1),
-      1
-    );
-    ref.centerView(Math.max(scale, 0.05), 0);
-  };
-
-  useEffect(() => {
-    const timer = window.setTimeout(fitChart, 50);
-    return () => window.clearTimeout(timer);
-  }, [reverseData, entity, isFullscreen]);
 
   const [selectedOwner, setSelectedOwner] = useState<any | null>(null);
   const [totalForEdit, setTotalForEdit] = useState<number | undefined>(undefined); 
@@ -679,9 +660,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         </div>
       )}
       <TransformWrapper
-        ref={transformRef}
         initialScale={1}
-        minScale={0.05}
+        minScale={0.2}
         maxScale={3}
         centerOnInit={true}
         limitToBounds={false}
@@ -700,7 +680,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                 toggleFullscreen={toggleFullscreen} 
             />
             <div className="flex-1 w-full h-full cursor-grab active:cursor-grabbing bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]">
-                <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "max-content", height: "max-content" }}>
+                <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%" }}>
                     <div className="min-w-max min-h-max p-40">
                           <RecursiveTree 
                             entity={operationalRootNode} 

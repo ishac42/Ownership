@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
-import { applyAllOwnerPatches } from '../utils/ownershipTree';
+import { applyAllOwnerPatches, findOwnerByReference, ownerReferenceOf } from '../utils/ownershipTree';
 import { groupReverseParentsByChildRef, mergeReverseRelationCache } from '../utils/reverseCache';
 
 const normalizeRefList = (referenceNumbers: string[]): string[] =>
@@ -101,8 +101,8 @@ export const useOwnershipSearch = () => {
   };
 
   const refreshSelectedRecord = useCallback(async () => {
-    const rootRef = selectedRecord?.referenceNbr;
-    if (!rootRef) return;
+    const rootRef = ownerReferenceOf(selectedRecord);
+    if (!rootRef || rootRef === 'N/A') return;
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/retrieve-info`, {
@@ -111,20 +111,33 @@ export const useOwnershipSearch = () => {
         body: JSON.stringify({ name: '', referenceNo: rootRef }),
       });
       const json = await res.json();
-      const owners = json.data?.result?.result?.owners;
-      if (owners && owners.length > 0) {
-        const patched = applyAllOwnerPatches(owners[0], ownerPatchesRef.current);
-        setSelectedRecord(patched);
-        setResults((prev: any[]) =>
-          prev.map((item: any) =>
-            item.referenceNbr === rootRef ? patched : applyAllOwnerPatches(item, ownerPatchesRef.current)
-          )
-        );
+      if (!res.ok || json.success === false) {
+        throw new Error(json?.error || `Refresh failed (${res.status})`);
       }
+
+      const rawOwners = json.data?.result?.result?.owners;
+      const owners: any[] = Array.isArray(rawOwners) ? rawOwners : [];
+      const match = findOwnerByReference(owners, rootRef);
+      if (!match) {
+        console.error('Refresh did not return the open hierarchy', { rootRef, count: owners.length });
+        return;
+      }
+
+      // Drop cached copies so the next open of this tree is the post-add record.
+      entityByRefCache.current = {};
+      entityByRefCache.current[rootRef] = match;
+
+      const patched = applyAllOwnerPatches(match, ownerPatchesRef.current);
+      setSelectedRecord(patched);
+      setResults((prev: any[]) =>
+        prev.map((item: any) =>
+          ownerReferenceOf(item) === rootRef ? patched : applyAllOwnerPatches(item, ownerPatchesRef.current)
+        )
+      );
     } catch (error) {
       console.error('Failed to refresh record', error);
     }
-  }, [selectedRecord?.referenceNbr]);
+  }, [selectedRecord]);
 
   const patchOwnerInSelectedRecord = useCallback((refNbr: string, updates: Record<string, unknown>) => {
     if (!refNbr) return;
@@ -163,9 +176,7 @@ export const useOwnershipSearch = () => {
 
     const rawOwners = searchJson.data?.result?.result?.owners;
     const owners: any[] = Array.isArray(rawOwners) ? rawOwners : [];
-    const match =
-      owners.find((item) => String(item.referenceNbr || item.referenceNumber || '') === ref) ||
-      owners[0];
+    const match = findOwnerByReference(owners, ref) || owners[0];
     if (!match) return null;
 
     entityByRefCache.current[ref] = match;

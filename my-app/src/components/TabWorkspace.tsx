@@ -86,7 +86,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
   const ownershipFetchInFlight = useRef(new Set<string>());
-  const reverseFetchInFlight = useRef(new Set<string>());
+  const reverseClickIds = useRef<Record<string, number>>({});
 
   const handleOwnerUpdated = (refNbr: string, updates: Record<string, unknown>) => {
     onOwnerUpdated?.(refNbr, updates);
@@ -160,15 +160,17 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
     }
     setActiveTabId(tabId);
 
-    if (reverseFetchInFlight.current.has(tabId)) return;
-    reverseFetchInFlight.current.add(tabId);
+    const clickId = (reverseClickIds.current[tabId] || 0) + 1;
+    reverseClickIds.current[tabId] = clickId;
     void loadReverseRelations([tabId])
       .then(() => {
+        if (reverseClickIds.current[tabId] !== clickId) return;
         setTabs((prev) =>
           prev.map((t) => (t.id === tabId ? { ...t, loadError: null } : t))
         );
       })
       .catch((error) => {
+        if (reverseClickIds.current[tabId] !== clickId) return;
         console.error('Failed to load related licenses:', error);
         setTabs((prev) =>
           prev.map((t) =>
@@ -177,9 +179,6 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
               : t
           )
         );
-      })
-      .finally(() => {
-        reverseFetchInFlight.current.delete(tabId);
       });
   };
 

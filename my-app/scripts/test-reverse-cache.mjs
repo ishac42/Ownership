@@ -5,6 +5,7 @@ import {
   groupReverseParentsByChildRef,
   mergeReverseRelationCache,
   patchReverseRelationCache,
+  replaceReverseRelationCache,
 } from '../src/utils/reverseCache.js';
 
 test('indexes a reverse parent under every searched child it belongs to', () => {
@@ -36,6 +37,19 @@ test('indexes TEST OWN reverse row under its own ref so related licenses are not
   const grouped = groupReverseParentsByChildRef([row]);
   assert.equal(grouped['248622'][0].licenseAltId, 'ENT105-0000421');
   assert.equal(grouped['248614'][0].licenseAltId, 'ENT105-0000421');
+});
+
+test('a reverse lookup replaces that contact cache, including an empty result', () => {
+  const replaced = replaceReverseRelationCache(
+    {
+      A: [{ referenceNbr: '1', ownerName: 'Old' }],
+      B: [{ referenceNbr: '2', ownerName: 'Keep' }],
+    },
+    { A: [] }
+  );
+
+  assert.deepEqual(replaced.A, []);
+  assert.equal(replaced.B[0].ownerName, 'Keep');
 });
 
 test('does not replace visible related entities with an empty refetch', () => {

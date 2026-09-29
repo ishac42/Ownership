@@ -93,6 +93,15 @@ export const patchReverseRelationCache = (cache = {}, patches = {}) => {
   return next;
 };
 
+/** Replace the requested contacts' reverse rows with a fresh fetch, including an empty list. */
+export const replaceReverseRelationCache = (cache = {}, incoming = {}) => {
+  const next = { ...(cache || {}) };
+  Object.entries(incoming || {}).forEach(([ref, rows]) => {
+    next[ref] = Array.isArray(rows) ? rows : [];
+  });
+  return next;
+};
+
 /**
  * Merge a reverse-relation fetch into the per-contact cache.
  * Never replace rows the user can already see with an empty result.

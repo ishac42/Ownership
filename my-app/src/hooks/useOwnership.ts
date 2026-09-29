@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 import { applyAllOwnerPatches, findOwnerByReference, ownerReferenceOf, stripOwnerPatchUpdates } from '../utils/ownershipTree';
-import { groupReverseParentsByChildRef, mergeReverseRelationCache, patchReverseRelationCache } from '../utils/reverseCache';
+import { groupReverseParentsByChildRef, patchReverseRelationCache, replaceReverseRelationCache } from '../utils/reverseCache';
 
 const normalizeRefList = (referenceNumbers: string[]): string[] =>
   [...new Set(
@@ -45,10 +45,18 @@ export const useOwnershipSearch = () => {
   const [reverseLoadingRefs, setReverseLoadingRefs] = useState<Record<string, boolean>>({});
   const ownerPatchesRef = useRef<Record<string, Record<string, unknown>>>({});
   const entityByRefCache = useRef<Record<string, any>>({});
+  const reverseRequestIds = useRef<Record<string, number>>({});
 
   const loadReverseRelations = useCallback(async (referenceNumbers: string[]) => {
     const uniqueRefs = normalizeRefList(referenceNumbers);
     if (uniqueRefs.length === 0) return;
+
+    const requestIds: Record<string, number> = {};
+    uniqueRefs.forEach((ref) => {
+      const nextId = (reverseRequestIds.current[ref] || 0) + 1;
+      reverseRequestIds.current[ref] = nextId;
+      requestIds[ref] = nextId;
+    });
 
     setReverseLoadingRefs((prev) => {
       const next = { ...prev };
@@ -57,15 +65,27 @@ export const useOwnershipSearch = () => {
       });
       return next;
     });
+    setBulkCache((prev) => {
+      const cleared: Record<string, any[]> = {};
+      uniqueRefs.forEach((ref) => {
+        cleared[ref] = [];
+      });
+      return replaceReverseRelationCache(prev, cleared);
+    });
 
     try {
       const nextMap = await fetchReverseRelationMap(uniqueRefs);
-      setBulkCache((prev) => mergeReverseRelationCache(prev, nextMap));
+      const accepted: Record<string, any[]> = {};
+      uniqueRefs.forEach((ref) => {
+        if (reverseRequestIds.current[ref] !== requestIds[ref]) return;
+        accepted[ref] = nextMap[ref] ?? [];
+      });
+      setBulkCache((prev) => replaceReverseRelationCache(prev, accepted));
     } finally {
       setReverseLoadingRefs((prev) => {
         const next = { ...prev };
         uniqueRefs.forEach((ref) => {
-          next[ref] = false;
+          if (reverseRequestIds.current[ref] === requestIds[ref]) next[ref] = false;
         });
         return next;
       });

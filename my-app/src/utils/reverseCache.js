@@ -1,3 +1,5 @@
+import { patchOwnerInTree } from './ownershipPatch.js';
+
 const firstId = (value) => {
   const text = String(value ?? '').trim();
   if (!text || text.toLowerCase() === 'null') return '';
@@ -60,9 +62,35 @@ const unionByReference = (existingRows, incomingRows) => {
   });
   incomingRows.forEach((row, index) => {
     const key = rowKey(row, `incoming-${index}`);
-    if (!map.has(key)) map.set(key, row);
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, row);
+      return;
+    }
+    // Same contact came back from Accela. Keep one row and take the fresh fields.
+    map.set(key, {
+      ...existing,
+      ...row,
+      relatedContacts: row.relatedContacts ?? existing.relatedContacts,
+    });
   });
   return Array.from(map.values());
+};
+
+/** Apply field edits to every cached reverse row without adding a second contact. */
+export const patchReverseRelationCache = (cache = {}, patches = {}) => {
+  const entries = Object.entries(patches || {});
+  if (entries.length === 0) return cache || {};
+
+  const next = {};
+  for (const [ref, rows] of Object.entries(cache || {})) {
+    let list = Array.isArray(rows) ? rows : [];
+    for (const [refNbr, updates] of entries) {
+      list = list.map((row) => patchOwnerInTree(row, refNbr, updates));
+    }
+    next[ref] = list;
+  }
+  return next;
 };
 
 /**

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
 import { applyAllOwnerPatches, findOwnerByReference, ownerReferenceOf, stripOwnerPatchUpdates } from '../utils/ownershipTree';
-import { groupReverseParentsByChildRef, mergeReverseRelationCache } from '../utils/reverseCache';
+import { groupReverseParentsByChildRef, mergeReverseRelationCache, patchReverseRelationCache } from '../utils/reverseCache';
 
 const normalizeRefList = (referenceNumbers: string[]): string[] =>
   [...new Set(
@@ -134,6 +134,7 @@ export const useOwnershipSearch = () => {
           ownerReferenceOf(item) === rootRef ? patched : applyAllOwnerPatches(item, ownerPatchesRef.current)
         )
       );
+      setBulkCache((prev) => patchReverseRelationCache(prev, ownerPatchesRef.current));
     } catch (error) {
       console.error('Failed to refresh record', error);
     }
@@ -146,11 +147,17 @@ export const useOwnershipSearch = () => {
       ...(ownerPatchesRef.current[refNbr] ?? {}),
       ...updates,
     });
-    delete entityByRefCache.current[refNbr];
     ownerPatchesRef.current = {
       ...ownerPatchesRef.current,
       [refNbr]: fieldUpdates,
     };
+
+    const nextEntityCache: Record<string, any> = {};
+    for (const [key, tree] of Object.entries(entityByRefCache.current)) {
+      if (key === refNbr) continue;
+      nextEntityCache[key] = applyAllOwnerPatches(tree, ownerPatchesRef.current);
+    }
+    entityByRefCache.current = nextEntityCache;
 
     setSelectedRecord((prev: any) =>
       prev ? applyAllOwnerPatches(prev, ownerPatchesRef.current) : prev
@@ -158,6 +165,7 @@ export const useOwnershipSearch = () => {
     setResults((prev: any[]) =>
       prev.map((item: any) => applyAllOwnerPatches(item, ownerPatchesRef.current))
     );
+    setBulkCache((prev) => patchReverseRelationCache(prev, ownerPatchesRef.current));
   }, []);
 
   const loadEntityByRef = useCallback(async (referenceNo: string) => {

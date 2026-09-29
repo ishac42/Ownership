@@ -4,6 +4,7 @@ import {
   childReferenceIdsOf,
   groupReverseParentsByChildRef,
   mergeReverseRelationCache,
+  patchReverseRelationCache,
 } from '../src/utils/reverseCache.js';
 
 test('indexes a reverse parent under every searched child it belongs to', () => {
@@ -58,4 +59,37 @@ test('keeps existing related entities and adds newly fetched ones', () => {
     merged.A.map((row) => row.referenceNbr).sort(),
     ['1', '2']
   );
+});
+
+test('a refetch of the same contact replaces the cached row', () => {
+  const merged = mergeReverseRelationCache(
+    { A: [{ referenceNbr: '1', ownerName: 'Old Name', relatedContacts: [{ referenceNbr: '9' }] }] },
+    { A: [{ referenceNbr: '1', ownerName: 'New Name' }] }
+  );
+
+  assert.equal(merged.A.length, 1);
+  assert.equal(merged.A[0].ownerName, 'New Name');
+  assert.equal(merged.A[0].relatedContacts.length, 1);
+});
+
+test('an edit patch updates every reverse cache bucket and does not add a row', () => {
+  const patched = patchReverseRelationCache(
+    {
+      A: [{ referenceNbr: '100', ownerName: 'Old', relatedContacts: [] }],
+      B: [{ referenceNbr: '100', ownerName: 'Old', relatedContacts: [{ referenceNbr: '100', ownerName: 'Old' }] }],
+    },
+    {
+      '100': {
+        ownerName: 'Edited',
+        relatedContacts: [{ referenceNbr: '100', ownerName: 'Edited' }, { referenceNbr: '200', ownerName: 'Extra' }],
+      },
+    }
+  );
+
+  assert.equal(patched.A.length, 1);
+  assert.equal(patched.A[0].ownerName, 'Edited');
+  assert.deepEqual(patched.A[0].relatedContacts, []);
+  assert.equal(patched.B.length, 1);
+  assert.equal(patched.B[0].relatedContacts.length, 1);
+  assert.equal(patched.B[0].relatedContacts[0].ownerName, 'Edited');
 });

@@ -3,6 +3,7 @@ import { List, BarChart3, X, Building2, Loader2 } from 'lucide-react';
 import OwnershipList from './OwnershipList';
 import OwnershipChart from './OwnershipChart';
 import { getEntityRef, ownershipTabId } from '../utils/entityType';
+import { applyAllOwnerPatches } from '../utils/ownershipTree';
 
 const RelatedLicensesPanel: React.FC<{
   tab: any;
@@ -86,6 +87,20 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
   const ownershipFetchInFlight = useRef(new Set<string>());
   const reverseFetchInFlight = useRef(new Set<string>());
+
+  const handleOwnerUpdated = (refNbr: string, updates: Record<string, unknown>) => {
+    onOwnerUpdated?.(refNbr, updates);
+    setTabs((prev) => prev.map((tab) => {
+      if (!tab.entity) return tab;
+      const entity = applyAllOwnerPatches(tab.entity, { [refNbr]: updates });
+      if (tab.id === 'main') return { ...tab, entity };
+      return {
+        ...tab,
+        entity,
+        title: entity.ownerName || entity.firstName || tab.title,
+      };
+    }));
+  };
 
   const mainRecordId = selectedRecord?.referenceNbr || selectedRecord?.referenceNumber || selectedRecord?.id;
 
@@ -377,7 +392,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                       <OwnershipList 
                         entity={selectedRecord} 
                         onRefresh={onRefresh}
-                        onOwnerUpdated={onOwnerUpdated}
+                        onOwnerUpdated={handleOwnerUpdated}
                         onViewRelated={handleViewRelated}
                         isReverseRelation={false}
                         reverseData={null}
@@ -391,7 +406,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                         <OwnershipChart 
                           entity={selectedRecord} 
                           onRefresh={onRefresh}
-                          onOwnerUpdated={onOwnerUpdated}
+                          onOwnerUpdated={handleOwnerUpdated}
                           onViewRelated={handleViewRelated}
                           onViewOperatingEntity={handleViewOperatingEntity}
                           isReverseRelation={false}
@@ -430,7 +445,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                       reverseData={bulkCache[tab.id]}
                       reverseLoading={Boolean(reverseLoadingRefs[tab.id])}
                       onRefresh={onRefresh}
-                      onOwnerUpdated={onOwnerUpdated}
+                      onOwnerUpdated={handleOwnerUpdated}
                       onViewRelated={handleViewRelated}
                       onViewOperatingEntity={handleViewOperatingEntity}
                     />

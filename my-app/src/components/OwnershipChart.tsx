@@ -30,6 +30,8 @@ import ZoomControls from "./ZoomControls";
 import { buildAddOwnerPayload } from '../utils/ownerPayload';
 import { isOperatingEntityType } from '../utils/entityType';
 import ShowTerminatedToggle from './ShowTerminatedToggle';
+import ChartColorLegend from './ChartColorLegend';
+import { nodeColorClasses } from '../utils/chartNodeColors';
 
 // 1. Recursive Tree Component
 interface RecursiveTreeProps {
@@ -83,15 +85,12 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     typeof onViewOperatingEntity === 'function' &&
     (isOperatingEntityType(typeLabel) || hasLicenses);
 
-  // Original theme colors (licenses vs individuals vs organizations)
-  let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
-  if (isLicenseNode) {
-    nodeBgColor = isPermit
-      ? 'bg-teal-700 border-teal-800'
-      : isPendingApplication
-        ? 'bg-amber-600 border-amber-700'
-        : 'bg-[#1e40af] border-[#1e3a8a]';
-  }
+  const nodeBgColor = nodeColorClasses({
+    isIndividual,
+    isLicenseNode,
+    isPermit,
+    isPendingApplication,
+  });
 
   useEffect(() => {
     let baseChildren: any[] = [];
@@ -679,6 +678,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                 isFullscreen={isFullscreen} 
                 toggleFullscreen={toggleFullscreen} 
             />
+            <ChartColorLegend />
             <div className="flex-1 w-full h-full cursor-grab active:cursor-grabbing bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]">
                 <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%" }}>
                     <div className="min-w-max min-h-max p-40">

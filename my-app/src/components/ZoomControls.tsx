@@ -38,7 +38,7 @@ const ZoomControls: React.FC<ZoomControlsProps> = ({
            {isFullscreen ? <Minimize size={18} aria-hidden="true" /> : <Maximize size={18} aria-hidden="true" />}
         </button>
       </div>
-      <div className="absolute bottom-4 left-4 z-50 bg-white px-3 py-1 rounded-full text-xs font-mono font-medium text-slate-700 border border-slate-200 shadow-sm pointer-events-none select-none" aria-live="polite">
+      <div className="absolute bottom-4 right-4 z-50 bg-white px-3 py-1 rounded-full text-xs font-mono font-medium text-slate-700 border border-slate-200 shadow-sm pointer-events-none select-none" aria-live="polite">
         Zoom: {Math.round(currentZoom * 100)}%
       </div>
     </>

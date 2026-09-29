@@ -243,7 +243,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
           {!isLicenseNode && (
             <div className="flex items-center gap-2" role="toolbar" aria-label={`Actions for ${current.ownerName || 'entity'}`}>
-              {!viewOnly && !isReverseRelation && (
+              {!viewOnly && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -251,7 +251,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                   }}
                   className="p-1.5 hover:bg-white/20 rounded-full transition-colors group"
                   aria-label={`Open related licenses for ${current.ownerName || 'entity'}`}
-                  title="Open in new tab"
+                  title="Related licenses"
                 >
                   <Layers size={14} className="opacity-80 group-hover:opacity-100" aria-hidden="true" />
                 </button>

@@ -248,15 +248,13 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                 </div>
               )}
               
-              {!isReverseRelation && (
-                <button
+              <button
                   onClick={() => onViewRelated && onViewRelated(current)}
                   className="p-1.5 text-gray-500 hover:text-blue-600 transition-colors"
                   aria-label={`View related licenses for ${current.ownerName || 'entity'}`}
                 >
                   <Layers size={18} aria-hidden="true" />
                 </button>
-              )}
 
               <button
                 type="button"
@@ -315,7 +313,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                     )}
 
                     <div className="flex justify-end gap-3">
-                      {!isReverseRelation && (
                         <button
                           onClick={() => onViewRelated && onViewRelated(normalizeEntity(child))}
                           className="text-slate-700 hover:text-blue-700 transition-colors focus:outline-none"
@@ -323,7 +320,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                         >
                           <Layers size={18} aria-hidden="true" />
                         </button>
-                      )}
                       
                       <button
                         type="button"

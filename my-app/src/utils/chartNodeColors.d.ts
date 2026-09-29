@@ -6,7 +6,8 @@ export interface ChartNodeColorInput {
 }
 
 export interface ChartLegendItem {
-  id: 'individual' | 'organization' | 'license' | 'application' | 'permit' | 'terminated';
+  id: 'individual' | 'organization' | 'license' | 'application' | 'permit';
+  group: 'Owners' | 'Records';
   label: string;
   swatchClass: string;
 }

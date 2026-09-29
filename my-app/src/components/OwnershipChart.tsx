@@ -664,21 +664,25 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         maxScale={3}
         centerOnInit={true}
         limitToBounds={false}
-        panning={{ excluded: ['input', 'select', 'textarea', 'button', 'a', 'oe-ownership-link'] }}
-        doubleClick={{ excluded: ['button', 'a', 'oe-ownership-link'] }}
+        panning={{ excluded: ['input', 'select', 'textarea', 'button', 'a', 'oe-ownership-link', 'chart-legend'] }}
+        doubleClick={{ excluded: ['button', 'a', 'oe-ownership-link', 'chart-legend'] }}
         onTransformed={(e) => setCurrentZoomScale(e.state.scale)} 
       >
         {({ zoomIn, zoomOut, resetTransform }) => (
           <>
-            <ZoomControls 
-                currentZoom={currentZoomScale} 
-                onZoomIn={() => zoomIn()} 
-                onZoomOut={() => zoomOut()} 
-                onReset={() => resetTransform()}
-                isFullscreen={isFullscreen} 
-                toggleFullscreen={toggleFullscreen} 
-            />
-            <ChartColorLegend />
+            {!selectedOwner && (
+              <>
+                <ZoomControls 
+                    currentZoom={currentZoomScale} 
+                    onZoomIn={() => zoomIn()} 
+                    onZoomOut={() => zoomOut()} 
+                    onReset={() => resetTransform()}
+                    isFullscreen={isFullscreen} 
+                    toggleFullscreen={toggleFullscreen} 
+                />
+                <ChartColorLegend />
+              </>
+            )}
             <div className="flex-1 w-full h-full cursor-grab active:cursor-grabbing bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]">
                 <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%" }}>
                     <div className="min-w-max min-h-max p-40">

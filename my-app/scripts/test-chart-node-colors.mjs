@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { CHART_LEGEND_ITEMS, nodeColorClasses } from '../src/utils/chartNodeColors.js';
 
-test('legend lists every chart box color, including terminated', () => {
+test('legend lists owner and record colors', () => {
   assert.deepEqual(
     CHART_LEGEND_ITEMS.map((item) => item.label),
     [
@@ -11,14 +11,16 @@ test('legend lists every chart box color, including terminated', () => {
       'License record',
       'Application record',
       'Permit record',
-      'Terminated',
     ],
   );
   for (const item of CHART_LEGEND_ITEMS) {
     assert.ok(item.swatchClass.trim().length > 0, `${item.id} needs a swatch`);
   }
-  const terminated = CHART_LEGEND_ITEMS.find((item) => item.id === 'terminated');
-  assert.ok(terminated?.swatchClass.includes('ring-'));
+  assert.equal(CHART_LEGEND_ITEMS.some((item) => item.id === 'terminated'), false);
+  assert.deepEqual(
+    CHART_LEGEND_ITEMS.map((item) => item.group),
+    ['Owners', 'Owners', 'Records', 'Records', 'Records'],
+  );
 });
 
 test('node colors prefer permit, then application, then license over owner type', () => {

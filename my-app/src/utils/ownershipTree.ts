@@ -1,3 +1,7 @@
+import { patchOwnerInTree, stripOwnerPatchUpdates } from './ownershipPatch.js';
+
+export { patchOwnerInTree, stripOwnerPatchUpdates };
+
 /** Contact reference on a raw owner node from the retrieve-info script. */
 export const ownerReferenceOf = (item: unknown): string => {
   const node = item as Record<string, unknown> | null | undefined;
@@ -30,31 +34,6 @@ export const prepareOwnershipChildren = (
     prepareOwnershipChild(child as Record<string, unknown>, parentRefNbr)
   );
 
-/** Deep-patch a node (and descendants) by reference number. */
-export const patchOwnerInTree = (
-  node: unknown,
-  refNbr: string,
-  updates: Record<string, unknown>
-): unknown => {
-  if (!node || typeof node !== 'object') return node;
-
-  const record = node as Record<string, unknown>;
-  const nodeRef = String(record.referenceNbr || record.referenceNumber || record.id || '');
-  let patched: Record<string, unknown> =
-    nodeRef === String(refNbr) ? { ...record, ...updates } : record;
-
-  if (Array.isArray(patched.relatedContacts)) {
-    patched = {
-      ...patched,
-      relatedContacts: patched.relatedContacts.map((child) =>
-        patchOwnerInTree(child, refNbr, updates)
-      ),
-    };
-  }
-
-  return patched;
-};
-
 /** Apply all pending owner edits onto a tree (survives API refresh + modal reopen). */
 export const applyAllOwnerPatches = (
   node: unknown,
@@ -69,11 +48,11 @@ export const applyAllOwnerPatches = (
   return result;
 };
 
-/** Normalize saved form values for display + tree patching. */
+/** Field edits only. The cached patch must not carry the contact's subtree. */
 export const buildSavedOwnerUpdates = (
   data: Record<string, unknown>,
   status: string
-): Record<string, unknown> => ({
+): Record<string, unknown> => stripOwnerPatchUpdates({
   ...data,
   status,
   ownershipPercentage: data.percentage,

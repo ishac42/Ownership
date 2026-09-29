@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
-import { applyAllOwnerPatches, findOwnerByReference, ownerReferenceOf } from '../utils/ownershipTree';
+import { applyAllOwnerPatches, findOwnerByReference, ownerReferenceOf, stripOwnerPatchUpdates } from '../utils/ownershipTree';
 import { groupReverseParentsByChildRef, mergeReverseRelationCache } from '../utils/reverseCache';
 
 const normalizeRefList = (referenceNumbers: string[]): string[] =>
@@ -142,9 +142,14 @@ export const useOwnershipSearch = () => {
   const patchOwnerInSelectedRecord = useCallback((refNbr: string, updates: Record<string, unknown>) => {
     if (!refNbr) return;
 
+    const fieldUpdates = stripOwnerPatchUpdates({
+      ...(ownerPatchesRef.current[refNbr] ?? {}),
+      ...updates,
+    });
+    delete entityByRefCache.current[refNbr];
     ownerPatchesRef.current = {
       ...ownerPatchesRef.current,
-      [refNbr]: { ...(ownerPatchesRef.current[refNbr] ?? {}), ...updates },
+      [refNbr]: fieldUpdates,
     };
 
     setSelectedRecord((prev: any) =>

@@ -1,3 +1,16 @@
+/** Contact reference on a raw owner node from the retrieve-info script. */
+export const ownerReferenceOf = (item: unknown): string => {
+  const node = item as Record<string, unknown> | null | undefined;
+  return String(node?.referenceNbr || node?.referenceNumber || node?.id || '').trim();
+};
+
+/** Owner whose reference is the hierarchy that was searched, when the script returns more than one. */
+export const findOwnerByReference = (owners: unknown[], ref: string): unknown | null => {
+  const target = String(ref || '').trim();
+  if (!target || target === 'N/A') return null;
+  return owners.find((item) => ownerReferenceOf(item) === target) ?? null;
+};
+
 /** Normalize ref + parent on raw API nodes before filter/display. */
 export const prepareOwnershipChild = (
   child: Record<string, unknown>,

@@ -1,3 +1,5 @@
+import { applyIndividualNameCase } from './displayText';
+
 // Builds the ASIT payload array sent to the Accela add/edit owner scripts.
 // NOTE: The string keys below must match the field names expected by the
 // backend Accela scripts (API_ADD_OWNER_INFO / API_EDIT_OWNER_INFO). New
@@ -61,26 +63,30 @@ export interface OwnerFormData {
 }
 
 // Minimal payload for add-owner — only fields the Accela API_ADD_OWNER_INFO script accepts.
-export const buildAddOwnerPayload = (formData: OwnerFormData) => [{
-  'Business Phone': formData.phone,
-  'Type': formData.ownershipType,
-  'Title': formData.type || 'Owner',
-  'Percent Owned': formData.percentage,
-  'Status': formData.status || 'Active',
-  'Entity Name': formData.ownerName,
-  'First Name': formData.firstName,
-  'Last Name': formData.lastName,
-  'E-mail': formData.email,
-  'Address Line 1': formData.ownershipAddr,
-  'Unit Type': '',
-  'Unit/Suite/Apt': 'Unit/Suite/Apt',
-  'Country': formData.country || 'United States',
-  'City': formData.city,
-  'State': formData.state,
-  'ZIP Code/Province Postal Code': formData.zip
-}];
+export const buildAddOwnerPayload = (formData: OwnerFormData) => {
+  const names = applyIndividualNameCase(formData);
+  return [{
+    'Business Phone': formData.phone,
+    'Type': formData.ownershipType,
+    'Title': formData.type || 'Owner',
+    'Percent Owned': formData.percentage,
+    'Status': formData.status || 'Active',
+    'Entity Name': formData.ownerName,
+    'First Name': names.firstName,
+    'Last Name': names.lastName,
+    'E-mail': formData.email,
+    'Address Line 1': formData.ownershipAddr,
+    'Unit Type': '',
+    'Unit/Suite/Apt': 'Unit/Suite/Apt',
+    'Country': formData.country || 'United States',
+    'City': formData.city,
+    'State': formData.state,
+    'ZIP Code/Province Postal Code': formData.zip,
+  }];
+};
 
 export const buildOwnerPayload = (formData: OwnerFormData) => {
+  const names = applyIndividualNameCase(formData);
   const isIndividual = (formData.ownershipType || '').toLowerCase().includes('individual');
 
   return [{
@@ -93,9 +99,9 @@ export const buildOwnerPayload = (formData: OwnerFormData) => {
     // Name
     'Entity Name': formData.ownerName,
     'Name Prefix': formData.nameTitle,
-    'First Name': formData.firstName,
-    'Middle Name': formData.middleInitial,
-    'Last Name': formData.lastName,
+    'First Name': names.firstName,
+    'Middle Name': names.middleInitial,
+    'Last Name': names.lastName,
     'Name Suffix': formData.suffix,
     'Resort Hotel': isIndividual ? '' : (formData.resortHotel ? 'Y' : 'N'),
 

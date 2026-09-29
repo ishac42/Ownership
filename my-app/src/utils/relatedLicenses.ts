@@ -15,6 +15,14 @@ const blankDetails = (): Omit<RelatedLicense, 'altId' | 'childLicenses'> => ({
   locationAddress: '',
 });
 
+const licenseRowsOf = (item: Record<string, unknown> | null | undefined): unknown[] => {
+  if (!item) return [];
+  const rows: unknown[] = [];
+  if (Array.isArray(item.licenses)) rows.push(...item.licenses);
+  if (Array.isArray(item._licenses)) rows.push(...item._licenses);
+  return rows;
+};
+
 const firstNonEmpty = (...values: unknown[]): string => {
   for (const value of values) {
     const text = String(value ?? '').trim();
@@ -178,9 +186,7 @@ export const attachRootLicensesFromReverse = (
 
     if (isSelf) {
       upsertRelatedLicense(rootLicenses, relatedLicenseFromItem(item));
-      if (Array.isArray(item._licenses)) {
-        item._licenses.forEach((lic) => upsertRelatedLicense(rootLicenses, asRelatedLicense(lic)));
-      }
+      licenseRowsOf(item).forEach((lic) => upsertRelatedLicense(rootLicenses, asRelatedLicense(lic)));
       collectPendingApplications(item, (rec) => upsertRelatedLicense(rootLicenses, rec));
       return;
     }
@@ -246,9 +252,7 @@ export const dedupeReverseContactNodes = (
     };
 
     const licenses: RelatedLicense[] = [];
-    if (Array.isArray(incoming._licenses)) {
-      incoming._licenses.forEach((lic) => upsertRelatedLicense(licenses, asRelatedLicense(lic)));
-    }
+    licenseRowsOf(incoming).forEach((lic) => upsertRelatedLicense(licenses, asRelatedLicense(lic)));
     upsertRelatedLicense(licenses, relatedLicenseFromItem(incoming));
     collectPendingApplications(incoming, (rec) => upsertRelatedLicense(licenses, rec));
     incoming._licenses = licenses;
@@ -285,6 +289,7 @@ export const dedupeReverseContactNodes = (
 
 export const collectLicenseDetails = (
   entity: {
+    licenses?: unknown[];
     _licenses?: unknown[];
     licenseAltId?: string;
     LICENSESALTID?: string;
@@ -303,9 +308,7 @@ export const collectLicenseDetails = (
 
   add(relatedLicenseFromItem(entity as Record<string, unknown>));
 
-  if (Array.isArray(entity?._licenses)) {
-    entity._licenses.forEach((lic) => add(asRelatedLicense(lic)));
-  }
+  licenseRowsOf(entity as Record<string, unknown>).forEach((lic) => add(asRelatedLicense(lic)));
 
   collectPendingApplications(entity as Record<string, unknown>, add);
 
@@ -316,6 +319,28 @@ export const collectLicenseDetails = (
       }
     }
   );
+
+  return map;
+};
+
+/** Licenses to draw under a contact, including every row the reverse script returned for that same ref. */
+export const displayedLicenses = (
+  entity: Record<string, unknown> | null | undefined,
+  reverseRows?: unknown[] | null
+): Map<string, RelatedLicense> => {
+  const map = collectLicenseDetails(entity ?? null);
+  const rootRef = firstNonEmpty(entity?.referenceNbr, entity?.referenceNumber);
+
+  (Array.isArray(reverseRows) ? reverseRows : []).forEach((raw) => {
+    if (!raw || typeof raw !== 'object') return;
+    const row = raw as Record<string, unknown>;
+    const rowRef = firstNonEmpty(row.referenceNbr, row.referenceNumber);
+    if (rootRef && rowRef && rowRef !== rootRef) return;
+    collectLicenseDetails(row).forEach((rec, id) => {
+      const existing = map.get(id);
+      map.set(id, existing ? mergeRelatedLicense(rec, existing) : rec);
+    });
+  });
 
   return map;
 };

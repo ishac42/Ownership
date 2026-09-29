@@ -1,20 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeEntity } from '../src/utils/normalize.js';
+import { normalizeEntity, shouldShowNvBusinessId } from '../src/utils/normalize.js';
 
-test('keeps NV Business ID from search and reverse-lookup payloads', () => {
-  const fromSearch = normalizeEntity({ ownerName: 'JESSICA BECERRA', nvBusinessId: 'NV20261013' });
-  assert.equal(fromSearch.nvBusinessId, 'NV20261013');
-
-  const fromReverse = normalizeEntity({ ownerName: 'Holding Co', nvBusinessID: 'NV999' });
-  assert.equal(fromReverse.nvBusinessId, 'NV999');
-
-  const fromSqlAlias = normalizeEntity({ ownerName: 'Org', NVBUSINESSID: 'NV111' });
-  assert.equal(fromSqlAlias.nvBusinessId, 'NV111');
+test('keeps NV Business ID from search and reverse payloads', () => {
+  assert.equal(normalizeEntity({ ownerName: 'NVOneTime', nvBusinessId: 'NV11198191' }).nvBusinessId, 'NV11198191');
+  assert.equal(normalizeEntity({ ownerName: 'Holding Co', nvBusinessID: 'NV999' }).nvBusinessId, 'NV999');
+  assert.equal(normalizeEntity({ ownerName: 'Org', NVBUSINESSID: 'NV111' }).nvBusinessId, 'NV111');
 });
 
-test('drops empty or Accela null NV Business ID values', () => {
-  assert.equal(normalizeEntity({ ownerName: 'No ID' }).nvBusinessId, '');
-  assert.equal(normalizeEntity({ ownerName: 'Null ID', nvBusinessId: 'null' }).nvBusinessId, '');
-  assert.equal(normalizeEntity({ ownerName: 'Blank', nvBusinessId: '   ' }).nvBusinessId, '');
+test('shows NV Business ID on every entity node that has one', () => {
+  assert.equal(shouldShowNvBusinessId(false, 'NV11198191'), true);
+  assert.equal(shouldShowNvBusinessId(true, 'NV11198191'), false);
+  assert.equal(shouldShowNvBusinessId(false, ''), false);
+  assert.equal(shouldShowNvBusinessId(false, 'null'), false);
+  assert.equal(shouldShowNvBusinessId(false, '   '), false);
 });

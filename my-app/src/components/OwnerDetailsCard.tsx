@@ -7,7 +7,7 @@ import ValidationBlockDialog from './ValidationBlockDialog';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import { getOwnerReferenceNbr, hasInvalidOwnershipTotal, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
 import { buildSavedOwnerUpdates } from '../utils/ownershipTree';
-import { capitalizeFirstLetter, equalsIgnoreCase } from '../utils/displayText';
+import { applyIndividualNameCase, capitalizeFirstLetter, equalsIgnoreCase } from '../utils/displayText';
 
 interface OwnerDetailsCardProps {
   owner: any;
@@ -52,6 +52,8 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
 
   const handleUpdate = async () => {
     setBlockDialog(null);
+    const submittedForm = applyIndividualNameCase(formData);
+    if (submittedForm !== formData) setFormData(submittedForm);
 
     const fieldMap: Record<string, string> = {
       // Core
@@ -113,11 +115,11 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
     const editArray: any[] = [];
     const changesObject: any = {};
     const originalStatus = getEffectiveStatus(owner);
-    const newStatus = (formData.status || 'Active') as OwnerStatus;
+    const newStatus = (submittedForm.status || 'Active') as OwnerStatus;
     const statusChanged = newStatus !== originalStatus;
 
-    Object.keys(formData).forEach((key) => {
-      let currentValue = formData[key];
+    Object.keys(submittedForm).forEach((key) => {
+      let currentValue = submittedForm[key];
       let originalValue = owner[key];
 
       if (key === 'status') {
@@ -160,7 +162,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
 
     if (editArray.length === 0) {
       const refNbr = getOwnerReferenceNbr(owner);
-      const savedUpdates = buildSavedOwnerUpdates(formData, newStatus);
+      const savedUpdates = buildSavedOwnerUpdates(submittedForm, newStatus);
       setFormData(savedUpdates);
       if (refNbr) onOwnerUpdated?.(refNbr, savedUpdates);
       setSuccessMessage('Status updated successfully');
@@ -171,7 +173,7 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
     setIsLoading(true);
 
     try {
-      const validation = await callOwnershipPortalValidation(formData, recordID);
+      const validation = await callOwnershipPortalValidation(submittedForm, recordID);
       if (validation.blocked) {
         if (validation.message) {
           setBlockDialog({ message: validation.message });
@@ -194,12 +196,12 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
 
       if (response.ok && result.success) {
         const refNbr = getOwnerReferenceNbr(owner);
-        const newStatus = formData.status as OwnerStatus;
+        const newStatus = submittedForm.status as OwnerStatus;
         if (refNbr && OWNER_STATUS_OPTIONS.includes(newStatus)) {
           setStatusOverride(refNbr, newStatus);
         }
 
-        const savedUpdates = buildSavedOwnerUpdates(formData, newStatus);
+        const savedUpdates = buildSavedOwnerUpdates(submittedForm, newStatus);
         setFormData(savedUpdates);
         if (refNbr) onOwnerUpdated?.(refNbr, savedUpdates);
 
@@ -386,7 +388,15 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
 
                 <div className="flex justify-end gap-5 pt-6">
                   {!readOnly && (
-                    <button onClick={() => setIsEditing(true)} className="px-14 py-2.5 border-2 border-[#2c3e76] text-[#2c3e76] font-bold rounded-md bg-white hover:bg-gray-50 transition-colors">Edit</button>
+                    <button
+                      onClick={() => {
+                        setFormData(applyIndividualNameCase({ ...owner, status: getEffectiveStatus(owner) }));
+                        setIsEditing(true);
+                      }}
+                      className="px-14 py-2.5 border-2 border-[#2c3e76] text-[#2c3e76] font-bold rounded-md bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      Edit
+                    </button>
                   )}
                   <button onClick={onClose} className="px-16 py-2.5 bg-[#2c3e76] text-white font-bold rounded-md hover:bg-[#1e2a52] transition-colors">OK</button>
                 </div>

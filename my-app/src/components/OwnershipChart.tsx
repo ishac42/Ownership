@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Eye, Plus, ChevronDown, User, Building2, Trash2, AlertTriangle, Loader2, Layers, FileText } from 'lucide-react'; 
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { normalizeEntity } from '../utils/normalize';
+import { normalizeEntity, shouldShowNvBusinessId } from '../utils/normalize';
 import { API_BASE_URL } from '../config';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import {
@@ -16,6 +16,7 @@ import {
   attachRootLicensesFromReverse,
   collectLicenseDetails,
   dedupeReverseContactNodes,
+  displayedLicenses,
   licenseRecordNode,
   mergeSelfPendingApplicationsOntoRoot,
   upsertRelatedLicense,
@@ -29,6 +30,8 @@ import ZoomControls from "./ZoomControls";
 import { buildAddOwnerPayload } from '../utils/ownerPayload';
 import { isOperatingEntityType } from '../utils/entityType';
 import ShowTerminatedToggle from './ShowTerminatedToggle';
+import ChartColorLegend from './ChartColorLegend';
+import { nodeColorClasses } from '../utils/chartNodeColors';
 
 // 1. Recursive Tree Component
 interface RecursiveTreeProps {
@@ -42,6 +45,7 @@ interface RecursiveTreeProps {
   siblingTotalPercentage?: number; 
   isReverseRelation?: boolean; 
   reverseData?: any[] | null;
+  licenseRows?: unknown[] | null;
   viewOnly?: boolean;
   reverseLayer?: number;
 }
@@ -57,6 +61,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   siblingTotalPercentage,
   isReverseRelation = false,
   reverseData = null,
+  licenseRows = null,
   viewOnly = false,
   reverseLayer = 0,
 }) => {
@@ -80,15 +85,12 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     typeof onViewOperatingEntity === 'function' &&
     (isOperatingEntityType(typeLabel) || hasLicenses);
 
-  // Original theme colors (licenses vs individuals vs organizations)
-  let nodeBgColor = isIndividual ? 'bg-[#267471] border-[#1e5c5a]' : 'bg-[#792454] border-[#611d43]';
-  if (isLicenseNode) {
-    nodeBgColor = isPermit
-      ? 'bg-teal-700 border-teal-800'
-      : isPendingApplication
-        ? 'bg-amber-600 border-amber-700'
-        : 'bg-[#1e40af] border-[#1e3a8a]';
-  }
+  const nodeBgColor = nodeColorClasses({
+    isIndividual,
+    isLicenseNode,
+    isPermit,
+    isPendingApplication,
+  });
 
   useEffect(() => {
     let baseChildren: any[] = [];
@@ -100,8 +102,10 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       baseChildren = dedupeReverseContactNodes(entity?.relatedContacts || []);
     }
 
-    // 2. Extract unique licenses on this node (alt ID + reverse-lookup details)
-    const licenseDetails = collectLicenseDetails(entity, (current as any)?.licenseAltId);
+    // 2. Every license the script returned for this contact, including Admin Support.
+    const licenseDetails = isReverseRelation && parentRefNbr === ""
+      ? displayedLicenses(entity, licenseRows)
+      : collectLicenseDetails(entity, (current as any)?.licenseAltId);
 
     // 3. Inject separate visual child nodes for each license found.
     // Gaming licenses may carry nested child licenses (relatedContacts).
@@ -130,7 +134,7 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
     }
 
     setLocalChildren(prepareOwnershipChildren(baseChildren, parentRefNbr || entity?.referenceNbr || entity?.referenceNumber));
-  }, [entity, reverseData, isReverseRelation, parentRefNbr]);
+  }, [entity, reverseData, licenseRows, isReverseRelation, parentRefNbr]);
 
   const visibleChildren = useMemo(
     () => filterContactsForDisplay(localChildren, showTerminated, isEffectivelyTerminated) as any[],
@@ -140,8 +144,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   const percentageValue = parseFloat(String(current.percentage || '0').replace('%', '')) || 0;
   const hasPercentage = percentageValue > 0;
   const isChild = parentRefNbr !== "";
-  const nvBusinessId = String(current.nvBusinessId || '').trim();
-  const showNvBusinessId = !isLicenseNode && !isChild && nvBusinessId !== '';
+  const nvBusinessId = String(current.nvBusinessId || "").trim();
+  const showNvBusinessId = shouldShowNvBusinessId(isLicenseNode, nvBusinessId);
   const showPercentageChip =
     hasPercentage &&
     !isLicenseNode &&
@@ -156,13 +160,13 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
       <div className={`relative z-10 w-68 p-4 rounded-lg shadow-xl text-white transition-transform duration-200 ${nodeBgColor} border-b-4 hover:-translate-y-1 ${nodeTerminated ? 'ring-2 ring-slate-300 ring-offset-2' : ''}`}>
 
         <div className="flex justify-between items-start mb-4">
-          <div className="flex flex-col overflow-hidden mr-2">
+          <div className="flex min-w-0 flex-1 flex-col mr-2">
             <p className="text-xs font-bold uppercase truncate" title={current.ownerName}>
               {isLicenseNode ? `ID: ${current.ownerName}` : current.ownerName}
             </p>
             {showNvBusinessId && (
               <p
-                className="text-[10px] font-semibold tracking-wide mt-1 normal-case opacity-90 truncate"
+                className="text-[10px] font-semibold tracking-wide mt-1 normal-case opacity-90 break-words"
                 title={`NV Business ID: ${nvBusinessId}`}
               >
                 NV Business ID: {nvBusinessId}
@@ -305,13 +309,13 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
       {visibleChildren.length > 0 && (
         <>
-          <div className="w-px h-8 bg-slate-300" aria-hidden="true" />
+          <div className="w-0.5 h-8 bg-slate-600" aria-hidden="true" />
           <div className="flex justify-center items-start pt-4 relative">
             {visibleChildren.map((child, idx) => (
               <div key={idx} className="flex flex-col items-center px-4 relative">
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-px h-4 bg-slate-300" aria-hidden="true" />
-                {idx !== 0 && <div className="absolute -top-4 left-0 w-1/2 h-px bg-slate-300" aria-hidden="true" />}
-                {idx !== visibleChildren.length - 1 && <div className="absolute -top-4 right-0 w-1/2 h-px bg-slate-300" aria-hidden="true" />}
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-0.5 h-4 bg-slate-600" aria-hidden="true" />
+                {idx !== 0 && <div className="absolute -top-4 left-0 w-1/2 h-0.5 -translate-y-1/2 bg-slate-600" aria-hidden="true" />}
+                {idx !== visibleChildren.length - 1 && <div className="absolute -top-4 right-0 w-1/2 h-0.5 -translate-y-1/2 bg-slate-600" aria-hidden="true" />}
 
                 <RecursiveTree
                   entity={child}
@@ -660,20 +664,25 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         maxScale={3}
         centerOnInit={true}
         limitToBounds={false}
-        panning={{ excluded: ['input', 'select', 'textarea', 'button', 'a', 'oe-ownership-link'] }}
-        doubleClick={{ excluded: ['button', 'a', 'oe-ownership-link'] }}
+        panning={{ excluded: ['input', 'select', 'textarea', 'button', 'a', 'oe-ownership-link', 'chart-legend'] }}
+        doubleClick={{ excluded: ['button', 'a', 'oe-ownership-link', 'chart-legend'] }}
         onTransformed={(e) => setCurrentZoomScale(e.state.scale)} 
       >
         {({ zoomIn, zoomOut, resetTransform }) => (
           <>
-            <ZoomControls 
-                currentZoom={currentZoomScale} 
-                onZoomIn={() => zoomIn()} 
-                onZoomOut={() => zoomOut()} 
-                onReset={() => resetTransform()}
-                isFullscreen={isFullscreen} 
-                toggleFullscreen={toggleFullscreen} 
-            />
+            {!selectedOwner && (
+              <>
+                <ZoomControls 
+                    currentZoom={currentZoomScale} 
+                    onZoomIn={() => zoomIn()} 
+                    onZoomOut={() => zoomOut()} 
+                    onReset={() => resetTransform()}
+                    isFullscreen={isFullscreen} 
+                    toggleFullscreen={toggleFullscreen} 
+                />
+                <ChartColorLegend />
+              </>
+            )}
             <div className="flex-1 w-full h-full cursor-grab active:cursor-grabbing bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:20px_20px]">
                 <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }} contentStyle={{ width: "100%", height: "100%" }}>
                     <div className="min-w-max min-h-max p-40">
@@ -686,6 +695,7 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
                             onDelete={handleDeleteClick} 
                             isReverseRelation={isReverseRelation}
                             reverseData={processedReverseData}
+                            licenseRows={isReverseRelation ? reverseData : null}
                             viewOnly={viewOnly}
                           />
                     </div>

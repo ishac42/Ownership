@@ -8,7 +8,7 @@ import {
   GENDER_OPTIONS,
   US_CITIZEN_OPTIONS,
 } from '../utils/contactOptions';
-import { applySameCasing } from '../utils/displayText';
+import { applyIndividualNameCase, applySameCasing } from '../utils/displayText';
 
 interface EntityTypeOption {
   value: string;
@@ -49,7 +49,7 @@ const EditOwnerForm = ({
   } = useRefData();
 
   const handleChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
+    setFormData(applyIndividualNameCase({ ...formData, [field]: value }));
   };
 
   const entityType = formData.type || formData.contactType || '';

@@ -9,6 +9,7 @@ import {
   US_CITIZEN_OPTIONS,
 } from '../utils/contactOptions';
 import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
+import { applyIndividualNameCase } from '../utils/displayText';
 import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
 
@@ -114,16 +115,19 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
     const target = e.target as HTMLInputElement;
     const { name, type } = target;
     const value = type === 'checkbox' ? target.checked : target.value;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => applyIndividualNameCase({ ...prev, [name]: value }));
     if (blockDialog) setBlockDialog(null);
   };
 
   const handleSave = async () => {
     if (isSubmitting) return;
 
+    const dataToSave = applyIndividualNameCase(formData);
+    if (dataToSave !== formData) setFormData(dataToSave);
+
     setIsSubmitting(true);
     try {
-      const validation = await callOwnershipPortalValidation(formData, recordID);
+      const validation = await callOwnershipPortalValidation(dataToSave, recordID);
       if (validation.blocked) {
         if (validation.message) {
           setBlockDialog({ message: validation.message });
@@ -132,7 +136,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
         return;
       }
 
-      await onSave(formData);
+      await onSave(dataToSave);
     } catch (error) {
       console.error('Error saving owner:', error);
       setBlockDialog({

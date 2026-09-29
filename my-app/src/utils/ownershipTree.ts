@@ -35,17 +35,17 @@ export const prepareOwnershipChildren = (
   );
 
 /** Apply all pending owner edits onto a tree (survives API refresh + modal reopen). */
-export const applyAllOwnerPatches = (
-  node: unknown,
+export const applyAllOwnerPatches = <T>(
+  node: T,
   patches: Record<string, Record<string, unknown>>
-): unknown => {
+): T => {
   if (!node || Object.keys(patches).length === 0) return node;
 
   let result: unknown = node;
   for (const [refNbr, updates] of Object.entries(patches)) {
     result = patchOwnerInTree(result, refNbr, updates);
   }
-  return result;
+  return result as T;
 };
 
 /** Field edits only. The cached patch must not carry the contact's subtree. */

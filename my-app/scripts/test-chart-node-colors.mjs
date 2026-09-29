@@ -31,7 +31,7 @@ test('node colors prefer permit, then application, then license over owner type'
       isPermit: true,
       isPendingApplication: true,
     }),
-    'bg-teal-700 border-teal-800',
+    'bg-violet-700 border-violet-800',
   );
   assert.equal(
     nodeColorClasses({
@@ -51,6 +51,17 @@ test('node colors prefer permit, then application, then license over owner type'
     }),
     'bg-[#1e40af] border-[#1e3a8a]',
   );
+});
+
+test('each chart type uses a distinct fill', () => {
+  const fills = [
+    nodeColorClasses({ isIndividual: true, isLicenseNode: false, isPermit: false, isPendingApplication: false }),
+    nodeColorClasses({ isIndividual: false, isLicenseNode: false, isPermit: false, isPendingApplication: false }),
+    nodeColorClasses({ isIndividual: false, isLicenseNode: true, isPermit: false, isPendingApplication: false }),
+    nodeColorClasses({ isIndividual: false, isLicenseNode: true, isPermit: false, isPendingApplication: true }),
+    nodeColorClasses({ isIndividual: false, isLicenseNode: true, isPermit: true, isPendingApplication: false }),
+  ].map((classes) => classes.split(' ')[0]);
+  assert.equal(new Set(fills).size, fills.length);
 });
 
 test('owner boxes are teal for individuals and burgundy for organizations', () => {

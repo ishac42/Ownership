@@ -11,7 +11,7 @@ export function nodeColorClasses({
   isPendingApplication,
 }) {
   if (isLicenseNode) {
-    if (isPermit) return 'bg-teal-700 border-teal-800';
+    if (isPermit) return 'bg-violet-700 border-violet-800';
     if (isPendingApplication) return 'bg-amber-600 border-amber-700';
     return 'bg-[#1e40af] border-[#1e3a8a]';
   }
@@ -25,5 +25,5 @@ export const CHART_LEGEND_ITEMS = [
   { id: 'organization', group: 'Owners', label: 'Organization', swatchClass: 'bg-[#792454] border-b-2 border-[#611d43]' },
   { id: 'license', group: 'Records', label: 'License record', swatchClass: 'bg-[#1e40af] border-b-2 border-[#1e3a8a]' },
   { id: 'application', group: 'Records', label: 'Application record', swatchClass: 'bg-amber-600 border-b-2 border-amber-700' },
-  { id: 'permit', group: 'Records', label: 'Permit record', swatchClass: 'bg-teal-700 border-b-2 border-teal-800' },
+  { id: 'permit', group: 'Records', label: 'Permit record', swatchClass: 'bg-violet-700 border-b-2 border-violet-800' },
 ];

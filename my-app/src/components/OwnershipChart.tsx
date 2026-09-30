@@ -28,6 +28,7 @@ import AddOwnerForm from "./AddOwnerForm";
 import OwnerDetailsCard from "./OwnerDetailsCard"; 
 import ZoomControls from "./ZoomControls";
 import { buildAddOwnerPayload } from '../utils/ownerPayload';
+import { addedOwnerNode, referenceFromAddResponse } from '../utils/ownershipTree';
 import { isOperatingEntityType } from '../utils/entityType';
 import ShowTerminatedToggle from './ShowTerminatedToggle';
 import ChartColorLegend from './ChartColorLegend';
@@ -345,6 +346,8 @@ interface OwnershipChartProps {
   entity: any; // Can now seamlessly accept an individual Object or a Base Array containing multiple parent nodes
   onRefresh?: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onOwnerAdded?: (parentRef: string, child: Record<string, unknown>) => void;
+  onOwnerRemoved?: (parentRef: string, childRef: string) => void;
   onViewRelated?: (entity: any) => void;
   onViewOperatingEntity?: (entity: any) => void;
   isReverseRelation?: boolean; 
@@ -354,8 +357,9 @@ interface OwnershipChartProps {
 
 const OwnershipChart: React.FC<OwnershipChartProps> = ({ 
   entity, 
-  onRefresh,
   onOwnerUpdated,
+  onOwnerAdded,
+  onOwnerRemoved,
   onViewRelated,
   onViewOperatingEntity,
   isReverseRelation = false,
@@ -431,8 +435,9 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         }),
       });
       if (response.ok) {
+        const childRef = String(deleteContext.target.referenceNbr || deleteContext.target.referenceNumber || '');
+        onOwnerRemoved?.(deleteContext.parentRefNbr, childRef);
         setSuccessMessage(`Deleted successfully`);
-        if (onRefresh) await onRefresh();
       }
     } catch (error) {
       alert("Error connecting to server.");
@@ -459,21 +464,21 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         }),
       });
       if (response.ok) {
+        const parentRef = String(parent.referenceNbr || '');
+        let body: unknown = null;
+        try {
+          body = await response.json();
+        } catch {
+          body = null;
+        }
+        onOwnerAdded?.(parentRef, addedOwnerNode(formData, parentRef, referenceFromAddResponse(body)));
         setAddingToParent(null);
         setSuccessMessage(`Owner added successfully`);
-        if (onRefresh) await onRefresh();
       }
     } catch (err) {
       alert("Connection Error.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleEditRefresh = async () => {
-    if (onRefresh) {
-        setLoading(true);
-        try { await onRefresh(); } finally { setLoading(false); }
     }
   };
 
@@ -602,7 +607,6 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
           key={getOwnerReferenceNbr(selectedOwner)}
           owner={selectedOwner}
           onClose={() => setSelectedOwner(null)}
-          onRefresh={viewOnly ? undefined : handleEditRefresh}
           onOwnerUpdated={viewOnly ? undefined : (refNbr, updates) => {
             onOwnerUpdated?.(refNbr, updates);
             setSelectedOwner((prev: any) => (prev ? { ...prev, ...updates } : null));

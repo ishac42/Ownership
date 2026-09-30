@@ -1,6 +1,19 @@
-import { patchOwnerInTree, stripOwnerPatchUpdates } from './ownershipPatch.js';
+import { applyIndividualNameCase, isIndividualOwner } from './displayText';
+import {
+  insertOwnerUnderParent,
+  patchOwnerInTree,
+  referenceFromAddResponse,
+  removeOwnerFromParent,
+  stripOwnerPatchUpdates,
+} from './ownershipPatch.js';
 
-export { patchOwnerInTree, stripOwnerPatchUpdates };
+export {
+  insertOwnerUnderParent,
+  patchOwnerInTree,
+  referenceFromAddResponse,
+  removeOwnerFromParent,
+  stripOwnerPatchUpdates,
+};
 
 /** Contact reference on a raw owner node from the retrieve-info script. */
 export const ownerReferenceOf = (item: unknown): string => {
@@ -46,6 +59,44 @@ export const applyAllOwnerPatches = <T>(
     result = patchOwnerInTree(result, refNbr, updates);
   }
   return result as T;
+};
+
+/** Chart node for an owner that was just created. Fields come from the form, not a refetch. */
+export const addedOwnerNode = (
+  formData: Record<string, unknown>,
+  parentRef: string,
+  referenceNbr: string
+): Record<string, unknown> => {
+  const names = applyIndividualNameCase(formData);
+  const individual = isIndividualOwner(formData.ownershipType);
+  const firstName = String(names.firstName || '');
+  const lastName = String(names.lastName || '');
+  const ownerName = individual
+    ? [firstName, lastName].filter(Boolean).join(' ')
+    : String(formData.ownerName || '');
+
+  return {
+    referenceNbr,
+    referenceNumber: referenceNbr,
+    id: referenceNbr,
+    parentRefNbr: parentRef,
+    ownerName,
+    firstName,
+    lastName,
+    ownershipType: formData.ownershipType || '',
+    contactType: individual ? 'Individual' : String(formData.ownershipType || 'Organization'),
+    type: formData.type || 'Owner',
+    percentage: formData.percentage ?? '',
+    status: formData.status || 'Active',
+    email: formData.email || '',
+    phone: formData.phone || '',
+    ownershipAddr: formData.ownershipAddr || '',
+    city: formData.city || '',
+    state: formData.state || '',
+    zip: formData.zip || '',
+    country: formData.country || '',
+    relatedContacts: [],
+  };
 };
 
 /** Field edits only. The cached patch must not carry the contact's subtree. */

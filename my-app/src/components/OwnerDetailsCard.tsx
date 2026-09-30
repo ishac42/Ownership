@@ -19,7 +19,7 @@ interface OwnerDetailsCardProps {
   readOnly?: boolean;
 }
 
-const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTotalPercentage, isFromList, readOnly = false }: OwnerDetailsCardProps) => {
+const OwnerDetailsCard = ({ owner, onClose, onOwnerUpdated, currentTotalPercentage, isFromList, readOnly = false }: OwnerDetailsCardProps) => {
   const { recordID } = usePortalParams();
   const { getEffectiveStatus, setStatusOverride } = useOwnershipStatus();
   const [isEditing, setIsEditing] = useState(false);
@@ -207,7 +207,6 @@ const OwnerDetailsCard = ({ owner, onClose, onRefresh, onOwnerUpdated, currentTo
 
         setSuccessMessage(`Owner updated successfully`);
         setIsEditing(false);
-        void onRefresh?.();
       } else {
         setBlockDialog({
           title: 'Update Failed',

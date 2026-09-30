@@ -18,6 +18,8 @@ const App = () => {
   isLoading, handleSearch,
   refreshSelectedRecord,
   patchOwnerInSelectedRecord,
+  insertOwnerInSelectedRecord,
+  removeOwnerFromSelectedRecord,
   loadEntityByRef,
   loadReverseRelations,
   bulkCache,
@@ -160,6 +162,8 @@ const App = () => {
                 selectedRecord={selectedRecord} 
                 onRefresh={refreshSelectedRecord}
                 onOwnerUpdated={patchOwnerInSelectedRecord}
+                onOwnerAdded={insertOwnerInSelectedRecord}
+                onOwnerRemoved={removeOwnerFromSelectedRecord}
                 loadEntityByRef={loadEntityByRef}
                 loadReverseRelations={loadReverseRelations}
                 bulkCache={bulkCache}

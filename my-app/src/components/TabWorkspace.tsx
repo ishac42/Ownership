@@ -3,7 +3,7 @@ import { List, BarChart3, X, Building2, Loader2 } from 'lucide-react';
 import OwnershipList from './OwnershipList';
 import OwnershipChart from './OwnershipChart';
 import { getEntityRef, ownershipTabId } from '../utils/entityType';
-import { applyAllOwnerPatches } from '../utils/ownershipTree';
+import { applyAllOwnerPatches, insertOwnerUnderParent, removeOwnerFromParent } from '../utils/ownershipTree';
 
 const RelatedLicensesPanel: React.FC<{
   tab: any;
@@ -11,6 +11,8 @@ const RelatedLicensesPanel: React.FC<{
   reverseLoading: boolean;
   onRefresh: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onOwnerAdded?: (parentRef: string, child: Record<string, unknown>) => void;
+  onOwnerRemoved?: (parentRef: string, childRef: string) => void;
   onViewRelated: (entity: any) => void;
   onViewOperatingEntity: (entity: any) => void;
 }> = ({
@@ -19,6 +21,8 @@ const RelatedLicensesPanel: React.FC<{
   reverseLoading,
   onRefresh,
   onOwnerUpdated,
+  onOwnerAdded,
+  onOwnerRemoved,
   onViewRelated,
   onViewOperatingEntity,
 }) => {
@@ -51,6 +55,8 @@ const RelatedLicensesPanel: React.FC<{
         entity={tab.entity}
         onRefresh={onRefresh}
         onOwnerUpdated={onOwnerUpdated}
+        onOwnerAdded={onOwnerAdded}
+        onOwnerRemoved={onOwnerRemoved}
         onViewRelated={onViewRelated}
         onViewOperatingEntity={onViewOperatingEntity}
         isReverseRelation={true}
@@ -64,6 +70,8 @@ interface TabWorkspaceProps {
   selectedRecord: any;
   onRefresh: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onOwnerAdded?: (parentRef: string, child: Record<string, unknown>) => void;
+  onOwnerRemoved?: (parentRef: string, childRef: string) => void;
   loadEntityByRef: (referenceNo: string) => Promise<any | null>;
   loadReverseRelations: (referenceNumbers: string[]) => Promise<void>;
   bulkCache: Record<string, any[]>;
@@ -74,6 +82,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
   selectedRecord,
   onRefresh,
   onOwnerUpdated,
+  onOwnerAdded,
+  onOwnerRemoved,
   loadEntityByRef,
   loadReverseRelations,
   bulkCache,
@@ -100,6 +110,23 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
         title: entity.ownerName || entity.firstName || tab.title,
       };
     }));
+  };
+
+  const updateOpenTabTrees = (transform: (entity: any) => any) => {
+    setTabs((prev) => prev.map((tab) => {
+      if (!tab.entity || tab.id === 'main') return tab;
+      return { ...tab, entity: transform(tab.entity) };
+    }));
+  };
+
+  const handleOwnerAdded = (parentRef: string, child: Record<string, unknown>) => {
+    onOwnerAdded?.(parentRef, child);
+    updateOpenTabTrees((entity) => insertOwnerUnderParent(entity, parentRef, child));
+  };
+
+  const handleOwnerRemoved = (parentRef: string, childRef: string) => {
+    onOwnerRemoved?.(parentRef, childRef);
+    updateOpenTabTrees((entity) => removeOwnerFromParent(entity, parentRef, childRef));
   };
 
   const mainRecordId = selectedRecord?.referenceNbr || selectedRecord?.referenceNumber || selectedRecord?.id;
@@ -398,6 +425,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                         entity={selectedRecord} 
                         onRefresh={onRefresh}
                         onOwnerUpdated={handleOwnerUpdated}
+                        onOwnerAdded={handleOwnerAdded}
+                        onOwnerRemoved={handleOwnerRemoved}
                         onViewRelated={handleViewRelated}
                         isReverseRelation={false}
                         reverseData={null}
@@ -412,6 +441,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                           entity={selectedRecord} 
                           onRefresh={onRefresh}
                           onOwnerUpdated={handleOwnerUpdated}
+                          onOwnerAdded={handleOwnerAdded}
+                          onOwnerRemoved={handleOwnerRemoved}
                           onViewRelated={handleViewRelated}
                           onViewOperatingEntity={handleViewOperatingEntity}
                           isReverseRelation={false}
@@ -451,6 +482,8 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                       reverseLoading={Boolean(reverseLoadingRefs[tab.id])}
                       onRefresh={onRefresh}
                       onOwnerUpdated={handleOwnerUpdated}
+                      onOwnerAdded={handleOwnerAdded}
+                      onOwnerRemoved={handleOwnerRemoved}
                       onViewRelated={handleViewRelated}
                       onViewOperatingEntity={handleViewOperatingEntity}
                     />

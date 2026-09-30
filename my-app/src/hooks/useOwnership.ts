@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '../config';
-import { applyAllOwnerPatches, findOwnerByReference, ownerReferenceOf, stripOwnerPatchUpdates } from '../utils/ownershipTree';
-import { groupReverseParentsByChildRef, patchReverseRelationCache, replaceReverseRelationCache } from '../utils/reverseCache';
+import { applyAllOwnerPatches, findOwnerByReference, insertOwnerUnderParent, ownerReferenceOf, removeOwnerFromParent, stripOwnerPatchUpdates } from '../utils/ownershipTree';
+import { groupReverseParentsByChildRef, mapReverseRelationTrees, patchReverseRelationCache, replaceReverseRelationCache } from '../utils/reverseCache';
 
 const normalizeRefList = (referenceNumbers: string[]): string[] =>
   [...new Set(
@@ -188,6 +188,27 @@ export const useOwnershipSearch = () => {
     setBulkCache((prev) => patchReverseRelationCache(prev, ownerPatchesRef.current));
   }, []);
 
+  const applyStructuralChange = useCallback((transform: (node: any) => any) => {
+    setSelectedRecord((prev: any) => (prev ? transform(prev) : prev));
+    setResults((prev: any[]) => prev.map((item: any) => transform(item)));
+    const nextEntityCache: Record<string, any> = {};
+    for (const [key, tree] of Object.entries(entityByRefCache.current)) {
+      nextEntityCache[key] = transform(tree);
+    }
+    entityByRefCache.current = nextEntityCache;
+    setBulkCache((prev) => mapReverseRelationTrees(prev, transform));
+  }, []);
+
+  const insertOwnerInSelectedRecord = useCallback((parentRef: string, child: Record<string, unknown>) => {
+    if (!parentRef) return;
+    applyStructuralChange((node) => insertOwnerUnderParent(node, parentRef, child));
+  }, [applyStructuralChange]);
+
+  const removeOwnerFromSelectedRecord = useCallback((parentRef: string, childRef: string) => {
+    if (!parentRef || !childRef) return;
+    applyStructuralChange((node) => removeOwnerFromParent(node, parentRef, childRef));
+  }, [applyStructuralChange]);
+
   const loadEntityByRef = useCallback(async (referenceNo: string) => {
     const ref = String(referenceNo || '').trim();
     if (!ref || ref === 'N/A') return null;
@@ -230,6 +251,8 @@ export const useOwnershipSearch = () => {
     handleSearch,
     refreshSelectedRecord,
     patchOwnerInSelectedRecord,
+    insertOwnerInSelectedRecord,
+    removeOwnerFromSelectedRecord,
     loadEntityByRef,
     loadReverseRelations,
     bulkCache,

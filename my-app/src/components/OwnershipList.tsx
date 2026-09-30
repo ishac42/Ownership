@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../config';
 import OwnerDetailsCard from "./OwnerDetailsCard";
 import AddOwnerForm from "./AddOwnerForm";
 import { buildAddOwnerPayload } from '../utils/ownerPayload';
+import { addedOwnerNode, referenceFromAddResponse } from '../utils/ownershipTree';
 import ShowTerminatedToggle from './ShowTerminatedToggle';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
 import {
@@ -22,6 +23,8 @@ interface OwnershipListProps {
   depth?: number;
   onRefresh?: () => Promise<void> | void;
   onOwnerUpdated?: (refNbr: string, updates: Record<string, unknown>) => void;
+  onOwnerAdded?: (parentRef: string, child: Record<string, unknown>) => void;
+  onOwnerRemoved?: (parentRef: string, childRef: string) => void;
   parentRefNbr?: string;
   onViewRelated?: (entity: any) => void;
   isReverseRelation?: boolean;    
@@ -35,6 +38,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   depth = 0, 
   onRefresh,
   onOwnerUpdated,
+  onOwnerAdded,
+  onOwnerRemoved,
   parentRefNbr = "0",
   onViewRelated,
   isReverseRelation = false,
@@ -125,8 +130,9 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         }),
       });
       if (response.ok) {
+        const childRef = String(deleteContext.target.referenceNumber || deleteContext.target.referenceNbr || '');
+        onOwnerRemoved?.(deleteContext.parentRefNbr, childRef);
         setSuccessMessage(`Deleted successfully`);
-        if (onRefresh) await onRefresh();
       } else {
         alert("Failed to delete.");
       }
@@ -155,10 +161,21 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
       });
 
       if (response.ok) {
+        const parentRef = String(current.referenceNbr || '');
+        let body: unknown = null;
+        try {
+          body = await response.json();
+        } catch {
+          body = null;
+        }
+        onOwnerAdded?.(parentRef, addedOwnerNode(formData, parentRef, referenceFromAddResponse(body)));
+        if (setExpandedNodes) {
+          setExpandedNodes((prev) => ({ ...prev, [nodeId]: true }));
+        } else {
+          setLocalIsExpanded(true);
+        }
         setIsAdding(false);
-        // We no longer force setExpandedNodes here so it respects the user's layout
         setSuccessMessage(`Owner: ${formData.ownerName} added successfully`);
-        if (onRefresh) await onRefresh(); 
       } else {
         alert("Failed to add owner.");
       }
@@ -368,6 +385,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
                   depth={depth + 1} 
                   onRefresh={onRefresh}
                   onOwnerUpdated={onOwnerUpdated}
+                  onOwnerAdded={onOwnerAdded}
+                  onOwnerRemoved={onOwnerRemoved}
                   parentRefNbr={current.referenceNbr}
                   onViewRelated={onViewRelated}
                   isReverseRelation={isReverseRelation}
@@ -392,7 +411,6 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
             key={getOwnerReferenceNbr(selectedOwner)}
             owner={selectedOwner}
             onClose={() => setSelectedOwner(null)}
-            onRefresh={() => { void onRefresh?.(); }}
             onOwnerUpdated={(refNbr, updates) => {
               onOwnerUpdated?.(refNbr, updates);
               setSelectedOwner((prev: any) => (prev ? { ...prev, ...updates } : null));

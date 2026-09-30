@@ -1,7 +1,11 @@
 import { patchOwnerInTree } from './ownershipPatch.js';
 
-/** Run a tree change on every cached reverse row. */
+/**
+ * Run a tree change on every cached reverse row.
+ * @returns {Record<string, any[]>}
+ */
 export const mapReverseRelationTrees = (cache = {}, transform) => {
+  /** @type {Record<string, any[]>} */
   const next = {};
   for (const [ref, rows] of Object.entries(cache || {})) {
     next[ref] = (Array.isArray(rows) ? rows : []).map((row) => transform(row));

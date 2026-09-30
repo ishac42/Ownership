@@ -339,13 +339,7 @@ const TabWorkspace: React.FC<TabWorkspaceProps> = ({
                 id={`tab-${tab.id}`}
                 aria-selected={isActive}
                 aria-controls={`tabpanel-${tab.id}`}
-                onClick={() => {
-                  if (tab.type === 'related' && tab.entity) {
-                    handleViewRelated(tab.entity);
-                    return;
-                  }
-                  setActiveTabId(tab.id);
-                }}
+                onClick={() => setActiveTabId(tab.id)}
                 onKeyDown={(e) => handleTabKeyDown(e, tab.id)}
                 style={{ marginBottom: isActive ? '-1px' : '0' }}
                 className={`flex items-center gap-1.5 shrink-0 rounded-t-md border-t border-l border-r min-w-[120px] max-w-[180px] px-3 py-1.5 text-[11px] font-semibold transition-colors ${

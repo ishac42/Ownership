@@ -15,6 +15,8 @@ export {
   stripOwnerPatchUpdates,
 };
 
+export { sortOwnershipChildren } from './ownershipOrder.js';
+
 /** Contact reference on a raw owner node from the retrieve-info script. */
 export const ownerReferenceOf = (item: unknown): string => {
   const node = item as Record<string, unknown> | null | undefined;

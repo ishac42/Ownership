@@ -16,7 +16,7 @@ import {
   isOwnershipAsitRow,
   getOwnerReferenceNbr,
 } from '../utils/ownershipStatus';
-import { prepareOwnershipChildren } from '../utils/ownershipTree';
+import { prepareOwnershipChildren, sortOwnershipChildren } from '../utils/ownershipTree';
 
 interface OwnershipListProps {
   entity: any; 
@@ -82,7 +82,9 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   }, [successMessage]);
 
   const visibleChildren = useMemo(
-    () => filterContactsForDisplay(localChildren, showTerminated, isEffectivelyTerminated) as any[],
+    () => sortOwnershipChildren(
+      filterContactsForDisplay(localChildren, showTerminated, isEffectivelyTerminated) as any[]
+    ),
     [localChildren, showTerminated, isEffectivelyTerminated]
   );
 

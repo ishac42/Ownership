@@ -11,7 +11,7 @@ import {
   isOwnershipAsitRow,
   getOwnerReferenceNbr,
 } from '../utils/ownershipStatus';
-import { prepareOwnershipChildren } from '../utils/ownershipTree';
+import { prepareOwnershipChildren, sortOwnershipChildren } from '../utils/ownershipTree';
 import {
   attachRootLicensesFromReverse,
   collectLicenseDetails,
@@ -138,7 +138,9 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
   }, [entity, reverseData, licenseRows, isReverseRelation, parentRefNbr]);
 
   const visibleChildren = useMemo(
-    () => filterContactsForDisplay(localChildren, showTerminated, isEffectivelyTerminated) as any[],
+    () => sortOwnershipChildren(
+      filterContactsForDisplay(localChildren, showTerminated, isEffectivelyTerminated) as any[]
+    ),
     [localChildren, showTerminated, isEffectivelyTerminated]
   );
 

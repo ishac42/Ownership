@@ -13,6 +13,12 @@ node scripts/a11y-full-scan.mjs
 
 Reports are written to `a11y-report.json` and `a11y-full-report.json`.
 
+## Tests
+
+```bash
+npm test
+```
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh

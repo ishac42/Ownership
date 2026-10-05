@@ -10,6 +10,15 @@ import {
 } from '../utils/contactOptions';
 import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
 import { applyIndividualNameCase } from '../utils/displayText';
+import {
+  formatOwnershipPercent,
+  normalizeOwnerStatus,
+  ownershipAddBlockedReason,
+  ownershipPercentChangeError,
+  ownershipTotalAtCap,
+  parseOwnershipPercent,
+  OWNER_STATUS_TERMINATED,
+} from '../utils/ownershipStatus';
 import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
 
@@ -24,7 +33,7 @@ interface AddOwnerFormProps {
   currentTotalPercentage?: number;
 }
 
-const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
+const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwnerFormProps) => {
   const {
     entityTypes,
     addressTypeOptions,
@@ -119,11 +128,30 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
     if (blockDialog) setBlockDialog(null);
   };
 
+  const activeTotal = Number.isFinite(currentTotalPercentage) ? currentTotalPercentage : 0;
+  const percentHint = ownershipTotalAtCap(activeTotal)
+    ? ownershipAddBlockedReason(activeTotal)
+    : `${formatOwnershipPercent(Math.max(0, 100 - activeTotal))}% remaining. Active owners cannot total more than 100%.`;
+
   const handleSave = async () => {
     if (isSubmitting) return;
 
     const dataToSave = applyIndividualNameCase(formData);
     if (dataToSave !== formData) setFormData(dataToSave);
+
+    const percentError = ownershipPercentChangeError({
+      currentActiveTotal: activeTotal,
+      ownerCurrentPercent: 0,
+      ownerCurrentlyCounts: false,
+      nextPercent: parseOwnershipPercent(dataToSave.percentage),
+      nextCounts: normalizeOwnerStatus(dataToSave.status) !== OWNER_STATUS_TERMINATED,
+      percentChanged: true,
+      isNewOwner: true,
+    });
+    if (percentError) {
+      setBlockDialog({ message: percentError });
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -447,7 +475,7 @@ const AddOwnerForm = ({ onCancel, onSave }: AddOwnerFormProps) => {
           {/* Ownership */}
           <SectionTitle>Ownership</SectionTitle>
           <div className="grid grid-cols-3 gap-6">
-            <FormField label="Percent (%) Owned" name="percentage" placeholder="e.g. 25" value={formData.percentage} onChange={handleChange} />
+            <FormField label="Percent (%) Owned" name="percentage" placeholder="e.g. 25" value={formData.percentage} onChange={handleChange} subLabel={percentHint} />
           </div>
 
           {/* Actions */}

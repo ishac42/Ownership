@@ -5,7 +5,18 @@ import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
 import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
-import { getOwnerReferenceNbr, hasInvalidOwnershipTotal, isOwnershipAsitRow, OWNER_STATUS_OPTIONS, type OwnerStatus } from '../utils/ownershipStatus';
+import {
+  getOwnerReferenceNbr,
+  hasInvalidOwnershipTotal,
+  isOwnershipAsitRow,
+  normalizeOwnerStatus,
+  OWNER_STATUS_OPTIONS,
+  OWNER_STATUS_TERMINATED,
+  ownershipPercentChangeError,
+  ownershipPercentsDiffer,
+  parseOwnershipPercent,
+  type OwnerStatus,
+} from '../utils/ownershipStatus';
 import { buildSavedOwnerUpdates } from '../utils/ownershipTree';
 import { applyIndividualNameCase, capitalizeFirstLetter, equalsIgnoreCase } from '../utils/displayText';
 
@@ -54,6 +65,26 @@ const OwnerDetailsCard = ({ owner, onClose, onOwnerUpdated, currentTotalPercenta
     setBlockDialog(null);
     const submittedForm = applyIndividualNameCase(formData);
     if (submittedForm !== formData) setFormData(submittedForm);
+
+    const guardsOwnShare = !!owner.isChildOfCurrent && !shouldCalculateFromChildren && isOwnershipAsitRow(owner);
+    if (guardsOwnShare) {
+      const percentError = ownershipPercentChangeError({
+        currentActiveTotal: currentTotalPercentage ?? 0,
+        ownerCurrentPercent: originalPct,
+        ownerCurrentlyCounts: getEffectiveStatus(owner) !== OWNER_STATUS_TERMINATED,
+        nextPercent: parseOwnershipPercent(submittedForm.percentage),
+        nextCounts: normalizeOwnerStatus(submittedForm.status) !== OWNER_STATUS_TERMINATED,
+        percentChanged: ownershipPercentsDiffer(
+          owner.percentage ?? owner.ownershipPercentage,
+          submittedForm.percentage
+        ),
+        isNewOwner: false,
+      });
+      if (percentError) {
+        setBlockDialog({ message: percentError });
+        return;
+      }
+    }
 
     const fieldMap: Record<string, string> = {
       // Core

@@ -10,6 +10,8 @@ import {
   countTerminatedInSubtree,
   isOwnershipAsitRow,
   getOwnerReferenceNbr,
+  ownershipAddBlockedReason,
+  ownershipTotalAtCap,
 } from '../utils/ownershipStatus';
 import { prepareOwnershipChildren, sortOwnershipChildren } from '../utils/ownershipTree';
 import {
@@ -156,6 +158,8 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
 
   // --- CALCULATE TOTAL % (EXCLUDING LICENSES AND INACTIVE FROM NUMERIC MATH) ---
   const childrenTotalPercentage = sumActiveChildPercentages(localChildren, isEffectivelyTerminated);
+  const addBlocked = ownershipTotalAtCap(childrenTotalPercentage);
+  const addBlockedReason = addBlocked ? ownershipAddBlockedReason(childrenTotalPercentage) : '';
 
   return (
     <div className="flex flex-col items-center">
@@ -290,10 +294,15 @@ export const RecursiveTree: React.FC<RecursiveTreeProps> = ({
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (addBlocked) return;
                     onOpenAdd(current, childrenTotalPercentage);
                   }}
-                  className="flex items-center gap-1 px-2 py-1 rounded transition-colors border bg-white/10 hover:bg-white/25 border-white/10"
-                  aria-label={`Add owner to ${current.ownerName || 'entity'}`}
+                  disabled={addBlocked}
+                  title={addBlocked ? addBlockedReason : 'Add owner'}
+                  className={`flex items-center gap-1 px-2 py-1 rounded transition-colors border bg-white/10 border-white/10 ${
+                    addBlocked ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/25'
+                  }`}
+                  aria-label={addBlocked ? addBlockedReason : `Add owner to ${current.ownerName || 'entity'}`}
                 >
                   <Plus size={10} strokeWidth={3} aria-hidden="true" />
                   <span className="text-[9px] font-bold uppercase">Add</span>

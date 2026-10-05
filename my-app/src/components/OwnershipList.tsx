@@ -15,6 +15,8 @@ import {
   countTerminatedInSubtree,
   isOwnershipAsitRow,
   getOwnerReferenceNbr,
+  ownershipAddBlockedReason,
+  ownershipTotalAtCap,
 } from '../utils/ownershipStatus';
 import { prepareOwnershipChildren, sortOwnershipChildren } from '../utils/ownershipTree';
 
@@ -94,6 +96,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
   );
 
   const childrenTotalPercentage = sumActiveChildPercentages(localChildren, isEffectivelyTerminated);
+  const addBlocked = ownershipTotalAtCap(childrenTotalPercentage);
+  const addBlockedReason = addBlocked ? ownershipAddBlockedReason(childrenTotalPercentage) : '';
 
   const handleToggleExpand = () => {
     if (setExpandedNodes) {
@@ -291,8 +295,10 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
               {!isIndividual && !isReverseRelation && (
                 <button 
                   onClick={() => setIsAdding(true)}
-                  disabled={isLoading}
-                  className="bg-[#24417a] text-white px-3 py-1 text-xs flex items-center gap-1 font-bold hover:bg-[#1a315e] transition-colors rounded-sm shadow-sm disabled:opacity-50"
+                  disabled={isLoading || addBlocked}
+                  title={addBlocked ? addBlockedReason : 'Add owner'}
+                  aria-label={addBlocked ? addBlockedReason : `Add owner to ${current.ownerName || 'entity'}`}
+                  className="bg-[#24417a] text-white px-3 py-1 text-xs flex items-center gap-1 font-bold hover:bg-[#1a315e] transition-colors rounded-sm shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus size={14} /> Add
                 </button>

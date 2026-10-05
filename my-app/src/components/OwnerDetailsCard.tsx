@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../config';
 import EditOwnerForm from './EditOwnerForm';
-import { callOwnershipPortalValidation } from '../utils/ownershipValidation';
+import {
+  callOwnershipPortalValidation,
+  type OwnershipPortalValidationContext,
+} from '../utils/ownershipValidation';
 import { usePortalParams } from '../context/PortalContext';
 import ValidationBlockDialog from './ValidationBlockDialog';
 import { useOwnershipStatus } from '../context/OwnershipStatusContext';
@@ -60,6 +63,14 @@ const OwnerDetailsCard = ({ owner, onClose, onOwnerUpdated, currentTotalPercenta
   const shouldCalculateFromChildren = hasChildren && (isRootParent || isFromList);
   const originalPct = parseFloat(String(owner.percentage || '0').replace('%', '')) || 0;
   const showStatusField = isOwnershipAsitRow(owner);
+
+  const portalValidationContext = (): OwnershipPortalValidationContext | undefined => {
+    const parent = String(owner.parentRefNbr ?? '').trim();
+    if (!parent || parent === '0') return undefined;
+    const editRefNbr = getOwnerReferenceNbr(owner);
+    if (!editRefNbr) return undefined;
+    return { parentRefNbr: parent, editRefNbr, operation: 'edit' };
+  };
 
   const handleUpdate = async () => {
     setBlockDialog(null);
@@ -204,7 +215,11 @@ const OwnerDetailsCard = ({ owner, onClose, onOwnerUpdated, currentTotalPercenta
     setIsLoading(true);
 
     try {
-      const validation = await callOwnershipPortalValidation(submittedForm, recordID);
+      const validation = await callOwnershipPortalValidation(
+        submittedForm,
+        recordID,
+        portalValidationContext()
+      );
       if (validation.blocked) {
         if (validation.message) {
           setBlockDialog({ message: validation.message });

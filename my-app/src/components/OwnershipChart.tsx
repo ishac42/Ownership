@@ -609,7 +609,8 @@ const OwnershipChart: React.FC<OwnershipChartProps> = ({
         <AddOwnerForm 
           onCancel={() => setAddingToParent(null)} 
           onSave={handleSaveOwner} 
-          currentTotalPercentage={totalForAdd} 
+          currentTotalPercentage={totalForAdd}
+          parentRefNbr={String(normalizeEntity(addingToParent).referenceNbr || '')}
         />
       )}
 

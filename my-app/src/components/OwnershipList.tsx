@@ -410,7 +410,8 @@ const OwnershipList: React.FC<OwnershipListProps> = ({
         <AddOwnerForm 
           onCancel={() => setIsAdding(false)} 
           onSave={handleAddOwner} 
-          currentTotalPercentage={childrenTotalPercentage} 
+          currentTotalPercentage={childrenTotalPercentage}
+          parentRefNbr={String(current.referenceNbr || '')}
         />
       )}
       

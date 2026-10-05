@@ -31,9 +31,10 @@ interface AddOwnerFormProps {
   onCancel: () => void;
   onSave: (newData: Record<string, any>) => Promise<void> | void;
   currentTotalPercentage?: number;
+  parentRefNbr?: string;
 }
 
-const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwnerFormProps) => {
+const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0, parentRefNbr = '' }: AddOwnerFormProps) => {
   const {
     entityTypes,
     addressTypeOptions,
@@ -155,7 +156,10 @@ const AddOwnerForm = ({ onCancel, onSave, currentTotalPercentage = 0 }: AddOwner
 
     setIsSubmitting(true);
     try {
-      const validation = await callOwnershipPortalValidation(dataToSave, recordID);
+      const validation = await callOwnershipPortalValidation(dataToSave, recordID, {
+        parentRefNbr,
+        operation: 'add',
+      });
       if (validation.blocked) {
         if (validation.message) {
           setBlockDialog({ message: validation.message });
